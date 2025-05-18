@@ -1,0 +1,5 @@
+MERGE (c:Character {name:'{{ character }}'})
+MERGE (t:Trait     {name:'{{ trait }}'})
+MERGE (c)-[:HAS_TRAIT]->(t)
+
+{% include 'universal_fact.j2' %}

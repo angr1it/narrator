@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+fastapi_camelcase
+debugpy
+asyncpg
+pytest-asyncio
+httpx
+greenlet
+langchain
+langchain-openai
+weaviate-client
+jinja2
+neo4j
+langfuse

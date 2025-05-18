@@ -1,0 +1,5 @@
+MERGE (c:Character {name:'{{ character }}'})
+SET c.is_alive = false
+
+
+{% include 'universal_fact.j2' %}

@@ -1,0 +1,9 @@
+{
+    "jupyter.notebookFileRoot": "${workspaceFolder}",
+    "python.testing.pytestArgs": [
+        "app/tests",
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.testing.cwd": "${workspaceFolder}",
+}

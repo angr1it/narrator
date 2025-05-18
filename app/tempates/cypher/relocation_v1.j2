@@ -1,0 +1,5 @@
+MERGE (c:Character {name:'{{ character }}'})
+MERGE (p:Place {name:'{{ place }}'})
+MERGE (c)-[:AT_LOCATION]->(p)
+
+{% include 'universal_fact.j2' %}

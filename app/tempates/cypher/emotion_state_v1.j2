@@ -1,0 +1,9 @@
+MERGE (c:Character {name:'{{ character }}'})
+{% if target %}
+  MERGE (t:Character {name:'{{ target }}'})
+  CALL apoc.create.relationship(c, '{{ emotion|upper }}_OF', {}, t) YIELD rel
+{% else %}
+  SET c.latest_emotion = '{{ emotion }}'
+{% endif %}
+
+{% include 'universal_fact.j2' %}

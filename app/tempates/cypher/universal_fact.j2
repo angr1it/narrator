@@ -1,0 +1,11 @@
+{# ─── universal_fact.j2 ─── #}
+MERGE (f:Fact { id: apoc.create.uuid() })
+SET  f.predicate   = '{{ fact.predicate }}',
+     f.subject  = '{{ fact.subject }}'
+{% if fact.object %} SET f.object  = '{{ fact.object }}'         {% endif %}
+{% if fact.value  %} SET f.value      = '{{ fact.value }}'          {% endif %}
+{% if chapter     is defined %}  SET f.from_chapter = {{ chapter }} {% endif %}
+{% if to_chapter  is defined %}  SET f.to_chapter   = {{ to_chapter }}{% endif %}
+{% if iso_date    is defined %}  SET f.iso_date     = '{{ iso_date }}' {% endif %}
+{% if summary     is defined %}  SET f.summary      = '{{ summary }}'{% endif %}
+{% if tags        is defined %}  SET f.tags         = {{ tags }}    {% endif %}

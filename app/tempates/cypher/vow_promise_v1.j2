@@ -1,0 +1,5 @@
+MERGE (c:Character {name:'{{ character }}'})
+MERGE (g:Goal {name:'{{ goal }}'})
+MERGE (c)-[:VOWS]->(g)
+
+{% include 'universal_fact.j2' %}

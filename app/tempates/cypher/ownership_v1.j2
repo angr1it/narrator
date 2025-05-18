@@ -1,0 +1,5 @@
+MERGE (c:Character {name:'{{ character }}'})
+MERGE (i:Item {name:'{{ item }}'})
+MERGE (c)-[:OWNS_ITEM]->(i)
+
+{% include 'universal_fact.j2' %}

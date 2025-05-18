@@ -1,0 +1,7 @@
+MERGE (c:Character {name:'{{ character }}'})
+MERGE (t:Title {name:'{{ title_name }}'})
+
+MERGE (c)-[:HAS_TITLE]->(t)
+
+
+{% include 'universal_fact.j2' %}

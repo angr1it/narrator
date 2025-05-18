@@ -1,0 +1,5 @@
+MERGE (a:Character {name:'{{ character_a }}'})
+MERGE (b:Character {name:'{{ character_b }}'})
+CALL apoc.create.relationship(a, '{{ relation_type|upper }}_OF', {}, b) YIELD rel
+
+{% include 'universal_fact.j2' %}
