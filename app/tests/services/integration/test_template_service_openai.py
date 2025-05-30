@@ -1,0 +1,112 @@
+# tests/test_template_service_openai.py
+import os
+import time
+from uuid import uuid4
+from datetime import datetime
+
+import pytest
+import openai
+import weaviate
+import weaviate.classes as wvc
+from weaviate.classes.config import Property, DataType
+from weaviate.classes.query import Filter
+
+from services.templates import TemplateService, CypherTemplateBase
+from config.weaviate import connect_to_weaviate
+from templates.base import base_templates
+from templates.imports import import_templates
+
+
+# ----------  ENV & CONSTANTS  ------------------------------------------------
+OPENAI_KEY = os.getenv("OPENAI_API_KEY")
+MODEL_NAME = "text-embedding-3-small"
+LOCAL_WEAVIATE = "http://localhost:8080"
+
+
+# ----------  HELPERS  --------------------------------------------------------
+def openai_embedder(text: str) -> list[float]:
+    """Real call to OpenAI embeddings."""
+    response = openai.embeddings.create(
+        input=text, model=MODEL_NAME, user="template-tests"
+    )
+    return response.data[0].embedding
+
+
+def narrative_samples():
+    """(query, expected slug) pairs close to production usage."""
+    return [
+        # (
+        #     "During the siege Arya displayed unexpected bravery saving her comrades.",
+        #     "trait_attribution_v1",
+        # ),
+        (
+            "Sir Lancel renounced his vows and pledged allegiance to the rebel lord.",
+            "membership_change_v1",
+        ),
+        (
+            "Jon finally accepted Sansa as his sister and ally against their enemies.",
+            "character_relation_v1",
+        ),
+    ]
+
+
+# ----------  PYTEST FIXTURES  ------------------------------------------------
+@pytest.fixture(scope="session")
+def wclient():
+    if not OPENAI_KEY:
+        pytest.skip("OPENAI_API_KEY not set")
+    openai.api_key = OPENAI_KEY
+
+    client = connect_to_weaviate(url=None)  # localhost
+    if not client.is_ready():
+        pytest.skip("Local Weaviate is not running")
+    yield client
+    client.close()
+
+
+@pytest.fixture
+def collection_name():
+    return f"Template_{uuid4().hex[:8]}"
+
+
+@pytest.fixture
+def service(wclient, collection_name):
+    # fresh collection
+    if wclient.collections.exists(collection_name):
+        wclient.collections.delete(collection_name)
+
+    wclient.collections.create(
+        name=collection_name,
+        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="title", data_type=DataType.TEXT),
+            Property(name="description", data_type=DataType.TEXT),
+            Property(name="cypher", data_type=DataType.TEXT),
+        ],
+    )
+
+    svc = TemplateService(wclient, embedder=openai_embedder)
+    svc.CLASS_NAME = collection_name
+    yield svc
+    wclient.collections.delete(collection_name)
+
+
+# ----------  TESTS  ----------------------------------------------------------
+def test_bulk_import_and_semantic_search(service):
+    # -------- 1) bulk import
+    import_templates(service, base_templates)
+
+    # небольшая пауза, чтобы HNSW успел проиндексировать
+    time.sleep(1.0)
+
+    # -------- 2) direct retrieval sanity
+    for tpl in base_templates:
+        obj = service.get_by_name(tpl["name"])
+        assert obj.title == tpl["title"]
+
+    # -------- 3) semantic search with real embeddings
+    for query, expected_slug in narrative_samples():
+        hits = service.top_k(query, k=1)
+        assert hits, f"No result for query: {query}"
+        assert hits[0].name == expected_slug

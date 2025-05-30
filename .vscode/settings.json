@@ -1,9 +1,10 @@
 {
-    "jupyter.notebookFileRoot": "${workspaceFolder}",
+    "jupyter.notebookFileRoot": "${workspaceFolder}/app",
     "python.testing.pytestArgs": [
         "app/tests",
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "python.testing.cwd": "${workspaceFolder}",
+    "python.analysis.extraPaths": ["./app"]
 }

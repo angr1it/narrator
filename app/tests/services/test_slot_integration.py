@@ -2,7 +2,7 @@ import pytest
 
 from schemas.cypher import CypherTemplate, FactDescriptor, SlotDefinition
 from services.slot_filler import SlotFiller
-from tempates.base import base_templates
+from templates.base import base_templates
 from config import app_settings
 
 

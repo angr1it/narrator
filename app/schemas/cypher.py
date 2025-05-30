@@ -1,9 +1,10 @@
 from typing import List, Optional, Literal, Union
 from datetime import datetime
+import uuid
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from tempates import TEMPLATE_DIR, env, TemplateNotFound
+from templates import TEMPLATE_DIR, env, TemplateNotFound
 
 
 class SlotDefinition(BaseModel):
@@ -21,14 +22,14 @@ class FactDescriptor(BaseModel):
     object: Optional[str] = None  # e.g. "$faction"
 
 
-class CypherTemplate(BaseModel):
-    id: str
+class CypherTemplateBase(BaseModel):
+    name: str = Field(..., description="Уникальный slug шаблона")
     version: str = "1.0.0"
     title: str
     description: str
     details: Optional[str] = None
     category: Optional[str] = None
-    slots: List[SlotDefinition]
+    slots: dict[str, SlotDefinition]
     fact_descriptor: Optional[FactDescriptor] = None
     cypher: str
     author: Optional[str] = None
@@ -67,3 +68,7 @@ class CypherTemplate(BaseModel):
             )
 
         return template.render(**context)
+
+
+class CypherTemplate(CypherTemplateBase):
+    id: uuid.UUID
