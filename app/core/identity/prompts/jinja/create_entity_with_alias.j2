@@ -1,0 +1,14 @@
+CREATE (e:{{ entity_type | capitalize }} {id: randomUUID(), name: "{{ raw_name }}"})
+WITH e
+RETURN {
+  action: "create_entity_with_alias",
+  payload: {
+    entity_id: e.id,
+    raw_name: "{{ raw_name }}",
+    entity_type: "{{ entity_type }}",
+    canonical: true,
+    chapter: {{ chapter }},
+    fragment_id: "{{ fragment_id }}",
+    snippet: "{{ snippet }}"
+  }
+} AS entity_task

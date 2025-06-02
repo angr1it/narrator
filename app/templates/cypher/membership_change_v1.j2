@@ -1,5 +1,5 @@
 MERGE (c:Character {name:'{{ character }}'})
-MERGE (f:Faction {name:'{{ faction }}'})
-MERGE (c)-[:MEMBER_OF]->(f)
+MERGE (p:Faction {name:'{{ faction }}'})
+MERGE (c)-[:MEMBER_OF]->(p)
 
 {% include 'universal_fact.j2' %}

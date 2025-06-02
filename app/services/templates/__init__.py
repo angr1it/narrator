@@ -1,6 +1,8 @@
 from __future__ import annotations
 from uuid import uuid4
 
+from services.templates.warning import log_low_score_warning
+
 """TemplateService — high‑level helper around Weaviate that stores and retrieves
 CypherTemplate objects.
 
@@ -15,6 +17,7 @@ import weaviate.classes as wvc
 from weaviate.classes.config import Configure
 from weaviate.classes.query import Filter
 from weaviate.collections.classes.internal import ObjectSingleReturn
+from weaviate.classes.query import MetadataQuery
 
 from schemas.cypher import (
     CypherTemplate,
@@ -108,6 +111,7 @@ class TemplateService:
         query: str,
         category: Optional[str] = None,
         k: int = 3,
+        distance_threshold: float = 0.5,
     ) -> List[CypherTemplate]:
         """Semantic search for the *k* best‑matching templates.
 
@@ -127,12 +131,29 @@ class TemplateService:
         if self.embedder:
             vector = self.embedder(query)
             results = coll.query.near_vector(
-                near_vector=vector, limit=k, filters=filters
+                near_vector=vector,
+                limit=k,
+                filters=filters,
+                return_metadata=MetadataQuery(score=True, distance=True),
             )
         else:
-            results = coll.query.near_text(query=query, limit=k, filters=filters)
+            results = coll.query.near_text(
+                query=query,
+                limit=k,
+                filters=filters,
+                return_metadata=MetadataQuery(score=True, distance=True),
+            )
 
-        return [self._from_weaviate(obj) for obj in results.objects]
+        if not results.objects:
+            return []
+
+        objects = results.objects
+        distances = [obj.metadata.distance for obj in objects]
+
+        if distances and distances[0] > distance_threshold:
+            log_low_score_warning(query, objects, distances, distance_threshold)
+
+        return [self._from_weaviate(obj) for obj in objects]
 
     def _ensure_schema(self) -> None:
         if self.client.collections.exists(self.CLASS_NAME):
@@ -158,9 +179,6 @@ class TemplateService:
                     name="slots",
                     data_type=wvc.config.DataType.OBJECT,
                     nested_properties=[
-                        wvc.config.Property(
-                            name="name", data_type=wvc.config.DataType.TEXT
-                        ),
                         wvc.config.Property(
                             name="type", data_type=wvc.config.DataType.TEXT
                         ),
@@ -211,14 +229,11 @@ class TemplateService:
         The canonical form concatenates the key semantic elements separated by
         `‖` (U+2016) so that small field order changes do not alter the meaning.
         """
-        parts = [tpl.title, tpl.description or ""]
+        representation = tpl.description
         if tpl.details:
-            parts.append(tpl.details)
-        parts.extend(f"{s.name}:{s.type}" for s in tpl.slots)
-        if tpl.fact_descriptor:
-            fd = tpl.fact_descriptor
-            parts.append(f"FACT:{fd.predicate}:{fd.subject}:{fd.value}")
-        return " ‖ ".join(parts)
+            representation += " ‖ " + tpl.details
+
+        return representation
 
     @staticmethod
     def _from_weaviate(raw: ObjectSingleReturn) -> CypherTemplate:

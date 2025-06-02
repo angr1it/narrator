@@ -6,21 +6,29 @@ base_templates = [
         "description": "Character gains, reveals or is attributed a personal trait.",
         "details": "The protagonist might demonstrate unexpected bravery during a crisis, a supporting character could reveal their intelligence through solving a complex puzzle, or a villain's cruelty might become evident through their actions. This captures moments where a character's nature or qualities become apparent through the narrative.",
         "category": "EventInsert",
-        "slots": [
-            {"name": "character", "type": "STRING", "description": "Character name"},
-            {
+        "slots": {
+            "character": {
+                "name": "character",
+                "type": "STRING",
+                "description": "Character name",
+            },
+            "trait": {
                 "name": "trait",
                 "type": "STRING",
                 "description": "Trait or quality name",
             },
-            {"name": "chapter", "type": "INT", "description": "Chapter number"},
-            {
+            "chapter": {
+                "name": "chapter",
+                "type": "INT",
+                "description": "Chapter number",
+            },
+            "summary": {
                 "name": "summary",
                 "type": "STRING",
                 "required": False,
                 "description": "Brief explanation",
             },
-        ],
+        },
         "cypher": "trait_attribution_v1.j2",
         "fact_descriptor": {
             "predicate": "HAS_TRAIT",
@@ -35,12 +43,24 @@ base_templates = [
         "title": "Membership change",
         "description": "Character joins, leaves or betrays a faction. This includes scenarios where a knight pledges allegiance to a new lord, a spy infiltrates an enemy organization, a rebel abandons their cause after a crisis of conscience, or a long-standing member is expelled from their guild for breaking rules. Any narrative moment that changes a character's affiliation or group membership.",
         "category": "EventInsert",
-        "slots": [
-            {"name": "character", "type": "STRING", "description": "Character name"},
-            {"name": "faction", "type": "STRING", "description": "Faction name"},
-            {"name": "chapter", "type": "INT", "description": "Chapter number"},
-            {"name": "summary", "type": "STRING", "required": False},
-        ],
+        "slots": {
+            "character": {
+                "name": "character",
+                "type": "STRING",
+                "description": "Character name",
+            },
+            "faction": {
+                "name": "faction",
+                "type": "STRING",
+                "description": "Faction name",
+            },
+            "chapter": {
+                "name": "chapter",
+                "type": "INT",
+                "description": "Chapter number",
+            },
+            "summary": {"name": "summary", "type": "STRING", "required": False},
+        },
         "cypher": "membership_change_v1.j2",
         "fact_descriptor": {
             "predicate": "MEMBER_OF",
@@ -55,21 +75,25 @@ base_templates = [
         "title": "Character relation",
         "description": "Creates or updates a social relation between two characters (ally, rival, sibling, parent, etc.). This captures situations where characters discover they're long-lost siblings, former friends become bitter enemies after a betrayal, strangers form a strategic alliance against a common threat, or a mentor takes on a new apprentice. Any significant development or change in how two characters relate to each other.",
         "category": "EventInsert",
-        "slots": [
-            {"name": "character_a", "type": "STRING", "description": "First character"},
-            {
+        "slots": {
+            "character_a": {
+                "name": "character_a",
+                "type": "STRING",
+                "description": "First character",
+            },
+            "character_b": {
                 "name": "character_b",
                 "type": "STRING",
                 "description": "Second character",
             },
-            {
+            "relation_type": {
                 "name": "relation_type",
                 "type": "STRING",
                 "description": "Relation type: ALLY, RIVAL, SIBLING, PARENT",
             },
-            {"name": "chapter", "type": "INT"},
-            {"name": "summary", "type": "STRING", "required": False},
-        ],
+            "chapter": {"name": "chapter", "type": "INT"},
+            "summary": {"name": "summary", "type": "STRING", "required": False},
+        },
         "cypher": "character_relation_v1.j2",
         "fact_descriptor": {
             "predicate": "RELATION_WITH",
@@ -84,12 +108,12 @@ base_templates = [
         "title": "Item ownership",
         "description": "Character acquires or possesses an item. This includes a hero finding an ancient magical sword, a thief stealing a valuable artifact, a character receiving a meaningful gift or heirloom, or someone purchasing an important tool for their quest. Any narrative moment where a character gains possession of something significant to the story.",
         "category": "EventInsert",
-        "slots": [
-            {"name": "character", "type": "STRING"},
-            {"name": "item", "type": "STRING"},
-            {"name": "chapter", "type": "INT"},
-            {"name": "summary", "type": "STRING", "required": False},
-        ],
+        "slots": {
+            "character": {"name": "character", "type": "STRING"},
+            "item": {"name": "item", "type": "STRING"},
+            "chapter": {"name": "chapter", "type": "INT"},
+            "summary": {"name": "summary", "type": "STRING", "required": False},
+        },
         "cypher": "ownership_v1.j2",
         "fact_descriptor": {
             "predicate": "OWNS_ITEM",
@@ -104,12 +128,12 @@ base_templates = [
         "title": "Relocation / arrives at place",
         "description": "Character changes location, arrives or leaves a place. This captures a traveler reaching a mysterious new city, a refugee fleeing their homeland, an explorer discovering uncharted territory, or a prisoner escaping their cell. Any significant movement of characters between meaningful locations in the narrative landscape.",
         "category": "EventInsert",
-        "slots": [
-            {"name": "character", "type": "STRING"},
-            {"name": "place", "type": "STRING"},
-            {"name": "chapter", "type": "INT"},
-            {"name": "summary", "type": "STRING", "required": False},
-        ],
+        "slots": {
+            "character": {"name": "character", "type": "STRING"},
+            "place": {"name": "place", "type": "STRING"},
+            "chapter": {"name": "chapter", "type": "INT"},
+            "summary": {"name": "summary", "type": "STRING", "required": False},
+        },
         "cypher": "relocation_v1.j2",
         "fact_descriptor": {
             "predicate": "AT_LOCATION",
@@ -124,32 +148,36 @@ base_templates = [
         "title": "Emotional state toward target",
         "description": "Character feels an emotion toward another character or in general. This applies when a protagonist develops feelings of love for another character, a villain's hatred intensifies after defeat, a character experiences profound grief following a loss, or someone struggles with jealousy over another's success. Captures the emotional landscape and psychological developments driving character motivations.",
         "category": "EventInsert",
-        "slots": [
-            {
+        "slots": {
+            "character": {
                 "name": "character",
                 "type": "STRING",
                 "description": "Name of the character",
             },
-            {
+            "emotion": {
                 "name": "emotion",
                 "type": "STRING",
                 "description": "Emotion name, e.g., HATE, LOVE",
             },
-            {
+            "target": {
                 "name": "target",
                 "type": "STRING",
                 "description": "Target of the emotion",
                 "required": False,
             },
-            {"name": "chapter", "type": "INT", "description": "Chapter number"},
-            {
+            "chapter": {
+                "name": "chapter",
+                "type": "INT",
+                "description": "Chapter number",
+            },
+            "summary": {
                 "name": "summary",
                 "type": "STRING",
                 "description": "Narrative summary",
                 "required": False,
             },
-        ],
-        "cypher": "emotion_state.j2",
+        },
+        "cypher": "emotion_state_v1.j2",
         "fact_descriptor": {
             "predicate": "FEELS",
             "subject": "$character",
@@ -163,12 +191,16 @@ base_templates = [
         "title": "Vow or promise",
         "description": "Character makes a vow, promise or obligation toward a goal or target. This includes a knight swearing to avenge their fallen comrade, a character pledging to protect someone vulnerable, a villain making a threat of retribution, or someone committing to an important personal goal. Any declaration of intent or commitment that drives future narrative actions.",
         "category": "EventInsert",
-        "slots": [
-            {"name": "character", "type": "STRING"},
-            {"name": "goal", "type": "STRING", "description": "Promise essence / goal"},
-            {"name": "chapter", "type": "INT"},
-            {"name": "summary", "type": "STRING", "required": False},
-        ],
+        "slots": {
+            "character": {"name": "character", "type": "STRING"},
+            "goal": {
+                "name": "goal",
+                "type": "STRING",
+                "description": "Promise essence / goal",
+            },
+            "chapter": {"name": "chapter", "type": "INT"},
+            "summary": {"name": "summary", "type": "STRING", "required": False},
+        },
         "cypher": "vow_promise_v1.j2",
         "fact_descriptor": {
             "predicate": "VOWS",
@@ -183,11 +215,11 @@ base_templates = [
         "title": "Death of character",
         "description": "Marks a character as deceased. This applies to heroic sacrifices in battle, victims of murder or assassination, natural deaths of significance to the plot, or presumed deaths later revealed to be false. Captures pivotal moments where a character's life ends or is believed to end, changing the trajectory of the narrative.",
         "category": "EventInsert",
-        "slots": [
-            {"name": "character", "type": "STRING"},
-            {"name": "chapter", "type": "INT"},
-            {"name": "summary", "type": "STRING", "required": False},
-        ],
+        "slots": {
+            "character": {"name": "character", "type": "STRING"},
+            "chapter": {"name": "chapter", "type": "INT"},
+            "summary": {"name": "summary", "type": "STRING", "required": False},
+        },
         "cypher": "death_event_v1.j2",
         "fact_descriptor": {
             "predicate": "IS_ALIVE",
@@ -201,16 +233,16 @@ base_templates = [
         "title": "Belief or ideology",
         "description": "Character professes belief in deity, ideology or philosophy. This includes a character's conversion to a new religion after a profound experience, a politician embracing a radical ideology, someone finding comfort in spiritual practices during hardship, or a character questioning and abandoning their long-held beliefs. Reflects the philosophical and spiritual dimensions that shape character motivations and worldviews.",
         "category": "EventInsert",
-        "slots": [
-            {"name": "character", "type": "STRING"},
-            {
+        "slots": {
+            "character": {"name": "character", "type": "STRING"},
+            "ideology": {
                 "name": "ideology",
                 "type": "STRING",
                 "description": "Name of ideology, deity or belief",
             },
-            {"name": "chapter", "type": "INT"},
-            {"name": "summary", "type": "STRING", "required": False},
-        ],
+            "chapter": {"name": "chapter", "type": "INT"},
+            "summary": {"name": "summary", "type": "STRING", "required": False},
+        },
         "cypher": "belief_ideology_v1.j2",
         "fact_descriptor": {
             "predicate": "BELIEVES_IN",
@@ -225,16 +257,16 @@ base_templates = [
         "title": "Title acquisition",
         "description": "Character receives or is granted a new title or role. This captures a soldier's promotion to general, a commoner ascending to nobility, an apprentice becoming a master of their craft, or someone being appointed to a position of authority. Any formal recognition or change in status that affects how others perceive and interact with the character within the narrative.",
         "category": "EventInsert",
-        "slots": [
-            {"name": "character", "type": "STRING"},
-            {
+        "slots": {
+            "character": {"name": "character", "type": "STRING"},
+            "title_name": {
                 "name": "title_name",
                 "type": "STRING",
                 "description": "Title/role name",
             },
-            {"name": "chapter", "type": "INT"},
-            {"name": "summary", "type": "STRING", "required": False},
-        ],
+            "chapter": {"name": "chapter", "type": "INT"},
+            "summary": {"name": "summary", "type": "STRING", "required": False},
+        },
         "cypher": "title_acquisition_v1.j2",
         "fact_descriptor": {
             "predicate": "HAS_TITLE",

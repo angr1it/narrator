@@ -2,6 +2,3 @@ MERGE (c:Character {name:'{{ character }}'})
 MERGE (d:Ideology {name:'{{ ideology }}'})
 
 MERGE (c)-[:BELIEVES_IN]->(d)
-
-
-{% include 'universal_fact.j2' %}

@@ -13,6 +13,7 @@ class AppSettings(BaseSettings):
     NEO4J_URI: str  # neo4j://host:port или bolt://
     NEO4J_USER: str
     NEO4J_PASSWORD: str
+    NEO4J_DB: str
 
     WEAVIATE_URL: str  # Weaviate (TemplateService)
     WEAVIATE_API_KEY: str

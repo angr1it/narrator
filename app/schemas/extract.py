@@ -16,4 +16,3 @@ class ExtractResponse(BaseModel):
 
     facts: List[Dict[str, Any]]
     inserted_ids: List[str]
-

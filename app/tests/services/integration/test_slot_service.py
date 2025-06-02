@@ -1,4 +1,5 @@
 import pytest
+from uuid import uuid4
 
 from services.slot_filler import SlotFiller
 from schemas.cypher import CypherTemplate, SlotDefinition
@@ -6,6 +7,7 @@ from config import app_settings
 
 # --- FIXTURES ---------------------------------------------------------------
 
+FIXED_UUID = uuid4()
 
 @pytest.fixture(scope="module")
 def openai_key() -> str:
@@ -17,26 +19,27 @@ def openai_key() -> str:
 @pytest.fixture
 def base_template() -> CypherTemplate:
     return CypherTemplate(
-        id="membership_change",
+        id=FIXED_UUID,
+        name="membership_change",
         title="Membership change",
         description="Когда персонаж покидает одну фракцию и вступает в другую",
-        slots=[
-            SlotDefinition(
+        slots={
+            "character": SlotDefinition(
                 name="character", type="STRING", description="Имя героя", required=True
             ),
-            SlotDefinition(
+            "faction": SlotDefinition(
                 name="faction",
                 type="STRING",
                 description="Название фракции",
                 required=True,
             ),
-            SlotDefinition(
+            "summary": SlotDefinition(
                 name="summary",
                 type="STRING",
                 description="Краткое описание",
                 required=False,
             ),
-        ],
+        },
         cypher="mock.cypher",
     )
 
@@ -49,7 +52,9 @@ def filler(openai_key) -> SlotFiller:
 # --- TEST CASES -------------------------------------------------------------
 
 
-def test_extract_multiple_results(filler: SlotFiller, base_template: CypherTemplate):
+def test_extract_multiple_results(
+    filler: SlotFiller, base_template: CypherTemplate
+):
     text = "Арен покинул Дом Зари и примкнул к Северному фронту."
     results = filler.fill_slots(base_template, text)
 
@@ -57,7 +62,7 @@ def test_extract_multiple_results(filler: SlotFiller, base_template: CypherTempl
     assert len(results) >= 2
 
     for r in results:
-        assert r["template_id"] == "membership_change"
+        assert r["template_id"] == FIXED_UUID
         assert "character" in r["slots"]
         assert "faction" in r["slots"]
         assert "details" in r
@@ -66,32 +71,33 @@ def test_extract_multiple_results(filler: SlotFiller, base_template: CypherTempl
 
 def test_extract_missing_then_generate(filler: SlotFiller):
     template = CypherTemplate(
-        id="emotion_event",
+        id=FIXED_UUID,
+        name="emotion_event",
         title="Emotion expression",
         description="Персонаж выражает эмоцию к другому персонажу",
-        slots=[
-            SlotDefinition(
+        slots={
+            "subject": SlotDefinition(
                 name="subject",
                 type="STRING",
                 description="Кто испытывает эмоцию",
                 required=True,
             ),
-            SlotDefinition(
+            "target": SlotDefinition(
                 name="target",
                 type="STRING",
                 description="На кого направлена эмоция",
                 required=True,
             ),
-            SlotDefinition(
+            "emotion": SlotDefinition(
                 name="emotion", type="STRING", description="Тип эмоции", required=True
             ),
-            SlotDefinition(
+            "summary": SlotDefinition(
                 name="summary",
                 type="STRING",
                 description="Описание сцены",
                 required=False,
             ),
-        ],
+        },
         cypher="mock.cypher",
     )
     text = "Мира посмотрела на Эрика с презрением."
@@ -110,17 +116,18 @@ def test_extract_missing_then_generate(filler: SlotFiller):
 
 def test_extract_single_object(filler: SlotFiller):
     template = CypherTemplate(
-        id="trait_reveal",
+        id=FIXED_UUID,
+        name="trait_reveal",
         title="Trait reveal",
         description="Когда персонаж раскрывает черту другого",
-        slots=[
-            SlotDefinition(
+        slots={
+            "actor": SlotDefinition(
                 name="actor", type="STRING", description="Кто раскрыл", required=True
             ),
-            SlotDefinition(
+            "trait": SlotDefinition(
                 name="trait", type="STRING", description="Какая черта", required=True
             ),
-        ],
+        },
         cypher="mock.cypher",
     )
     text = "Мира раскрыла, что Арен с рождения был одноруким."

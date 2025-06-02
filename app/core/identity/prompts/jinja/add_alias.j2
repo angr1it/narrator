@@ -1,0 +1,12 @@
+RETURN {
+  action: "add_alias",
+  payload: {
+    alias_text: "{{ alias_text }}",
+    entity_id: "{{ entity_id }}",
+    entity_type: "{{ entity_type }}",
+    canonical: false,
+    chapter: {{ chapter }},
+    fragment_id: "{{ fragment_id }}",
+    snippet: "{{ snippet }}"
+  }
+} AS alias_task

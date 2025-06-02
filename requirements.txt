@@ -14,3 +14,4 @@ weaviate-client
 jinja2
 neo4j
 langfuse
+numpy

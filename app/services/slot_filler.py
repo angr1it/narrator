@@ -38,7 +38,7 @@ from langchain.prompts import PromptTemplate
 from pydantic import BaseModel, ValidationError, create_model, RootModel
 
 from core.slots.prompts import PROMPTS_ENV
-from schemas.cypher import CypherTemplate
+from schemas.cypher import CypherTemplate, RenderedCypher
 from utils.logger import get_logger
 
 
@@ -60,7 +60,7 @@ from typing import Optional, List
 def build_slot_model(template: CypherTemplate) -> type[BaseModel]:
     fields = {
         slot.name: (TYPE_MAP[slot.type], Field(description=slot.description or "..."))
-        for slot in template.slots
+        for slot in template.slots.values()
     }
     fields["details"] = (str, Field(description="Как извлечены значения"))
     return create_model("ResponseItem", **fields)
@@ -99,7 +99,6 @@ class SlotFiller:
         )
         self.tracer = langfuse_client
 
-    # ----------------------------------------------------------- public API --
     def fill_slots(self, template: CypherTemplate, text: str) -> List[Dict[str, Any]]:
         """
         Главный метод, вызываемый из ExtractionPipeline.
@@ -109,7 +108,6 @@ class SlotFiller:
         List[Dict[str, Any]]
             Список заполнений (может быть пустым).
         """
-        # ➊ EXTRACT ──────────────────────────────────────────────────────────
         fillings = self._run_phase(
             phase="extract",
             prompt_file="extract_slots.j2",
@@ -117,7 +115,6 @@ class SlotFiller:
             text=text,
         )
 
-        # ➋ FALLBACK для обязательных слотов ────────────────────────────────
         if self._needs_fallback(fillings, template):
             fillings = self._run_phase(
                 phase="fallback",
@@ -127,7 +124,6 @@ class SlotFiller:
                 previous=fillings,
             )
 
-        # ➌ GENERATE необязательных слотов ──────────────────────────────────
         fillings = self._run_phase(
             phase="generate",
             prompt_file="generate_slots.j2",
@@ -136,7 +132,6 @@ class SlotFiller:
             previous=fillings,
         )
 
-        # ➍ Строгая финальная валидация + каст типов ────────────────────────
         validated: List[Dict[str, Any]] = []
         for item in fillings:
             try:
@@ -153,7 +148,46 @@ class SlotFiller:
 
         return validated
 
-    # ---------------------------------------------------- internal helpers --
+    def fill_and_render(self, template: CypherTemplate,
+                        text: str, meta: dict) -> list[RenderedCypher]:
+
+        # 1️⃣  extraction (как раньше) → slots_raw
+        fillings = self._extract_slots(template, text)
+
+        rendered: list[RenderedCypher] = []
+        for s in fillings:
+            # 2️⃣  alias-resolve
+            for slot_name, val in s.items():
+                if slot_name in ALIASABLE:        # character, faction, ...
+                     s[slot_name] = self.identity.resolve(val, slot_name, meta)
+
+            content_cypher = template.render(s | meta)
+
+            need_fact = (
+                 template.fact_policy == "always" or
+                 template.fact_policy == "auto"
+                 and self._should_version_llm(text, template, s)
+            )
+            fact_cypher = None
+            if need_fact:
+                fact_cypher = self._render_versioned_fact(template, s, meta)
+
+            # 5️⃣  триплет-строка для triple_vec
+            desc = template.fact_descriptor
+            triple = f"{s[desc.subject[1:]]} {desc.predicate} " \
+                     f"{s.get(desc.object[1:], s.get(desc.value[1:],''))}"
+
+            rendered.append(
+                RenderedCypher(
+                    template_id = template.id,
+                    content_cypher = content_cypher,
+                    fact_cypher    = fact_cypher,
+                    triple_text    = triple,
+                    details        = s.get("details","")
+                )
+            )
+        return rendered
+
     def _run_phase(
         self,
         phase: str,
@@ -168,7 +202,7 @@ class SlotFiller:
         if phase != "extract" and not self._needs_fallback(previous, template):
             return previous or []
 
-        slot_names = [s.name for s in template.slots]
+        slot_names = [s.name for s in template.slots.values()]
 
         ItemModel = build_slot_model(template)
 
@@ -179,17 +213,17 @@ class SlotFiller:
         parser = PydanticOutputParser(pydantic_object=ResponseList)
         format_instructions = parser.get_format_instructions()
 
-        # 📄 2. Рендерим Jinja-промпт
+        # 2. Рендерим Jinja-промпт
         tpl = PROMPTS_ENV.get_template(prompt_file)
         rendered = tpl.render(
             template=template,
             text=text,
-            slots=template.slots,
+            slots=template.slots.values(),
             slot_names=slot_names,
             previous=previous,
         )
 
-        # 🧠 3. Создаём LangChain Prompt
+        # 3. Создаём LangChain Prompt
         prompt = PromptTemplate(
             template=rendered + "\n\n{format_instructions}",
             input_variables=["format_instructions"],
@@ -198,7 +232,7 @@ class SlotFiller:
 
         chain = prompt | self.llm | parser
 
-        # 🧪 4. Запускаем цепочку с Langfuse
+        # 4. Запускаем цепочку с Langfuse
         span = self.tracer.span(name=f"slotfiller.{phase}") if self.tracer else None
         try:
             result = chain.invoke({})
@@ -214,7 +248,6 @@ class SlotFiller:
     
         return result.model_dump()
 
-    # --------------------------------------------------------------------
     @staticmethod
     def _needs_fallback(
         fillings: Optional[List[Dict[str, Any]]], template: CypherTemplate
@@ -222,13 +255,12 @@ class SlotFiller:
         """True, если хотя бы один объект не содержит всех обязательных слотов."""
         if not fillings:
             return True
-        required = {s.name for s in template.slots if s.required}
+        required = {s.name for s in template.slots.values() if s.required}
         for obj in fillings:
             if not required.issubset(obj.keys()):
                 return True
         return False
 
-    # --------------------------------------------------------------------
     def _validate_and_cast(
         self, obj: Dict[str, Any], template: CypherTemplate
     ) -> Dict[str, Any]:
@@ -239,7 +271,7 @@ class SlotFiller:
         # 1) строим динамическую Pydantic-схему
         fields = {
             s.name: (TYPE_MAP[s.type], ... if s.required else None)
-            for s in template.slots
+            for s in template.slots.values()
         }
         DynamicModel: type[BaseModel] = create_model("DynamicSlotsModel", **fields)  # type: ignore
 
