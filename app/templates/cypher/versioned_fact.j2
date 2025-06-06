@@ -1,0 +1,65 @@
+{#─────────────────────────────────────────────────────────────────────────────
+  Шаблон выполняется в одной транзакции:
+  • Находит активный факт по subject_id + predicate.
+  • Если значения совпадают → ничего НЕ делает.
+  • Если значения различаются → закрывает старую версию (to_chapter)
+    и создаёт новую, связывает PRECEDED_BY.
+─────────────────────────────────────────────────────────────────────────────#}
+
+//
+// Узлы-контексты
+//
+MATCH (subj {id: '{{ fact.subject }}'})
+{% if fact.object %}
+MATCH (obj  {id: '{{ fact.object }}'})
+{% endif %}
+
+//
+// Текущая активная версия (может не существовать)
+//
+OPTIONAL MATCH (prev:Fact)
+WHERE   prev.subject_id = '{{ fact.subject }}'
+  AND   prev.predicate  = '{{ fact.predicate }}'
+  AND   prev.to_chapter IS NULL
+
+//
+// Проверяем, надо ли версионировать
+//
+WITH subj{% if fact.object %}, obj{% endif %}, prev,
+     CASE
+        WHEN prev IS NULL                                   THEN true     // нет факта
+        WHEN   coalesce(prev.value,'') <>
+               coalesce('{{ fact.value|default("") }}','')  THEN true     // изменилось value
+        WHEN   coalesce(prev.object_id,'') <>
+               coalesce('{{ fact.object|default("") }}','') THEN true     // изменился object
+        ELSE false
+     END AS need_update
+
+//
+// Закрываем старую версию (если обновляем)
+//
+FOREACH (_ IN CASE WHEN need_update AND prev IS NOT NULL THEN [1] ELSE [] END |
+  SET prev.to_chapter = {{ chapter }} - 1
+)
+
+//
+// Создаём новую версию (если надо)
+//
+FOREACH (_ IN CASE WHEN need_update THEN [1] ELSE [] END |
+  CREATE (f:Fact {
+      id:            apoc.create.uuid(),
+      predicate:     '{{ fact.predicate }}',
+      subject_id:    '{{ fact.subject }}',
+      {% if fact.object %}object_id:     '{{ fact.object }}',{% endif %}
+      {% if fact.value  %}value:         '{{ fact.value  }}',{% endif %}
+      from_chapter:  {{ chapter }},
+      to_chapter:    NULL,
+      stage:         {{ stage }},
+      confidence:    {{ confidence }}
+  })
+  MERGE (subj)-[:ASSERTED]->(f)
+  {% if fact.object %}MERGE (f)-[:REFERS_TO]->(obj){% endif %}
+  FOREACH (_ IN CASE WHEN prev IS NOT NULL THEN [1] ELSE [] END |
+      CREATE (f)-[:PRECEDED_BY]->(prev)
+  )
+)

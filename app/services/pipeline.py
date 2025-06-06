@@ -1,7 +1,9 @@
 from typing import Tuple, List, Dict, Any
 
+from services.fact_builder import FactBuilder
 from services.graph_proxy import GraphProxy
 from services.slot_filler import SlotFiller
+from services.template_renderer import TemplateRenderer
 from services.templates import TemplateService
 from services.identity_service import IdentityService
 from schemas.cypher import CypherTemplate
@@ -28,13 +30,17 @@ class ExtractionPipeline:
         template_service: TemplateService,
         slot_filler: SlotFiller,
         graph_proxy: GraphProxy,
-        identity_service: IdentityService,  # ➕ добавляем identity_service
+        identity_service: IdentityService,
+        template_renderer: TemplateRenderer,
+        fact_builder: FactBuilder,
         top_k: int = 3,
     ):
         self.template_service = template_service
         self.slot_filler = slot_filler
         self.graph_proxy = graph_proxy
         self.identity_service = identity_service
+        self.template_renderer = template_renderer
+        self.fact_builder = fact_builder
         self.top_k = top_k
 
     def extract_and_save(
@@ -53,33 +59,40 @@ class ExtractionPipeline:
         inserted_ids = []
 
         for tpl in templates:
-            slot_sets = self.slot_filler.fill_slots(tpl, text)
-            for slot_data in slot_sets:
-                slots = slot_data["slots"]
+            slot_fills = self.slot_filler.fill_slots(tpl, text)
+            for slot_fill in slot_fills:
+                # 1️⃣ рендерим content-cypher
+                render_plan = self.template_renderer.render(
+                    tpl, slot_fill, {"chapter": chapter, "tags": tags or []}
+                )
+                content_cypher = render_plan.content_cypher
 
-                # ⚡ 1. Собираем alias-запросы
-                alias_cyphers = self._collect_alias_cypher(slots, chapter)
+                # 2️⃣ выполняем content-cypher и получаем UIDs
+                result = self.graph_proxy.run_query(content_cypher)
+                uids = {
+                    k: result[0][render_plan.return_keys[k]]
+                    for k in render_plan.return_keys
+                }
 
-                # ⚡ 2. Основной факт-запрос
-                main_cypher = _render_cypher(tpl, slots, chapter, tags)
+                # 3️⃣ рендерим fact-cypher (всегда; Cypher сам решает, создавать или нет)
+                fact_plan = self.fact_builder.make(
+                    tpl, slot_fill.slots, uids, {"chapter": chapter, "tags": tags}
+                )
 
-                # ⚡ 3. Батч-отправка
-                cypher_batch = "\n".join(alias_cyphers + [main_cypher])
-                result = self.graph_proxy.run_query(cypher_batch)
+                # 4️⃣ выполняем fact-cypher
+                self.graph_proxy.run_query(fact_plan.cypher)
 
-                # ⚡ 4. Обрабатываем alias-task-и (если есть)
-                for row in result:
-                    self.identity_service.process_alias_task(row)
-
-                # ⚡ 5. Сохраняем факты + id
+                # 5️⃣ собираем результат
                 all_facts.append(
                     {
                         "template": tpl.id,
-                        "slots": slots,
-                        "details": slot_data.get("details", ""),
+                        "slots": slot_fill.slots,
+                        "details": slot_fill.details,
                     }
                 )
-                inserted_ids.extend([r.get("id") for r in result if "id" in r])
+                inserted_ids.append(
+                    result[0].get("id")
+                )  # зависит от того, что возвращает
 
         return all_facts, inserted_ids
 

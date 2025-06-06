@@ -15,3 +15,17 @@ class StageEnum(IntEnum):
     draft_9 = 9
     draft_10 = 10
     final = 11
+
+
+def stage_to_confidence(stage: StageEnum) -> float:
+    """
+    Convert a stage to a confidence level.
+    """
+    if stage == StageEnum.brainstorm:
+        return 0.1
+    elif stage == StageEnum.outline:
+        return 0.1
+    elif stage == StageEnum.final:
+        return 1.0
+
+    return 0.5 + (stage.value / 20.0)

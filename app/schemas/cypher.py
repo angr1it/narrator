@@ -45,12 +45,14 @@ class CypherTemplateBase(BaseModel):
     category: Optional[str] = None
     slots: dict[str, SlotDefinition]
     fact_descriptor: Optional[FactDescriptor] = None
-    fact_policy: Literal["none", "auto", "always"] = "auto"
+    fact_policy: Literal["none", "always"] = "always"
     cypher: str
     author: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     vector: Optional[List[float]] = None
+
+    return_map: dict[str, str]
 
     def render(self, slots: dict) -> str:
         """Рендерит шаблон Cypher на основе переданных значений слотов."""
