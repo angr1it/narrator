@@ -6,7 +6,7 @@ from langchain.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, create_model, RootModel, Field
 
 from core.slots.prompts import PROMPTS_ENV
-from schemas.cypher import CypherTemplate, FactDescriptor
+from schemas.cypher import CypherTemplate
 from schemas.slots import SlotFill
 from utils.logger import get_logger
 

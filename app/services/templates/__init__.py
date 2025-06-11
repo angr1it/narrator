@@ -8,11 +8,9 @@ CypherTemplate objects.
 
 """
 
-from typing import Callable, List, Optional, Sequence, Dict, Any
-import os
+from typing import Callable, List, Optional, Dict, Any
 
 import weaviate
-from weaviate.exceptions import UnexpectedStatusCodeException
 import weaviate.classes as wvc
 from weaviate.classes.config import Configure
 from weaviate.classes.query import Filter
@@ -22,9 +20,7 @@ from weaviate.classes.query import MetadataQuery
 from schemas.cypher import (
     CypherTemplate,
     CypherTemplateBase,
-    SlotDefinition,
-    FactDescriptor,
-)  # noqa: F401
+)
 
 EmbedderFn = Callable[[str], List[float]]  # opaque function → 1536‑d vector
 

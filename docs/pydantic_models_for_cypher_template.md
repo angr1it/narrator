@@ -1,18 +1,15 @@
-from typing import List, Optional, Literal, Union
-from datetime import datetime
-import uuid
+Вот полное актуальное описание Pydantic-моделей, связанных с `CypherTemplate`, включая все последние изменения, как они представлены в коде и используются в пайплайне:
 
-from pydantic import BaseModel
+---
 
-from templates import env
+## 🧩 Pydantic-модели шаблонов и связей
 
+### 🔹 `SlotDefinition`
 
+Описывает слот, который должен быть извлечён из текста:
+
+```python
 class SlotDefinition(BaseModel):
-    """
-    Определение одного слота, который должен быть извлечён из текста.
-    Например: character, faction, location.
-    """
-
     name: str
     type: Literal["STRING", "INT", "FLOAT", "BOOL"]
     description: Optional[str] = None
@@ -20,26 +17,38 @@ class SlotDefinition(BaseModel):
     default: Optional[Union[str, int, float, bool]] = None
     # (опц.) признак того, что слот — это ссылка на сущность
     is_entity_ref: Optional[bool] = False
+```
 
+---
 
+### 🔹 `GraphRelationDescriptor` (ранее `FactDescriptor`)
+
+Формализует связь шаблона с графом:
+
+```python
 class GraphRelationDescriptor(BaseModel):
-    """
-    Описание типа факта, который будет зафиксирован с помощью шаблона.
-    Пример: MEMBER_OF, HAS_TRAIT, OWNS_ITEM.
-    """
+    predicate: str                   # тип связи: MEMBER_OF, HAS_TRAIT и т.д.
+    subject: str                     # "$character" — имя слота
+    object: Optional[str] = None     # "$faction"
+    value: Optional[str] = None      # строковое значение (если не object)
+```
 
-    predicate: str                      # тип связи: MEMBER_OF, HAS_TRAIT и т.д.
-    subject: str                        # "$character" — имя слота
-    object: Optional[str] = None        # "$faction"
-    value: Optional[str] = None         # строковое значение (если не object)
+Используется для:
 
+- генерации `triple_text` (для вектора смысла `fact_vec`);
+- определения `related_node_ids` для `MENTIONS`-связей с `ChunkNode`.
+
+---
+
+### 🔹 `CypherTemplateBase`
+
+Главная модель, описывающая шаблон доменной связи:
+
+```python
+from templates import env
 
 class CypherTemplateBase(BaseModel):
-    """
-    Описание Cypher-шаблона, который превращает извлечённые слоты в запрос.
-    """
-
-    name: str  # slug шаблона
+    name: str                             # slug шаблона
     version: str = "1.0.0"
     title: str
     description: str
@@ -51,8 +60,8 @@ class CypherTemplateBase(BaseModel):
     fact_policy: Literal["none", "always"] = "always"
     attachment_policy: Literal["chunk", "raptor", "both"] = "chunk"
 
-    cypher: str  # путь к Jinja-файлу шаблона
-    use_base: bool = True  # нужно ли оборачивать через base_fact.j2
+    cypher: str                           # путь к Jinja-файлу шаблона
+    use_base: bool = True                # нужно ли оборачивать через base_fact.j2
 
     author: Optional[str] = None
     created_at: Optional[datetime] = None
@@ -61,7 +70,7 @@ class CypherTemplateBase(BaseModel):
 
     default_confidence: float = 0.2
 
-    return_map: dict[str, str]  # имена переменных → ноды/идентификаторы в графе
+    return_map: dict[str, str]           # имена переменных → ноды/идентификаторы в графе
 
     def render(self, slots: dict, chunk_id: str) -> str:
         required = [slot.name for slot in self.slots.values() if slot.required]
@@ -74,15 +83,12 @@ class CypherTemplateBase(BaseModel):
 
         # triple-text: semantic string used for fact_vec
         if self.graph_relation:
-
             def pick(expr: str | None) -> str | None:
                 return slots.get(expr[1:]) if expr and expr.startswith("$") else expr
 
             subject = pick(self.graph_relation.subject)
             object_ = pick(self.graph_relation.object)
-            context["triple_text"] = (
-                f"{subject} {self.graph_relation.predicate} {object_}"
-            )
+            context["triple_text"] = f"{subject} {self.graph_relation.predicate} {object_}"
             context["related_node_ids"] = [
                 val for val in [subject, object_] if val is not None
             ]
@@ -98,12 +104,26 @@ class CypherTemplateBase(BaseModel):
 
         template = env.get_template(cypher_name)
         return template.render(**context)
+```
 
+---
 
+### 🔹 `CypherTemplate`
+
+Добавляет UUID:
+
+```python
 class CypherTemplate(CypherTemplateBase):
     id: uuid.UUID
+```
 
+---
 
+### 🔹 `RenderedCypher`
+
+Результат отрисовки шаблона:
+
+```python
 class RenderedCypher(BaseModel):
     template_id: str
     content_cypher: str                   # основная часть с MERGE
@@ -111,3 +131,8 @@ class RenderedCypher(BaseModel):
     relation_cypher: Optional[str] = None # ранее: fact_cypher
     triple_text: str                      # строка вида "Aren MEMBER_OF Night Front"
     details: str                          # отладка / chain-of-thought
+```
+
+---
+
+Если хочешь, могу предложить автоматическую генерацию JSON-схемы (`.schema_json()`), экспорт моделей в Swagger/OpenAPI или сгенерировать docstring-примеры использования каждого класса.

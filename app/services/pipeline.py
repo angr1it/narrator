@@ -1,5 +1,8 @@
 from typing import Tuple, List, Dict, Any
 
+import neo4j
+
+from schemas.slots import SlotFill
 from services.fact_builder import FactBuilder
 from services.graph_proxy import GraphProxy
 from services.slot_filler import SlotFiller
@@ -14,15 +17,15 @@ class ExtractionPipeline:
     ExtractionPipeline связывает TemplateService → SlotFiller → GraphProxy → IdentityService.
 
     Основной сценарий:
-    1️⃣ Получает текст и метаданные (chapter, tags).
-    2️⃣ Ищет top-K CypherTemplate-ов (по векторному поиску).
-    3️⃣ Для каждого шаблона извлекает слоты.
-    4️⃣ Собирает Cypher-батч:
+    1. Получает текст и метаданные (chapter, tags).
+    2. Ищет top-K CypherTemplate-ов (по векторному поиску).
+    3. Для каждого шаблона извлекает слоты.
+    4. Собирает Cypher-батч:
         - сначала alias-запросы (add_alias / create_entity_with_alias),
         - затем основной факт-запрос.
-    5️⃣ Выполняет Cypher в Neo4j через GraphProxy.
-    6️⃣ Обрабатывает alias-task-и из результата → пишет алиасы в Weaviate.
-    7️⃣ Возвращает список фактов + вставленные id-ы.
+    5.Выполняет Cypher в Neo4j через GraphProxy.
+    6. Обрабатывает alias-task-и из результата → пишет алиасы в Weaviate.
+    7. Возвращает список фактов + вставленные id-ы.
     """
 
     def __init__(
@@ -43,136 +46,62 @@ class ExtractionPipeline:
         self.fact_builder = fact_builder
         self.top_k = top_k
 
-    def extract_and_save(
-        self, text: str, chapter: int, tags: List[str] | None = None
-    ) -> Tuple[List[Dict[str, Any]], List[str]]:
-        """
-        Выполняет полный цикл:
-        - ищет шаблоны,
-        - заполняет слоты,
-        - подготавливает alias-запросы,
-        - отправляет всё в Neo4j,
-        - обрабатывает alias-таски.
-        """
-        templates = self.template_service.top_k(text, k=self.top_k)
-        all_facts = []
-        inserted_ids = []
-
+    async def extract_and_save(
+        self,
+        query: str,
+        chapter: int,
+        tags: List[str] | None = None,
+    ):
+        templates = self.template_service.top_k(query, k=self.top_k)
         for tpl in templates:
-            slot_fills = self.slot_filler.fill_slots(tpl, text)
-            for slot_fill in slot_fills:
-                # 1️⃣ рендерим content-cypher
-                render_plan = self.template_renderer.render(
-                    tpl, slot_fill, {"chapter": chapter, "tags": tags or []}
-                )
-                content_cypher = render_plan.content_cypher
+            await self.process_template(template=tpl, query=query, chapter=chapter)
 
-                # 2️⃣ выполняем content-cypher и получаем UIDs
-                result = self.graph_proxy.run_query(content_cypher)
-                uids = {
-                    k: result[0][render_plan.return_keys[k]]
-                    for k in render_plan.return_keys
-                }
+    async def process_template(
+        self, template: CypherTemplate, query: str, chapter: int
+    ):
+        fills: list[SlotFill] = self.slot_filler.fill_slots(template, query)
 
-                # 3️⃣ рендерим fact-cypher (всегда; Cypher сам решает, создавать или нет)
-                fact_plan = self.fact_builder.make(
-                    tpl, slot_fill.slots, uids, {"chapter": chapter, "tags": tags}
-                )
+        fills, alias_tpl_calls = await self.identity_service.resolve_bulk(fills, chapter)
+    
+        alias_statements = [
+            self.template_renderer.render(t, p, {"chapter": chapter})
+            for t, p in alias_tpl_calls
+        ]
 
-                # 4️⃣ выполняем fact-cypher
-                self.graph_proxy.run_query(fact_plan.cypher)
+        uid_map = self._collect_uid_map(self.graph_proxy.run_batch(alias_statements))
 
-                # 5️⃣ собираем результат
-                all_facts.append(
-                    {
-                        "template": tpl.id,
-                        "slots": slot_fill.slots,
-                        "details": slot_fill.details,
-                    }
-                )
-                inserted_ids.append(
-                    result[0].get("id")
-                )  # зависит от того, что возвращает
+        domain_cypher = self.template_renderer.render(
+            template, fills[0].slots | uid_map, {"chapter": chapter}
+        )
+        uid_map.update(
+            self._collect_uid_map(self.graph_proxy.run_batch([domain_cypher]))
+        )
 
-        return all_facts, inserted_ids
+        fact_cypher = self.fact_builder.make(
+            template, fills[0].slots, uid_map, chapter
+        ).cypher
+    
+        res_fact = self.graph_proxy.run_batch([fact_cypher])
+        uid_map.update(self._collect_uid_map(res_fact))
 
-    def _collect_alias_cypher(self, slots: Dict, chapter: int) -> List[str]:
+        self.identity_service.persist_aliases(uid_map)
+
+        return uid_map
+
+    @staticmethod
+    def _collect_uid_map(batch_results: List[neo4j.Result]) -> dict[str, Any]:
         """
-        Собирает список Cypher-запросов для alias-операций:
-        - add_alias
-        - create_entity_with_alias
-
-        Использует только те поля, которые относятся к сущностям.
+        Build a consolidated dict:
+        {"uid": neo4j_id, "alias_uid": neo4j_id, ...}
+        preserving one-to-one mapping even if several statements
+        returned the same alias/key.
         """
-        cypher_list: List[str] = []
+        uid_map: dict[str, Any] = {}
 
-        for field, value in slots.items():
-            entity_type = _map_field_to_entity_type(field)
-            if not entity_type:
-                continue
+        for res in batch_results:  # res keeps statement-order inside tx
+            record: neo4j.Record = res.single()  # every sub-query returns 1 row
+            for key in record.keys():  # uid, alias_uid, entity_id, …
+                if key not in uid_map:  # first writer wins
+                    uid_map[key] = record[key]
 
-            tasks = self.identity_service.resolve(
-                raw_name=value,
-                etype=entity_type,
-                chapter=chapter,
-                fragment_id=slots.get("fragment_id", ""),  # можно передать пустое
-                snippet=slots.get("source_text", ""),
-            )
-
-            for tpl_id, params in tasks:
-                tpl = self.identity_service.get_alias_template(tpl_id)
-                cypher = _render_cypher(tpl, params, chapter, None)
-                cypher_list.append(cypher)
-
-        return cypher_list
-
-
-def _map_field_to_entity_type(field: str) -> str | None:
-    """
-    Маппинг полей-слотов → entity_type.
-    Возвращает None, если поле не относится к сущностям.
-    """
-    mapping = {
-        "character": "CHARACTER",
-        "faction": "FACTION",
-        "location": "LOCATION",
-    }
-    return mapping.get(field)
-
-
-def _render_cypher(
-    template: CypherTemplate,
-    slots: Dict,
-    chapter: int,
-    tags: List[str] | None,
-) -> str:
-    """
-    Рендерит финальный Cypher Jinja2-шаблон с контекстом:
-    - chapter, tags,
-    - слоты,
-    - (опционально) fact_descriptor.
-    """
-    context = dict(slots)
-    context.update(
-        {
-            "chapter": chapter,
-            "tags": tags or [],
-        }
-    )
-
-    if template.fact_descriptor:
-        fd = template.fact_descriptor
-
-        def resolve(expr: str | None) -> str | None:
-            if expr and expr.startswith("$"):
-                return slots.get(expr[1:])
-            return expr
-
-        context["fact"] = {
-            "predicate": fd.predicate,
-            "subject": resolve(fd.subject),
-            "object": resolve(fd.object),
-            "value": resolve(fd.value),
-        }
-
-    return template.render(slots=context)
+        return uid_map
