@@ -1,13 +1,20 @@
 import pytest
 from uuid import uuid4
 
+pytestmark = pytest.mark.integration
+
 from services.slot_filler import SlotFiller
 from schemas.cypher import CypherTemplate, SlotDefinition
-from config import app_settings
+
+try:
+    from config import app_settings
+except Exception:
+    pytest.skip("Settings not configured", allow_module_level=True)
 
 # --- FIXTURES ---------------------------------------------------------------
 
 FIXED_UUID = uuid4()
+
 
 @pytest.fixture(scope="module")
 def openai_key() -> str:
@@ -52,9 +59,7 @@ def filler(openai_key) -> SlotFiller:
 # --- TEST CASES -------------------------------------------------------------
 
 
-def test_extract_multiple_results(
-    filler: SlotFiller, base_template: CypherTemplate
-):
+def test_extract_multiple_results(filler: SlotFiller, base_template: CypherTemplate):
     text = "Арен покинул Дом Зари и примкнул к Северному фронту."
     results = filler.fill_slots(base_template, text)
 

@@ -4,10 +4,16 @@ from uuid import uuid4
 
 import pytest
 import openai
+
+pytestmark = pytest.mark.integration
 from weaviate.collections.classes.data import DataObject
 
 from services.identity_service import IdentityService
-from config.weaviate import connect_to_weaviate
+
+try:
+    from config.weaviate import connect_to_weaviate
+except Exception:
+    pytest.skip("Settings not configured", allow_module_level=True)
 
 MODEL_NAME = "text-embedding-3-small"
 

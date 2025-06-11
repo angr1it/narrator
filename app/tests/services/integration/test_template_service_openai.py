@@ -11,10 +11,16 @@ import weaviate.classes as wvc
 from weaviate.classes.config import Property, DataType
 from weaviate.classes.query import Filter
 
+pytestmark = pytest.mark.integration
+
 from services.templates import TemplateService, CypherTemplateBase
-from config.weaviate import connect_to_weaviate
-from templates.base import base_templates
-from templates.imports import import_templates
+
+try:
+    from config.weaviate import connect_to_weaviate
+    from templates.base import base_templates
+    from templates.imports import import_templates
+except Exception:
+    pytest.skip("Settings not configured", allow_module_level=True)
 
 
 # ----------  ENV & CONSTANTS  ------------------------------------------------
