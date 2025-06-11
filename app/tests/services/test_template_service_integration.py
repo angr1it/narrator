@@ -2,8 +2,13 @@ import os
 import openai
 import pytest
 
-from config import app_settings
-from config.weaviate import connect_to_weaviate
+pytestmark = pytest.mark.integration
+
+try:
+    from config import app_settings
+    from config.weaviate import connect_to_weaviate
+except Exception:  # missing environment or config
+    pytest.skip("Settings not configured", allow_module_level=True)
 from services.templates.service import TemplateService
 from templates.imports import import_templates
 from templates.base import base_templates

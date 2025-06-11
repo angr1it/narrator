@@ -4,14 +4,20 @@ from uuid import uuid4
 from datetime import datetime
 from typing import List
 
+pytestmark = pytest.mark.integration
+
 import weaviate
 import weaviate.classes as wvc
 from weaviate.classes.config import Property, DataType
 
 from services.templates import TemplateService, CypherTemplateBase, CypherTemplate
-from config.weaviate import connect_to_weaviate
-from templates.imports import import_templates
-from templates.base import base_templates
+
+try:
+    from config.weaviate import connect_to_weaviate
+    from templates.imports import import_templates
+    from templates.base import base_templates
+except Exception:
+    pytest.skip("Settings not configured", allow_module_level=True)
 
 
 # ---------- GLOBAL TEST CONSTANTS -------------------------------------------
