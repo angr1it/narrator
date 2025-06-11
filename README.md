@@ -60,9 +60,10 @@ PIPELINE --> LOGGER[Mongo or stdout]
    - If required slots are still missing: issue fallback LLM prompt.
    - For free-text fields (e.g. summary, event_name): issue separate generation prompt.
 5. **Render Cypher**: Fill slots into Jinja2 Cypher template.
-6. **Enrich & Save**:
-    - Attach optional tags to the fact or fragment
-    - Run batch of Cypher `CREATE` / `MERGE` statements via GraphProxy
+6. **Commit & Cluster**:
+    - Execute alias Cypher and template Cypher via GraphProxy.
+    - After success compute `text_vec` and `fact_vec` and call
+      `flat_raptor.insert_chunk()` to set `ChunkNode.raptor_node_id`.
 7. **Log and trace**: Send all LLM calls to Langfuse for traceability.
 
 

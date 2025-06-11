@@ -1,5 +1,12 @@
-MERGE (c:Character {name:'{{ character }}'})
-MERGE (i:Item {name:'{{ item }}'})
-MERGE (c)-[:OWNS_ITEM]->(i)
+MERGE (c:Character {id: "{{ character }}"})
+MERGE (i:Item {id: "{{ item }}"})
+MERGE (c)-[r:OWNS_ITEM {
+    chapter: {{ chapter }},
+    template_id: "ownership_v1",
+    description: "{{ description }}",
+    chunk_id: "{{ chunk_id }}",
+    draft_stage: "{{ draft_stage }}",
+    confidence: {{ confidence }}
+}]->(i)
 
-{% include 'universal_fact.j2' %}
+{% set related_node_ids = [character, item] %}

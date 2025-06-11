@@ -1,5 +1,12 @@
-MERGE (c:Character {name:'{{ character }}'})
-MERGE (p:Place {name:'{{ place }}'})
-MERGE (c)-[:AT_LOCATION]->(p)
+MERGE (c:Character {id: "{{ character }}"})
+MERGE (p:Place {id: "{{ place }}"})
+MERGE (c)-[r:AT_LOCATION {
+    chapter: {{ chapter }},
+    template_id: "relocation_v1",
+    description: "{{ description }}",
+    chunk_id: "{{ chunk_id }}",
+    draft_stage: "{{ draft_stage }}",
+    confidence: {{ confidence }}
+}]->(p)
 
-{% include 'universal_fact.j2' %}
+{% set related_node_ids = [character, place] %}

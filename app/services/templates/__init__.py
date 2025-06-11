@@ -3,9 +3,12 @@ from uuid import uuid4
 
 from services.templates.warning import log_low_score_warning
 
-"""TemplateService — high‑level helper around Weaviate that stores and retrieves
-CypherTemplate objects.
+"""High-level helper around Weaviate that stores and retrieves ``CypherTemplate`` objects.
 
+Each template describes how to transform extracted slots into graph relations.
+The service is responsible for persisting additional metadata such as
+``graph_relation``, ``attachment_policy`` and ``default_confidence`` which are
+used by the extraction pipeline.
 """
 
 from typing import Callable, List, Optional, Dict, Any
@@ -50,10 +53,13 @@ class TemplateService:
         self._ensure_schema()
 
     def upsert(self, tpl: CypherTemplateBase) -> None:
-        """Create *or* update a template in Weaviate.
+        """Create or update a template in Weaviate.
 
-        * If the object exists → do a *PATCH* update.
-        * If not → create it (vector supplied if present or computable).
+        The ``CypherTemplateBase`` object may include ``graph_relation`` and
+        other fields required by the pipeline.  If a template with the same
+        ``name`` already exists the method performs a partial update; otherwise a
+        new object is inserted.  Embeddings are generated automatically when an
+        embedder is configured.
         """
         # Формируем payload без uuid
         payload: Dict[str, Any] = tpl.model_dump(
@@ -157,7 +163,7 @@ class TemplateService:
 
         self.client.collections.create(
             name=self.CLASS_NAME,
-            description="Template that maps narrative text to Cypher code and optional Fact creation.",
+            description="Template that maps narrative text to Cypher code.",
             vectorizer_config=wvc.config.Configure.Vectorizer.none(),
             inverted_index_config=Configure.inverted_index(index_property_length=True),
             properties=[
@@ -191,7 +197,7 @@ class TemplateService:
                 ),
                 wvc.config.Property(name="cypher", data_type=wvc.config.DataType.TEXT),
                 wvc.config.Property(
-                    name="fact_descriptor",
+                    name="graph_relation",
                     data_type=wvc.config.DataType.OBJECT,
                     nested_properties=[
                         wvc.config.Property(
@@ -207,6 +213,12 @@ class TemplateService:
                             name="object", data_type=wvc.config.DataType.TEXT
                         ),
                     ],
+                ),
+                wvc.config.Property(
+                    name="attachment_policy", data_type=wvc.config.DataType.TEXT
+                ),
+                wvc.config.Property(
+                    name="default_confidence", data_type=wvc.config.DataType.NUMBER
                 ),
                 wvc.config.Property(name="author", data_type=wvc.config.DataType.TEXT),
                 wvc.config.Property(
@@ -243,7 +255,9 @@ class TemplateService:
             "category",
             "slots",
             "cypher",
-            "fact_descriptor",
+            "graph_relation",
+            "attachment_policy",
+            "default_confidence",
             "author",
             "created_at",
             "updated_at",

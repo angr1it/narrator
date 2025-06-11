@@ -30,12 +30,13 @@ base_templates = [
             },
         },
         "cypher": "trait_attribution_v1.j2",
-        "fact_descriptor": {
+        "graph_relation": {
             "predicate": "HAS_TRAIT",
             "subject": "$character",
             "value": "$trait",
             "object": "$trait",
         },
+        "return_map": {},
     },
     {
         "name": "membership_change_v1",
@@ -62,12 +63,13 @@ base_templates = [
             "summary": {"name": "summary", "type": "STRING", "required": False},
         },
         "cypher": "membership_change_v1.j2",
-        "fact_descriptor": {
+        "graph_relation": {
             "predicate": "MEMBER_OF",
             "subject": "$character",
             "value": "$faction",
             "object": "$faction",
         },
+        "return_map": {},
     },
     {
         "name": "character_relation_v1",
@@ -95,12 +97,13 @@ base_templates = [
             "summary": {"name": "summary", "type": "STRING", "required": False},
         },
         "cypher": "character_relation_v1.j2",
-        "fact_descriptor": {
+        "graph_relation": {
             "predicate": "RELATION_WITH",
             "subject": "$character_a",
             "value": "$relation_type",
             "object": "$character_b",
         },
+        "return_map": {},
     },
     {
         "name": "ownership_v1",
@@ -115,12 +118,13 @@ base_templates = [
             "summary": {"name": "summary", "type": "STRING", "required": False},
         },
         "cypher": "ownership_v1.j2",
-        "fact_descriptor": {
+        "graph_relation": {
             "predicate": "OWNS_ITEM",
             "subject": "$character",
             "value": "$item",
             "object": "$item",
         },
+        "return_map": {},
     },
     {
         "name": "relocation_v1",
@@ -135,12 +139,13 @@ base_templates = [
             "summary": {"name": "summary", "type": "STRING", "required": False},
         },
         "cypher": "relocation_v1.j2",
-        "fact_descriptor": {
+        "graph_relation": {
             "predicate": "AT_LOCATION",
             "subject": "$character",
             "value": "$place",
             "object": "$place",
         },
+        "return_map": {},
     },
     {
         "name": "emotion_state_v1",
@@ -178,12 +183,13 @@ base_templates = [
             },
         },
         "cypher": "emotion_state_v1.j2",
-        "fact_descriptor": {
+        "graph_relation": {
             "predicate": "FEELS",
             "subject": "$character",
             "value": "$emotion",
             "object": "$target",
         },
+        "return_map": {},
     },
     {
         "name": "vow_promise_v1",
@@ -202,12 +208,13 @@ base_templates = [
             "summary": {"name": "summary", "type": "STRING", "required": False},
         },
         "cypher": "vow_promise_v1.j2",
-        "fact_descriptor": {
+        "graph_relation": {
             "predicate": "VOWS",
             "subject": "$character",
             "value": "$goal",
             "object": "$goal",
         },
+        "return_map": {},
     },
     {
         "name": "death_event_v1",
@@ -221,11 +228,12 @@ base_templates = [
             "summary": {"name": "summary", "type": "STRING", "required": False},
         },
         "cypher": "death_event_v1.j2",
-        "fact_descriptor": {
+        "graph_relation": {
             "predicate": "IS_ALIVE",
             "subject": "$character",
             "value": "false",
         },
+        "return_map": {},
     },
     {
         "name": "belief_ideology_v1",
@@ -244,12 +252,13 @@ base_templates = [
             "summary": {"name": "summary", "type": "STRING", "required": False},
         },
         "cypher": "belief_ideology_v1.j2",
-        "fact_descriptor": {
+        "graph_relation": {
             "predicate": "BELIEVES_IN",
             "subject": "$character",
             "value": "$ideology",
             "object": "$ideology",
         },
+        "return_map": {},
     },
     {
         "name": "title_acquisition_v1",
@@ -268,11 +277,12 @@ base_templates = [
             "summary": {"name": "summary", "type": "STRING", "required": False},
         },
         "cypher": "title_acquisition_v1.j2",
-        "fact_descriptor": {
+        "graph_relation": {
             "predicate": "HAS_TITLE",
             "subject": "$character",
             "value": "$title_name",
             "object": "$title_name",
         },
+        "return_map": {},
     },
 ]

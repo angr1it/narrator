@@ -10,17 +10,22 @@ from schemas.slots import SlotFill
 class RenderPlan(BaseModel):
     template_id: str
     content_cypher: str
-    return_keys: Dict[
-        str, str
-    ]  # e.g., {"subject_uid": "subject_uid", "rel_uid": "rel_uid"}
+    return_keys: Dict[str, str]
+    triple_text: str
+    related_node_ids: list[str]
 
 
 class TemplateRenderer:
     """
-    TemplateRenderer рендерит Jinja2-шаблон на основе слотов и мета-данных.
-    Он возвращает RenderPlan, включающий:
-      • готовый Cypher-запрос (строку),
-      • карту, какие значения нужно вернуть из GraphProxy.
+    TemplateRenderer рендерит Jinja2-шаблоны в готовый Cypher.
+
+    Сначала слоты из :class:`SlotFill` объединяются с ``meta`` и передаются в
+    ``CypherTemplate.render``.  ``chunk_id`` обязательно должен присутствовать в
+    ``meta`` — базовый шаблон ``base_fact.j2`` использует его для формирования
+    связи ``MENTIONS``.
+
+    Возвращается :class:`RenderPlan` с самой строкой Cypher, картой ключей и
+    текстовым представлением триплета для последующего вычисления векторов.
     """
 
     def __init__(self, jinja_env: Environment):
@@ -41,6 +46,9 @@ class TemplateRenderer:
         """
         Рендерит доменный Cypher, подставляя слоты и мета-данные.
 
+        ``meta`` расширяет слоты и обязательно содержит ``chunk_id``. В результа
+        те формируется строка Cypher с уже подключённым ``base_fact.j2``.
+
         Parameters
         ----------
         template : CypherTemplate
@@ -55,14 +63,37 @@ class TemplateRenderer:
         RenderPlan
             Готовый Cypher-запрос + карта ожидаемых возвращаемых значений.
         """
-        cypher_query = template.render(**slot_fill.slots, **meta)
+        context = {**slot_fill.slots, **meta}
+        chunk_id = meta.get("chunk_id")
+        if not chunk_id:
+            raise ValueError("chunk_id is required for rendering")
+        cypher_query = template.render(context, chunk_id)
 
-        # template.return_map должно быть заранее определено (например, в YAML-описании)
+        triple_text = ""
+        related_node_ids: list[str] = []
+        if template.graph_relation:
+
+            def pick(expr: str | None) -> str | None:
+                if expr and expr.startswith("$"):
+                    return context.get(expr[1:])
+                return expr
+
+            subject = pick(template.graph_relation.subject)
+            obj = pick(template.graph_relation.object)
+            triple_text = (
+                f"{subject} {template.graph_relation.predicate} " f"{obj}"
+            )  # noqa: E501
+            related_node_ids = [v for v in [subject, obj] if v is not None]
+
+        # template.return_map должно быть заранее определено
+        # (например, в YAML-описании)
         if not template.return_map:
             raise ValueError(f"Template {template.id} is missing return_map")
 
         return RenderPlan(
-            template_id=template.id,
+            template_id=str(template.id),
             content_cypher=cypher_query,
             return_keys=template.return_map,
+            triple_text=triple_text,
+            related_node_ids=related_node_ids,
         )
