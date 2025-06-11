@@ -1,7 +1,12 @@
-MERGE (c:Character {name:'{{ character }}'})
-MERGE (t:Title {name:'{{ title_name }}'})
+MERGE (c:Character {id: "{{ character }}"})
+MERGE (t:Title {id: "{{ title_name }}"})
+MERGE (c)-[r:HAS_TITLE {
+    chapter: {{ chapter }},
+    template_id: "title_acquisition_v1",
+    description: "{{ description }}",
+    chunk_id: "{{ chunk_id }}",
+    draft_stage: "{{ draft_stage }}",
+    confidence: {{ confidence }}
+}]->(t)
 
-MERGE (c)-[:HAS_TITLE]->(t)
-
-
-{% include 'universal_fact.j2' %}
+{% set related_node_ids = [character, title_name] %}

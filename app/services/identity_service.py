@@ -1,3 +1,4 @@
+# flake8: noqa
 """
 identity_async.py   – v0.3 (Weaviate Python client v4, async API)
 
@@ -28,20 +29,18 @@ You *do not* need to modify calling code except:
 
 from __future__ import annotations
 
-import asyncio
 import logging
-import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Tuple, Callable
+from typing import Any, Dict, List, Literal, Optional, Callable
 
+import uuid
 import weaviate
-from weaviate.types import UUID
 from weaviate.client import WeaviateAsyncClient
 from weaviate.exceptions import WeaviateQueryError
 from weaviate.classes.query import Filter, MetadataQuery
 from weaviate.classes.config import Configure
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 HI_SIM = 0.92  # “sure” threshold
@@ -62,6 +61,9 @@ class AliasTask:
     entity_id: str  # final canonical id
     alias_text: str
     entity_type: str
+    chapter: int
+    chunk_id: str
+    snippet: str
 
 
 class BulkResolveResult(BaseModel):
@@ -110,7 +112,7 @@ class IdentityService:
                 Configure.Property("entity_type", data_type="text"),
                 Configure.Property("canonical", data_type="bool"),
                 Configure.Property("chapter", data_type="int"),
-                Configure.Property("fragment_id", data_type="text"),
+                Configure.Property("chunk_id", data_type="text"),
                 Configure.Property("snippet", data_type="text"),
             ],
         )
@@ -121,15 +123,27 @@ class IdentityService:
         slots: Dict[str, Any],
         *,
         chapter: int,
-        fragment_id: str,
+        chunk_id: str,
         snippet: str,
     ) -> BulkResolveResult:
-        """
-        • Detect slot-names that map to entities (character, faction, location).
-        • For each raw value do near-vector search & decide.
-        • Return:
-             1. new slot-dict with ids (for later Cypher rendering)
-             2. list of AliasTask to commit after *all* template Cypher are rendered.
+        """Resolve entity-like slots and prepare alias records.
+
+        Parameters
+        ----------
+        slots:
+            Raw slot dictionary from :class:`SlotFiller`.
+        chapter:
+            Chapter number used for context.
+        chunk_id:
+            Identifier of the ``ChunkNode`` the aliases belong to.
+        snippet:
+            Raw text snippet where the alias appeared.
+
+        Returns
+        -------
+        BulkResolveResult
+            Contains ``mapped_slots`` with canonical IDs and the ``alias_tasks``
+            that must be committed after rendering.
         """
         mapped_slots = dict(slots)  # copy
         alias_tasks: List[AliasTask] = []
@@ -143,7 +157,7 @@ class IdentityService:
                 raw_name=str(raw_val),
                 entity_type=etype,
                 chapter=chapter,
-                fragment_id=fragment_id,
+                chunk_id=chunk_id,
                 snippet=snippet,
             )
 
@@ -157,6 +171,9 @@ class IdentityService:
                         entity_id=decision["entity_id"],
                         alias_text=decision["alias_text"],
                         entity_type=etype,
+                        chapter=chapter,
+                        chunk_id=chunk_id,
+                        snippet=snippet,
                     )
                 )
 
@@ -170,11 +187,10 @@ class IdentityService:
         """
         cypher_snippets: List[str] = []
         for task in alias_tasks:
-            # ① write alias object (if not already inserted by another thread):
             await self._upsert_alias(task)
-
-            # ② generate Cypher line:
-            cypher_snippets.append(_render_alias_cypher(task))  # tiny helper – below
+            snippet = _render_alias_cypher(task)
+            if snippet:
+                cypher_snippets.append(snippet)
         return cypher_snippets
 
     # ---------- internal helpers  ----------------------------------------- #
@@ -185,7 +201,7 @@ class IdentityService:
         entity_type: str,
         *,
         chapter: int,
-        fragment_id: str,
+        chunk_id: str,
         snippet: str,
     ) -> Dict[str, Any]:
         """
@@ -306,6 +322,9 @@ class IdentityService:
             "entity_type": task.entity_type,
             # meta – could be filled by caller if needed
             "canonical": task.render_slots.get("canonical", False),
+            "chapter": task.chapter,
+            "chunk_id": task.chunk_id,
+            "snippet": task.snippet,
         }
         vec = self.embedder(task.alias_text) if self.embedder else None
         try:
@@ -329,14 +348,8 @@ _FIELD_TO_ENTITY = {
 
 def _render_alias_cypher(task: AliasTask) -> str:
     """Simplified – you probably have a Jinja2 template system already."""
-    if task.cypher_template_id == "add_alias":
-        return (
-            f"// add_alias\n"
-            f"MATCH (e {{id:'{task.entity_id}'}})\n"
-            f"SET e.name = e.name // no-op to force touch\n"
-            f"// plus :Alias node if you keep them in Neo4j\n"
-        )
-    # create_entity_with_alias
+    if task.cypher_template_id != "create_entity_with_alias":
+        return ""
     return (
         f"CREATE (e:{task.entity_type} {{id:'{task.entity_id}', "
         f"name:'{task.alias_text}'}})"

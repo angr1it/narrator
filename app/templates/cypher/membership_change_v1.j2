@@ -1,5 +1,12 @@
-MERGE (c:Character {name:'{{ character }}'})
-MERGE (p:Faction {name:'{{ faction }}'})
-MERGE (c)-[:MEMBER_OF]->(p)
+MERGE (a:Character {id: "{{ character }}"})
+MERGE (b:Faction {id: "{{ faction }}"})
+MERGE (a)-[r:MEMBER_OF {
+    chapter: {{ chapter }},
+    template_id: "membership_change_v1",
+    description: "{{ description }}",
+    chunk_id: "{{ chunk_id }}",
+    draft_stage: "{{ draft_stage }}",
+    confidence: {{ confidence }}
+}]->(b)
 
-{% include 'universal_fact.j2' %}
+{% set related_node_ids = [character, faction] %}
