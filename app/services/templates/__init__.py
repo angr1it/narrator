@@ -46,7 +46,7 @@ class TemplateService:
             vector. If *None* the service falls back to ``nearText`` search.
         """
 
-        self.client: weaviate.Client = weaviate_client
+        self.client: weaviate.Client | None = weaviate_client
 
         self.embedder = embedder
         self._ensure_schema()
@@ -69,7 +69,8 @@ class TemplateService:
         if payload.get("vector") is None and self.embedder:
             payload["vector"] = self.embedder(self._canonicalise_template(tpl))  # type: ignore[arg-type]
 
-        coll = self.client.collections.get(self.CLASS_NAME)
+        assert self.client is not None
+        coll = self.client.collections.get(self.CLASS_NAME)  # type: ignore[attr-defined]
 
         # Ищем существующий объект по полю 'name'
         existing = coll.query.fetch_objects(
@@ -92,14 +93,16 @@ class TemplateService:
         return CypherTemplate(id=uuid, **payload)  # type: ignore[arg-type]
 
     def get(self, id: str) -> CypherTemplate:
-        coll = self.client.collections.get(self.CLASS_NAME)
+        assert self.client is not None
+        coll = self.client.collections.get(self.CLASS_NAME)  # type: ignore[attr-defined]
         obj = coll.query.fetch_object_by_id(id)
         if not obj:
             raise ValueError(f"Template {id} not found")
         return self._from_weaviate(obj)
 
     def get_by_name(self, name: str) -> CypherTemplate:
-        coll = self.client.collections.get(self.CLASS_NAME)
+        assert self.client is not None
+        coll = self.client.collections.get(self.CLASS_NAME)  # type: ignore[attr-defined]
         res = coll.query.fetch_objects(
             filters=Filter.by_property("name").equal(name), limit=1
         ).objects
@@ -123,7 +126,8 @@ class TemplateService:
         if k <= 0:
             return []
 
-        coll = self.client.collections.get(self.CLASS_NAME)
+        assert self.client is not None
+        coll = self.client.collections.get(self.CLASS_NAME)  # type: ignore[attr-defined]
 
         # Определяем фильтры, если указана категория
         filters = Filter.by_property("category").equal(category) if category else None
@@ -157,10 +161,12 @@ class TemplateService:
         return [self._from_weaviate(obj) for obj in objects]
 
     def _ensure_schema(self) -> None:
-        if self.client.collections.exists(self.CLASS_NAME):
+        if self.client and self.client.collections.exists(self.CLASS_NAME):  # type: ignore[attr-defined]
+            return
+        if not self.client:
             return
 
-        self.client.collections.create(
+        self.client.collections.create(  # type: ignore[attr-defined]
             name=self.CLASS_NAME,
             description="Template that maps narrative text to Cypher code.",
             vectorizer_config=Configure.Vectorizer.none(),

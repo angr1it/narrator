@@ -10,7 +10,7 @@ from contextlib import AbstractContextManager
 from functools import lru_cache
 from typing import Any, Dict, Iterable, List, Optional
 
-from neo4j import Driver, GraphDatabase, Transaction
+from neo4j import Driver, GraphDatabase, ManagedTransaction, Transaction
 
 from config import app_settings
 
@@ -42,7 +42,7 @@ class GraphProxy(AbstractContextManager):
     # ------------------------------------------------------------------ utils
     @staticmethod
     def _run(
-        tx: Transaction, cypher: str, params: Optional[Dict[str, Any]]
+        tx: ManagedTransaction, cypher: str, params: Optional[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:  # noqa: E501
         """Internal helper executed inside a transaction function."""
         result = tx.run(cypher, params or {})
@@ -94,7 +94,7 @@ class GraphProxy(AbstractContextManager):
         if len(cypher_list) != len(params_list):
             raise ValueError("params_list length mismatch with cyphers")
 
-        def batch_tx(tx: Transaction) -> List[Dict[str, Any]]:
+        def batch_tx(tx: ManagedTransaction) -> List[Dict[str, Any]]:
             results: List[Dict[str, Any]] = []
             for c, p in zip(cypher_list, params_list):
                 self._log(c, p)

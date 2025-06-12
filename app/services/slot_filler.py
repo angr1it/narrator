@@ -28,7 +28,7 @@ def build_slot_model(template: CypherTemplate) -> type[BaseModel]:
         for slot in template.slots.values()
     }
     fields["details"] = (str, Field(description="Как извлечены значения"))
-    return create_model("ResponseItem", **fields)
+    return create_model("ResponseItem", **fields)  # type: ignore[misc, call-overload]
 
 
 class SlotFiller:
@@ -83,7 +83,7 @@ class SlotFiller:
         slot_names = [s.name for s in template.slots.values()]
         ItemModel = build_slot_model(template)
 
-        class ResponseList(RootModel[List[ItemModel]]):
+        class ResponseList(RootModel[List[ItemModel]]):  # type: ignore[misc, valid-type]
             pass
 
         parser = PydanticOutputParser(pydantic_object=ResponseList)
@@ -145,7 +145,7 @@ class SlotFiller:
             s.name: (TYPE_MAP[s.type], ... if s.required else None)
             for s in template.slots.values()
         }
-        DynamicModel = create_model("DynamicSlotsModel", **fields)
+        DynamicModel = create_model("DynamicSlotsModel", **fields)  # type: ignore[misc, call-overload]
         filtered = {k: obj.get(k) for k in fields.keys() if k in obj}
         validated: BaseModel = DynamicModel(**filtered)
         return validated.model_dump()
