@@ -72,7 +72,7 @@ def test_trait_attribution_end_to_end(
     assert results, "LLM не вернул ни одного заполнения"
 
     item = results[0]
-    slots = item["slots"]
+    slots = item.slots
 
     # Обязательные поля
     assert slots["character"].lower().startswith("арен")
@@ -84,4 +84,4 @@ def test_trait_attribution_end_to_end(
         assert isinstance(slots["summary"], str) and len(slots["summary"]) > 0
 
     # details присутствуют
-    assert "details" in item and isinstance(item["details"], str)
+    assert isinstance(item.details, str)
