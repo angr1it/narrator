@@ -115,16 +115,18 @@ class SlotFiller:
         chain = prompt | self.llm | parser
 
         attempts = 0
+        trace_name = f"{self.__class__.__name__.lower()}.{phase}"
+        config = None
+        if self.callback_handler:
+            config = {
+                "callbacks": [self.callback_handler],
+                "run_name": trace_name,
+                "tags": [self.__class__.__name__],
+            }
+
         while True:
             try:
-                result = chain.invoke(
-                    {},
-                    config=(
-                        {"callbacks": [self.callback_handler]}
-                        if self.callback_handler
-                        else None
-                    ),
-                )
+                result = chain.invoke({}, config=config)
                 break
             except Exception as e:
                 attempts += 1
