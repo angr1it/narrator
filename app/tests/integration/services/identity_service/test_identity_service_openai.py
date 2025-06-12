@@ -54,14 +54,14 @@ eid_b = str(uuid4())  # фиксированные ID для alias "Miranda"
 
 
 @pytest.fixture(scope="session", autouse=True)
-def prepare_alias_data(wclient):
+async def prepare_alias_data(wclient):
     """Создаём коллекцию и добавляем тестовые alias-данные."""
     service = IdentityService(
-        weaviate_client=wclient,
+        weaviate_async_client=wclient.async_,
         embedder=openai_embedder,
-        llm=lambda _: {"action": "new"},  # dummy
-        tracer=None,
+        llm_disambiguator=lambda *_: {"action": "new"},  # dummy
     )
+    await service.startup()
 
     alias_col = wclient.collections.get("Alias")
 
@@ -105,57 +105,54 @@ def make_dummy_llm(forced_response: dict):
 # ─────────────────── IdentityService factory ──────────────────────────────────
 @pytest.fixture
 def identity_service_factory(wclient):
-    def _factory(llm):
-        return IdentityService(
-            weaviate_client=wclient,
+    async def _factory(llm):
+        service = IdentityService(
+            weaviate_async_client=wclient.async_,
             embedder=openai_embedder,
-            llm=llm,
-            tracer=None,
+            llm_disambiguator=llm,
         )
+        await service.startup()
+        return service
 
     return _factory
 
 
 # ─────────────────── Tests ────────────────────────────────────────────────────
-def test_exact_canonical_match(identity_service_factory):
-    service = identity_service_factory(llm=make_dummy_llm({"action": "new"}))
-    plans = service.resolve(
-        raw_name="Zorian",
-        etype="CHARACTER",
+@pytest.mark.asyncio
+async def test_exact_canonical_match(identity_service_factory):
+    service = await identity_service_factory(make_dummy_llm({"action": "new"}))
+    result = await service.resolve_bulk(
+        {"character": "Zorian"},
         chapter=1,
-        fragment_id="frag-1",
+        chunk_id="frag-1",
         snippet="Zorian walked into the room.",
     )
-    assert plans == []
+    assert result.alias_tasks == []
+    assert result.mapped_slots["character"] == eid_a
 
 
-def test_exact_almost_canonical_match(identity_service_factory):
-    service = identity_service_factory(llm=make_dummy_llm({"action": "new"}))
-    plans = service.resolve(
-        raw_name="Zorian's",
-        etype="CHARACTER",
+@pytest.mark.asyncio
+async def test_exact_almost_canonical_match(identity_service_factory):
+    service = await identity_service_factory(make_dummy_llm({"action": "new"}))
+    result = await service.resolve_bulk(
+        {"character": "Zorian's"},
         chapter=1,
-        fragment_id="frag-1",
+        chunk_id="frag-1",
         snippet="Zorian's sword gleamed in the light.",
     )
-    assert plans == [
-        (
-            "add_alias",
-            {
-                "entity_id": eid_a,
-                "alias_text": "Zorian's",
-                "entity_type": "CHARACTER",
-                "chapter": 1,
-                "fragment_id": "frag-1",
-                "snippet": "Zorian's sword gleamed in the light.",
-            },
-        )
-    ]
+    assert len(result.alias_tasks) == 1
+    task = result.alias_tasks[0]
+    assert task.cypher_template_id == "add_alias"
+    assert task.entity_id == eid_a
+    assert task.alias_text == "Zorian's"
+    assert task.chapter == 1
+    assert task.chunk_id == "frag-1"
 
 
-def test_llm_add_alias(identity_service_factory):
-    service = identity_service_factory(
-        llm=make_dummy_llm(
+@pytest.mark.asyncio
+async def test_llm_add_alias(identity_service_factory):
+    service = await identity_service_factory(
+        make_dummy_llm(
             {
                 "action": "use",
                 "entity_id": eid_a,
@@ -164,45 +161,49 @@ def test_llm_add_alias(identity_service_factory):
             }
         )
     )
-    plans = service.resolve(
-        raw_name="Zориан",
-        etype="CHARACTER",
+    result = await service.resolve_bulk(
+        {"character": "Zориан"},
         chapter=2,
-        fragment_id="frag-2",
+        chunk_id="frag-2",
         snippet="Все звали его Zорианом.",
     )
-    assert plans and plans[0][0] == "add_alias"
-    assert plans[0][1]["entity_id"] == eid_a
-    assert plans[0][1]["alias_text"] == "Zориан"
+    assert result.alias_tasks
+    task = result.alias_tasks[0]
+    assert task.cypher_template_id == "add_alias"
+    assert task.entity_id == eid_a
+    assert task.alias_text == "Zориан"
 
 
-def test_llm_creates_new_entity(identity_service_factory):
-    service = identity_service_factory(llm=make_dummy_llm({"action": "new"}))
-    plans = service.resolve(
-        raw_name="Valerius",
-        etype="CHARACTER",
+@pytest.mark.asyncio
+async def test_llm_creates_new_entity(identity_service_factory):
+    service = await identity_service_factory(make_dummy_llm({"action": "new"}))
+    result = await service.resolve_bulk(
+        {"character": "Valerius"},
         chapter=3,
-        fragment_id="frag-3",
+        chunk_id="frag-3",
         snippet="Valerius впервые появился на горизонте.",
     )
-    assert plans and plans[0][0] == "create_entity_with_alias"
+    assert result.alias_tasks
+    assert result.alias_tasks[0].cypher_template_id == "create_entity_with_alias"
 
 
-def test_exact_create_new_entity(identity_service_factory):
-    service = identity_service_factory(llm=make_dummy_llm({"action": "new"}))
-    plans = service.resolve(
-        raw_name="Commodus",
-        etype="CHARACTER",
+@pytest.mark.asyncio
+async def test_exact_create_new_entity(identity_service_factory):
+    service = await identity_service_factory(make_dummy_llm({"action": "new"}))
+    result = await service.resolve_bulk(
+        {"character": "Commodus"},
         chapter=4,
-        fragment_id="frag-4",
+        chunk_id="frag-4",
         snippet="Император Commodus пришёл.",
     )
-    assert plans and plans[0][0] == "create_entity_with_alias"
+    assert result.alias_tasks
+    assert result.alias_tasks[0].cypher_template_id == "create_entity_with_alias"
 
 
-def test_llm_selects_existing_alias_different(identity_service_factory):
-    service = identity_service_factory(
-        llm=make_dummy_llm(
+@pytest.mark.asyncio
+async def test_llm_selects_existing_alias_different(identity_service_factory):
+    service = await identity_service_factory(
+        make_dummy_llm(
             {
                 "action": "use",
                 "entity_id": eid_b,
@@ -211,13 +212,13 @@ def test_llm_selects_existing_alias_different(identity_service_factory):
             }
         )
     )
-    plans = service.resolve(
-        raw_name="Миранда",
-        etype="CHARACTER",
+    result = await service.resolve_bulk(
+        {"character": "Миранда"},
         chapter=5,
-        fragment_id="frag-5",
+        chunk_id="frag-5",
         snippet="Она представилась как Миранда.",
     )
-    assert plans and plans[0][0] == "add_alias"
-    assert plans[0][1]["entity_id"] == eid_b
-    assert plans[0][1]["alias_text"] == "Миранда"
+    task = result.alias_tasks[0]
+    assert task.cypher_template_id == "add_alias"
+    assert task.entity_id == eid_b
+    assert task.alias_text == "Миранда"
