@@ -8,6 +8,8 @@ from uuid import uuid4
 import numpy as np
 import weaviate
 from weaviate.classes.config import Configure, Property, DataType
+from weaviate.classes import query as wv_query
+
 
 from config.embeddings import openai_embedder
 from utils.logger import get_logger
@@ -60,6 +62,16 @@ class FlatRaptorIndex:
         ).tolist()
 
         coll = self.client.collections.get(self.CLASS_NAME)
+        res = coll.query.near_vector(
+            near_vector=centroid,
+            limit=1,
+            return_metadata=wv_query.MetadataQuery(distance=True),
+        )
+        if res.objects and res.objects[0].metadata.distance <= 0.1:
+            node_id = res.objects[0].uuid
+            logger.debug("Merged with existing RaptorNode %s", node_id)
+            return node_id
+
         node_id = str(uuid4())
         coll.data.insert(
             uuid=node_id,

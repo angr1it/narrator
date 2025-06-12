@@ -233,6 +233,7 @@ class TemplateService:
             "created_at",
             "updated_at",
             "vector",
+            "return_map",
         }
         clean = {k: v for k, v in props.items() if k in allowed}
         clean["id"] = str(raw.uuid)
