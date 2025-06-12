@@ -15,6 +15,7 @@ os.environ.setdefault("AUTH_TOKEN", "x")
 
 pytestmark = pytest.mark.integration
 
+from langchain_openai import ChatOpenAI
 from services.slot_filler import SlotFiller
 from schemas.cypher import CypherTemplate, SlotDefinition
 
@@ -60,12 +61,14 @@ def base_template() -> CypherTemplate:
             ),
         },
         cypher="mock.cypher",
+        return_map={},
     )
 
 
 @pytest.fixture
 def filler(openai_key) -> SlotFiller:
-    return SlotFiller(api_key=openai_key, temperature=0.0)
+    llm = ChatOpenAI(api_key=openai_key, temperature=0.0)
+    return SlotFiller(llm)
 
 
 # --- TEST CASES -------------------------------------------------------------
@@ -116,6 +119,7 @@ def test_extract_missing_then_generate(filler: SlotFiller):
             ),
         },
         cypher="mock.cypher",
+        return_map={},
     )
     text = "Мира посмотрела на Эрика с презрением."
     results = filler.fill_slots(template, text)
@@ -146,6 +150,7 @@ def test_extract_single_object(filler: SlotFiller):
             ),
         },
         cypher="mock.cypher",
+        return_map={},
     )
     text = "Мира раскрыла, что Арен с рождения был одноруким."
     results = filler.fill_slots(template, text)
