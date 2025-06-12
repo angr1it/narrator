@@ -14,8 +14,7 @@ used by the extraction pipeline.
 from typing import Callable, List, Optional, Dict, Any
 
 import weaviate
-import weaviate.classes as wvc
-from weaviate.classes.config import Configure
+from weaviate.classes.config import Configure, Property, DataType
 from weaviate.classes.query import Filter
 from weaviate.collections.classes.internal import ObjectSingleReturn
 from weaviate.classes.query import MetadataQuery
@@ -164,69 +163,41 @@ class TemplateService:
         self.client.collections.create(
             name=self.CLASS_NAME,
             description="Template that maps narrative text to Cypher code.",
-            vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+            vectorizer_config=Configure.Vectorizer.none(),
             inverted_index_config=Configure.inverted_index(index_property_length=True),
             properties=[
-                wvc.config.Property(name="name", data_type=wvc.config.DataType.TEXT),
-                wvc.config.Property(name="version", data_type=wvc.config.DataType.TEXT),
-                wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
-                wvc.config.Property(
-                    name="description", data_type=wvc.config.DataType.TEXT
-                ),
-                wvc.config.Property(name="details", data_type=wvc.config.DataType.TEXT),
-                wvc.config.Property(
-                    name="category", data_type=wvc.config.DataType.TEXT
-                ),
-                wvc.config.Property(
+                Property(name="name", data_type=DataType.TEXT),
+                Property(name="version", data_type=DataType.TEXT),
+                Property(name="title", data_type=DataType.TEXT),
+                Property(name="description", data_type=DataType.TEXT),
+                Property(name="details", data_type=DataType.TEXT),
+                Property(name="category", data_type=DataType.TEXT),
+                Property(
                     name="slots",
-                    data_type=wvc.config.DataType.OBJECT,
+                    data_type=DataType.OBJECT,
                     nested_properties=[
-                        wvc.config.Property(
-                            name="type", data_type=wvc.config.DataType.TEXT
-                        ),
-                        wvc.config.Property(
-                            name="description", data_type=wvc.config.DataType.TEXT
-                        ),
-                        wvc.config.Property(
-                            name="required", data_type=wvc.config.DataType.BOOL
-                        ),
-                        wvc.config.Property(
-                            name="default", data_type=wvc.config.DataType.TEXT
-                        ),
+                        Property(name="type", data_type=DataType.TEXT),
+                        Property(name="description", data_type=DataType.TEXT),
+                        Property(name="required", data_type=DataType.BOOL),
+                        Property(name="default", data_type=DataType.TEXT),
                     ],
                 ),
-                wvc.config.Property(name="cypher", data_type=wvc.config.DataType.TEXT),
-                wvc.config.Property(
+                Property(name="cypher", data_type=DataType.TEXT),
+                Property(
                     name="graph_relation",
-                    data_type=wvc.config.DataType.OBJECT,
+                    data_type=DataType.OBJECT,
                     nested_properties=[
-                        wvc.config.Property(
-                            name="predicate", data_type=wvc.config.DataType.TEXT
-                        ),
-                        wvc.config.Property(
-                            name="subject", data_type=wvc.config.DataType.TEXT
-                        ),
-                        wvc.config.Property(
-                            name="value", data_type=wvc.config.DataType.TEXT
-                        ),
-                        wvc.config.Property(
-                            name="object", data_type=wvc.config.DataType.TEXT
-                        ),
+                        Property(name="predicate", data_type=DataType.TEXT),
+                        Property(name="subject", data_type=DataType.TEXT),
+                        Property(name="value", data_type=DataType.TEXT),
+                        Property(name="object", data_type=DataType.TEXT),
                     ],
                 ),
-                wvc.config.Property(
-                    name="attachment_policy", data_type=wvc.config.DataType.TEXT
-                ),
-                wvc.config.Property(
-                    name="default_confidence", data_type=wvc.config.DataType.NUMBER
-                ),
-                wvc.config.Property(name="author", data_type=wvc.config.DataType.TEXT),
-                wvc.config.Property(
-                    name="created_at", data_type=wvc.config.DataType.DATE
-                ),
-                wvc.config.Property(
-                    name="updated_at", data_type=wvc.config.DataType.DATE
-                ),
+                Property(name="attachment_policy", data_type=DataType.TEXT),
+                Property(name="default_confidence", data_type=DataType.NUMBER),
+                Property(name="author", data_type=DataType.TEXT),
+                Property(name="created_at", data_type=DataType.DATE),
+                Property(name="updated_at", data_type=DataType.DATE),
             ],
         )
 
