@@ -7,6 +7,7 @@ from __future__ import annotations
 """
 
 from contextlib import AbstractContextManager
+from functools import lru_cache
 from typing import Any, Dict, Iterable, List, Optional
 
 from neo4j import Driver, GraphDatabase, Transaction
@@ -115,3 +116,14 @@ class GraphProxy(AbstractContextManager):
 
     def __exit__(self, exc_type, exc, tb):  # noqa: D401
         self.close()
+
+
+@lru_cache()
+def get_graph_proxy() -> GraphProxy:
+    """Create and cache a GraphProxy instance."""
+    return GraphProxy(
+        uri=app_settings.NEO4J_URI,
+        user=app_settings.NEO4J_USER,
+        password=app_settings.NEO4J_PASSWORD,
+        database=app_settings.NEO4J_DB,
+    )

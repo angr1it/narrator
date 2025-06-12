@@ -2,14 +2,25 @@ import os
 import openai
 import pytest
 
+os.environ.setdefault("OPENAI_API_KEY", "x")
+os.environ.setdefault("NEO4J_URI", "bolt://example.com")
+os.environ.setdefault("NEO4J_USER", "neo4j")
+os.environ.setdefault("NEO4J_PASSWORD", "pass")
+os.environ.setdefault("NEO4J_DB", "neo4j")
+os.environ.setdefault("WEAVIATE_URL", "http://localhost")
+os.environ.setdefault("WEAVIATE_API_KEY", "x")
+os.environ.setdefault("WEAVIATE_INDEX", "idx")
+os.environ.setdefault("WEAVIATE_CLASS_NAME", "cls")
+os.environ.setdefault("AUTH_TOKEN", "x")
+
 pytestmark = pytest.mark.integration
 
 try:
     from config import app_settings
-    from config.weaviate import connect_to_weaviate
+    from services.templates import TemplateService
+    from services.templates.service import get_weaviate_client, get_template_service
 except Exception:  # missing environment or config
     pytest.skip("Settings not configured", allow_module_level=True)
-from services.templates.service import TemplateService
 from templates.imports import import_templates
 from templates.base import base_templates
 
@@ -20,11 +31,8 @@ MODEL_NAME = "text-embedding-3-small"
 
 @pytest.fixture(scope="session")
 def weaviate_client():
-    """Создаём клиент Weaviate через универсальную функцию подключения."""
-    return connect_to_weaviate(
-        url=app_settings.WEAVIATE_URL,
-        api_key=app_settings.WEAVIATE_API_KEY,
-    )
+    """Return shared Weaviate client."""
+    return get_weaviate_client()
 
 
 def openai_embedder(text: str) -> list[float]:
@@ -37,7 +45,7 @@ def openai_embedder(text: str) -> list[float]:
 
 @pytest.fixture(scope="session")
 def template_service(weaviate_client) -> TemplateService:
-    """Создаём TemplateService, передавая готовый Weaviate client."""
+    """Create TemplateService via factory."""
     required = [
         app_settings.WEAVIATE_URL,
         getattr(app_settings, "WEAVIATE_API_KEY", None),
@@ -49,7 +57,7 @@ def template_service(weaviate_client) -> TemplateService:
             "Weaviate connection settings are missing – integration tests skipped."
         )
 
-    return TemplateService(weaviate_client=weaviate_client, embedder=openai_embedder)
+    return get_template_service()
 
 
 @pytest.fixture(scope="session", autouse=True)

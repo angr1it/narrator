@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any, Dict, List, Literal, Optional, Callable
 
 import uuid
@@ -39,6 +40,9 @@ from weaviate.client import WeaviateAsyncClient
 from weaviate.exceptions import WeaviateQueryError
 from weaviate.classes.query import Filter, MetadataQuery
 from weaviate.classes.config import Configure, Property, DataType
+
+from config.embeddings import openai_embedder
+from services.templates.service import get_weaviate_client
 
 from pydantic import BaseModel
 
@@ -359,4 +363,20 @@ def _render_alias_cypher(task: AliasTask) -> str:
     return (
         f"CREATE (e:{task.entity_type} {{id:'{task.entity_id}', "
         f"name:'{task.alias_text}'}})"
+    )
+
+
+@lru_cache()
+def get_identity_service(
+    llm_disambiguator: (
+        Callable[[str, List[Dict[str, Any]]], Dict[str, Any]] | None
+    ) = None,
+) -> "IdentityService":
+    """Return a cached IdentityService using shared clients."""
+
+    disambiguator = llm_disambiguator or (lambda *_: {"action": "new"})
+    return IdentityService(
+        weaviate_async_client=get_weaviate_client().async_,
+        embedder=openai_embedder,
+        llm_disambiguator=disambiguator,
     )
