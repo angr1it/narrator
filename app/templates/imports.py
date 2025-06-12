@@ -19,7 +19,6 @@ def import_templates(
             tpl = entry
         else:
             raise TypeError(f"Invalid template type: {type(entry)}")
-
         try:
             service.upsert(tpl)
             logger.info(f"✓ Imported template: {tpl.name}")

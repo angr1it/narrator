@@ -17,7 +17,8 @@ repos:
   - repo: local
     hooks:
       - id: pytest
-        name: pytest
-        entry: pytest -q
-        language: system
+        name: Run tests
+        entry: |
+          bash -c "pip install -r requirements.txt && pytest -q"
+        language: python
         pass_filenames: false

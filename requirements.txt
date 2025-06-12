@@ -17,3 +17,6 @@ langfuse
 numpy
 mypy
 pre-commit
+black
+flake8
+pre-commit
