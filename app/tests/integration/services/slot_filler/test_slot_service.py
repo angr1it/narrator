@@ -71,11 +71,10 @@ def test_extract_multiple_results(filler: SlotFiller, base_template: CypherTempl
     assert len(results) >= 2
 
     for r in results:
-        assert r["template_id"] == FIXED_UUID
-        assert "character" in r["slots"]
-        assert "faction" in r["slots"]
-        assert "details" in r
-        assert isinstance(r["details"], str)
+        assert r.template_id == str(FIXED_UUID)
+        assert "character" in r.slots
+        assert "faction" in r.slots
+        assert isinstance(r.details, str)
 
 
 def test_extract_missing_then_generate(filler: SlotFiller):
@@ -115,12 +114,12 @@ def test_extract_missing_then_generate(filler: SlotFiller):
 
     assert results
     for r in results:
-        slots = r["slots"]
+        slots = r.slots
         assert slots["subject"] == "Мира"
         assert slots["target"] == "Эрик"
         assert "emotion" in slots
-        assert "details" in r
-        if "summary" in slots:
+        assert isinstance(r.details, str)
+        if "summary" in slots and slots["summary"] is not None:
             assert isinstance(slots["summary"], str)
 
 
@@ -146,6 +145,6 @@ def test_extract_single_object(filler: SlotFiller):
 
     assert len(results) == 1
     r = results[0]
-    assert r["slots"]["actor"] == "Мира"
-    assert "trait" in r["slots"]
-    assert "details" in r
+    assert r.slots["actor"] == "Мира"
+    assert "trait" in r.slots
+    assert isinstance(r.details, str)
