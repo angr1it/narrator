@@ -2,9 +2,7 @@ import pytest
 from services.template_renderer import TemplateRenderer
 
 
-def test_render_returns_triple_and_nodes(
-    sample_template, slot_fill, template_renderer
-):
+def test_render_returns_triple_and_nodes(sample_template, slot_fill, template_renderer):
     meta = {
         "chunk_id": "c1",
         "chapter": 1,
@@ -18,9 +16,7 @@ def test_render_returns_triple_and_nodes(
     assert plan.related_node_ids == ["char1", "true"]
 
 
-def test_missing_chunk_id_raises(
-    sample_template, slot_fill, template_renderer
-):
+def test_missing_chunk_id_raises(sample_template, slot_fill, template_renderer):
     meta = {}
     try:
         template_renderer.render(sample_template, slot_fill, meta)
@@ -30,9 +26,7 @@ def test_missing_chunk_id_raises(
         assert False, "expected ValueError"
 
 
-def test_missing_return_map_raises(
-    sample_template, slot_fill, template_renderer
-):
+def test_missing_return_map_raises(sample_template, slot_fill, template_renderer):
     template = sample_template.model_copy()
     template.return_map = {}
     meta = {"chunk_id": "c1"}
