@@ -172,3 +172,12 @@ def fill_slots_for_template(template, chunk, meta):
 - Introduce support for `from_chapter`, `to_chapter` versioning in graph model
 
 ---
+
+## Development Setup
+Install dependencies and set up pre-commit hooks:
+
+```bash
+pip install -r requirements.txt
+pre-commit install
+```
+

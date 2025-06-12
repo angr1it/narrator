@@ -70,5 +70,11 @@ app/services/pipeline.py
 ## Обязательные проверки перед слиянием
 - `black --check .`
 - `flake8`
-- `mypy app`
+- `mypy` только на изменённых файлах
 - `pytest -q`
+
+### Pre-commit
+- После установки зависимостей выполните `pre-commit install`
+- Хуки запускают все обязательные проверки
+- Чтобы проверить типы только в изменённых файлах, выполните
+  `pre-commit run mypy --from-ref origin/main --to-ref HEAD`
