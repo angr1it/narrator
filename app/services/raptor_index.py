@@ -7,8 +7,7 @@ from uuid import uuid4
 
 import numpy as np
 import weaviate
-import weaviate.classes as wvc
-from weaviate.classes.config import Configure
+from weaviate.classes.config import Configure, Property, DataType
 
 from config.embeddings import openai_embedder
 from utils.logger import get_logger
@@ -39,18 +38,12 @@ class FlatRaptorIndex:
             return
         self.client.collections.create(
             name=self.CLASS_NAME,
-            vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+            vectorizer_config=Configure.Vectorizer.none(),
             inverted_index_config=Configure.inverted_index(),
             properties=[
-                wvc.config.Property(
-                    name="text_vec", data_type=wvc.config.DataType.NUMBER_ARRAY
-                ),
-                wvc.config.Property(
-                    name="fact_vec", data_type=wvc.config.DataType.NUMBER_ARRAY
-                ),
-                wvc.config.Property(
-                    name="centroid", data_type=wvc.config.DataType.NUMBER_ARRAY
-                ),
+                Property(name="text_vec", data_type=DataType.NUMBER_ARRAY),
+                Property(name="fact_vec", data_type=DataType.NUMBER_ARRAY),
+                Property(name="centroid", data_type=DataType.NUMBER_ARRAY),
             ],
         )
 
