@@ -38,7 +38,7 @@ import weaviate
 from weaviate.client import WeaviateAsyncClient
 from weaviate.exceptions import WeaviateQueryError
 from weaviate.classes.query import Filter, MetadataQuery
-from weaviate.classes.config import Configure
+from weaviate.classes.config import Configure, Property, DataType
 
 from pydantic import BaseModel
 
@@ -97,7 +97,13 @@ class IdentityService:
         self.llm_disambiguator = llm_disambiguator
 
     async def startup(self) -> None:
-        """Call once at app-boot (FastAPI lifespan) – creates collection if absent."""
+        """Ensure the ``Alias`` collection exists in Weaviate.
+
+        Older code used ``Configure.Property`` which is not available in
+        ``weaviate-client`` v4.  Here we rely on ``Property`` and ``DataType``
+        from :mod:`weaviate.classes.config` so the schema creation works across
+        library versions.
+        """
         if await self._collection_exists(ALIAS_CLASS):
             return
         await self.w.collections.create(
@@ -107,13 +113,13 @@ class IdentityService:
             inverted_index_config=Configure.inverted_index(index_property_length=True),
             properties=[
                 # NOTE all fields are TEXT unless explicitly stated
-                Configure.Property("alias_text", data_type="text"),
-                Configure.Property("entity_id", data_type="text"),
-                Configure.Property("entity_type", data_type="text"),
-                Configure.Property("canonical", data_type="bool"),
-                Configure.Property("chapter", data_type="int"),
-                Configure.Property("chunk_id", data_type="text"),
-                Configure.Property("snippet", data_type="text"),
+                Property(name="alias_text", data_type=DataType.TEXT),
+                Property(name="entity_id", data_type=DataType.TEXT),
+                Property(name="entity_type", data_type=DataType.TEXT),
+                Property(name="canonical", data_type=DataType.BOOL),
+                Property(name="chapter", data_type=DataType.INT),
+                Property(name="chunk_id", data_type=DataType.TEXT),
+                Property(name="snippet", data_type=DataType.TEXT),
             ],
         )
         _logger.info("[Identity] ➕ Collection 'Alias' created")

@@ -46,3 +46,44 @@ async def test_commit_aliases_filters_add_alias():
     cyphers = await svc.commit_aliases(tasks)
     assert len(svc.logged) == 2
     assert cyphers == ["CREATE (e:CHARACTER {id:'e2', name:'B'})"]
+
+
+class DummyClient:
+    def __init__(self, exists: bool = False):
+        self.created = None
+
+        class CollMgr:
+            async def list_all(self_inner):
+                return [type("C", (), {"name": "Alias"})] if exists else []
+
+            async def create(self_inner, **kwargs):
+                self.created = kwargs
+
+        self.collections = CollMgr()
+
+
+class StartupService(IdentityService):
+    def __init__(self, client: DummyClient):
+        super().__init__(
+            weaviate_async_client=client,
+            embedder=lambda x: [0.0],
+            llm_disambiguator=lambda *a, **k: {},
+        )
+
+
+@pytest.mark.asyncio
+async def test_startup_creates_collection():
+    client = DummyClient()
+    svc = StartupService(client)
+    await svc.startup()
+    assert client.created is not None
+    props = client.created["properties"]
+    assert any(p.name == "alias_text" for p in props)
+
+
+@pytest.mark.asyncio
+async def test_startup_skips_if_exists():
+    client = DummyClient(exists=True)
+    svc = StartupService(client)
+    await svc.startup()
+    assert client.created is None
