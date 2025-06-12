@@ -12,8 +12,13 @@ def event_loop():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _set_test_env():
-    """Set default environment variables for tests."""
+def _set_test_env(request):
+    """Set default env for unit tests; skip for integration ones."""
+
+    if any(item for item in request.session.items if "integration" in item.keywords):
+        print("Skipping environment setup for integration tests...")
+        return
+
     defaults = {
         "OPENAI_API_KEY": "x",
         "NEO4J_URI": "bolt://example.com",
@@ -26,8 +31,14 @@ def _set_test_env():
         "WEAVIATE_CLASS_NAME": "cls",
         "AUTH_TOKEN": "x",
     }
-    for key, value in defaults.items():
-        os.environ.setdefault(key, value)
+
+    os.environ.update(defaults)
+
+    # yield
+
+    # print("Cleaning up environment variables after tests...")
+    # os.environ.clear()
+    # os.environ.update(orig)
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:

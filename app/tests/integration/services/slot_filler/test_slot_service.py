@@ -2,17 +2,6 @@ import os
 import pytest
 from uuid import uuid4
 
-os.environ.setdefault("OPENAI_API_KEY", "x")
-os.environ.setdefault("NEO4J_URI", "bolt://example.com")
-os.environ.setdefault("NEO4J_USER", "neo4j")
-os.environ.setdefault("NEO4J_PASSWORD", "pass")
-os.environ.setdefault("NEO4J_DB", "neo4j")
-os.environ.setdefault("WEAVIATE_URL", "")
-os.environ.setdefault("WEAVIATE_API_KEY", "")
-os.environ.setdefault("WEAVIATE_INDEX", "")
-os.environ.setdefault("WEAVIATE_CLASS_NAME", "")
-os.environ.setdefault("AUTH_TOKEN", "x")
-
 pytestmark = pytest.mark.integration
 
 from langchain_openai import ChatOpenAI
