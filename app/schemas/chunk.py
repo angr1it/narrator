@@ -7,7 +7,8 @@ from schemas.stage import StageEnum
 
 
 class ChunkBase(BaseModel):
-    """Chunk -- кусок текста """
+    """Chunk -- кусок текста"""
+
     chunk_id: str = Field(default_factory=lambda: str(uuid4()))
     text: str
     chapter: int
