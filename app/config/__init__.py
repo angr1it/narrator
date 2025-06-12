@@ -21,8 +21,8 @@ class AppSettings(BaseSettings):
     WEAVIATE_CLASS_NAME: str
 
     LANGFUSE_HOST: str | None = None
-    LANGFUSE_PUBLIC: str | None = None
-    LANGFUSE_SECRET: str | None = None
+    LANGFUSE_PUBLIC_KEY: str | None = None
+    LANGFUSE_SECRET_KEY: str | None = None
 
     # === Безопасность ===
     AUTH_TOKEN: str  # Простой Bearer‑токен (см. spec «🔐»)

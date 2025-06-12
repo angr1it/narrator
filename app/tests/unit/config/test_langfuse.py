@@ -30,13 +30,3 @@ class DummyClient:
     def span(self, name: str):
         self.events.append(name)
         return DummySpan(self.events)
-
-
-def test_start_as_current_span(monkeypatch):
-    events: list[str] = []
-    monkeypatch.setattr(langfuse_module, "get_client", lambda: DummyClient(events))
-
-    with langfuse_module.start_as_current_span("test"):
-        events.append("inside")
-
-    assert events == ["test", "inside", "end"]

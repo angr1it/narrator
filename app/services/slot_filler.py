@@ -5,6 +5,7 @@ from langchain.prompts import PromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, create_model, RootModel, Field
 
+
 from core.slots.prompts import PROMPTS_ENV
 from schemas.cypher import CypherTemplate
 from schemas.slots import SlotFill
@@ -33,9 +34,9 @@ def build_slot_model(template: CypherTemplate) -> type[BaseModel]:
 class SlotFiller:
     """Извлекает и валидирует слоты для CypherTemplate."""
 
-    def __init__(self, llm, tracer=None):
+    def __init__(self, llm, callback_handler=None):
         self.llm = llm
-        self.tracer = tracer
+        self.callback_handler = callback_handler
 
     def fill_slots(self, template: CypherTemplate, text: str) -> List[SlotFill]:
         fillings = self._extract_slots(template, text)
@@ -106,18 +107,23 @@ class SlotFiller:
         chain = prompt | self.llm | parser
 
         attempts = 0
-        with start_as_current_span(name=f"slotfiller.{phase}") as span:
-            while True:
-                try:
-                    result = chain.invoke({})
-                    break
-                except Exception as e:
-                    attempts += 1
-                    logger.error(f"Error in phase {phase}: {str(e)}")
-                    if attempts > 1:
-                        raise
+        while True:
+            try:
+                result = chain.invoke(
+                    {},
+                    config=(
+                        {"callbacks": [self.callback_handler]}
+                        if self.callback_handler
+                        else None
+                    ),
+                )
+                break
+            except Exception as e:
+                attempts += 1
+                logger.error(f"Error in phase {phase}: {str(e)}")
+                if attempts > 1:
+                    raise
 
-            span.update(input={"phase": phase})
         return result.model_dump()
 
     @staticmethod
