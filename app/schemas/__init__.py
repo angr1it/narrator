@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi_camelcase import CamelModel
 
 
@@ -17,5 +19,5 @@ class AugmentCtxIn(ExtractSaveIn): ...
 
 
 class AugmentCtxOut(CamelModel):
-    context: list[str, any]
+    context: dict[str, Any]
     trace_id: str

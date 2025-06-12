@@ -65,7 +65,10 @@ def connect_to_weaviate(
     grpc_secure = http_secure
     additional_config = None
     if timeout:
-        additional_config = AdditionalConfig(timeout=Timeout(*timeout))
+        init_t, query_t, insert_t = timeout
+        additional_config = AdditionalConfig(
+            timeout=Timeout(init=init_t, query=query_t, insert=insert_t)
+        )
 
     return weaviate.connect_to_custom(
         http_host=host,

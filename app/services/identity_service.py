@@ -95,7 +95,7 @@ class IdentityService:
     def __init__(
         self,
         weaviate_async_client: WeaviateAsyncClient,
-        embedder: EmbedderFn,
+        embedder: EmbedderFn | None,
         *,
         llm_disambiguator: Callable[[str, List[Dict[str, Any]]], Dict[str, Any]],
         callback_handler=None,
@@ -279,7 +279,7 @@ class IdentityService:
 
     async def _collection_exists(self, name: str) -> bool:
         for col in await self.w.collections.list_all():
-            if col.name == name:
+            if getattr(col, "name", col) == name:
                 return True
         return False
 
@@ -314,7 +314,9 @@ class IdentityService:
                     "score": round(dst, 4),
                 }
             )
-        hits.sort(key=lambda x: -x["score"])
+        from typing import cast
+
+        hits.sort(key=lambda x: -float(cast(float, x["score"])))
         return hits
 
     async def _llm_disambiguate(

@@ -34,4 +34,4 @@ class AppSettings(BaseSettings):
         env_file = ".env"  # Читаем из корня проекта
 
 
-app_settings = AppSettings()
+app_settings = AppSettings()  # type: ignore[call-arg]
