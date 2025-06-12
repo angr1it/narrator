@@ -44,7 +44,7 @@ class SlotFiller:
             validated = self._validate_and_cast(s, template)
             results.append(
                 SlotFill(
-                    template_id=template.id,
+                    template_id=str(template.id),
                     slots=validated,
                     details=s.get("details", ""),
                 )
