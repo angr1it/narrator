@@ -16,3 +16,5 @@ neo4j
 langfuse
 numpy
 mypy
+flake8
+black
