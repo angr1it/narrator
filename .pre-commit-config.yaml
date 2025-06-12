@@ -13,7 +13,11 @@ repos:
       - id: mypy
         name: "Type check — mypy"
         files: "\\.py$"
-        args: [--ignore-missing-imports]
+        args:
+          - --ignore-missing-imports
+          - --install-types
+          - --non-interactive
+
   - repo: local
     hooks:
       - id: pytest

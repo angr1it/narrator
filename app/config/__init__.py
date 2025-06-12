@@ -1,3 +1,4 @@
+from dataclasses import Field
 from pydantic_settings import BaseSettings
 
 
@@ -19,6 +20,10 @@ class AppSettings(BaseSettings):
     WEAVIATE_API_KEY: str
     WEAVIATE_INDEX: str
     WEAVIATE_CLASS_NAME: str
+
+    WEAVIATE_MODE: str = "cloud"  # 'cloud' | 'local'
+    WEAVIATE_LOCAL_HOST: str = "localhost"
+    WEAVIATE_LOCAL_PORT: int = 8080
 
     LANGFUSE_HOST: str | None = None
     LANGFUSE_PUBLIC_KEY: str | None = None

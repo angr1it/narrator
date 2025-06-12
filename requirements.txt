@@ -21,3 +21,5 @@ black
 flake8
 pre-commit
 langchain_openai
+pytest-container
+testcontainers

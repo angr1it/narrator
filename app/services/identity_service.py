@@ -29,23 +29,25 @@ You *do not* need to modify calling code except:
 
 from __future__ import annotations
 
+from functools import lru_cache
 import logging
 from dataclasses import dataclass
-from functools import lru_cache
-from typing import Any, Dict, List, Literal, Optional, Callable
+from typing import Any, Dict, List, Literal, Optional, Callable, cast
 import inspect
 import json
-
 import uuid
-import weaviate
-from weaviate.client import WeaviateAsyncClient
+
+from weaviate.exceptions import WeaviateQueryError, WeaviateBaseError
+from weaviate import WeaviateAsyncClient, connect_to_weaviate_cloud, connect_to_local
+from weaviate.classes.init import Auth
 from weaviate.exceptions import WeaviateQueryError
 from weaviate.classes.query import Filter, MetadataQuery
 from weaviate.classes.config import Configure, Property, DataType
 
 from config.embeddings import openai_embedder
-from services.templates.service import get_weaviate_client
 from config.langfuse import provide_callback_handler_with_tags
+from config import app_settings
+
 
 from pydantic import BaseModel
 
@@ -60,12 +62,9 @@ _logger = logging.getLogger("identity_async")
 
 @dataclass
 class AliasTask:
-    """A deferred operation that has to be materialised after template-render."""
-
-    cypher_template_id: str  # id of Jinja2 alias template
-    render_slots: Dict[str, Any]  # slots to pass into the template
-    # The three fields below are already resolved & immutable:
-    entity_id: str  # final canonical id
+    cypher_template_id: str
+    render_slots: Dict[str, Any]
+    entity_id: str
     alias_text: str
     entity_type: str
     chapter: int
@@ -74,10 +73,8 @@ class AliasTask:
 
 
 class BulkResolveResult(BaseModel):
-    """Return-object of `resolve_bulk_for_template`."""
-
-    mapped_slots: Dict[str, Any]  # slot-name ➞ entity_id
-    alias_tasks: List[AliasTask]  # to be committed later
+    mapped_slots: Dict[str, Any]
+    alias_tasks: List[AliasTask]
 
 
 class LLMDecision(BaseModel):
@@ -87,11 +84,6 @@ class LLMDecision(BaseModel):
 
 
 class IdentityService:
-    """
-    Canonical-name resolver, async flavour.
-    Works with the template-pipeline in *two* passes.
-    """
-
     def __init__(
         self,
         weaviate_async_client: WeaviateAsyncClient,
@@ -106,22 +98,14 @@ class IdentityService:
         self.callback_handler = callback_handler
 
     async def startup(self) -> None:
-        """Ensure the ``Alias`` collection exists in Weaviate.
-
-        Older code used ``Configure.Property`` which is not available in
-        ``weaviate-client`` v4.  Here we rely on ``Property`` and ``DataType``
-        from :mod:`weaviate.classes.config` so the schema creation works across
-        library versions.
-        """
         if await self._collection_exists(ALIAS_CLASS):
             return
-        await self.w.collections.create(
+        self.w.collections.create(
             name=ALIAS_CLASS,
             description="Stores all known aliases for story entities",
             vectorizer_config=Configure.Vectorizer.none(),
             inverted_index_config=Configure.inverted_index(index_property_length=True),
             properties=[
-                # NOTE all fields are TEXT unless explicitly stated
                 Property(name="alias_text", data_type=DataType.TEXT),
                 Property(name="entity_id", data_type=DataType.TEXT),
                 Property(name="entity_type", data_type=DataType.TEXT),
@@ -141,32 +125,13 @@ class IdentityService:
         chunk_id: str,
         snippet: str,
     ) -> BulkResolveResult:
-        """Resolve entity-like slots and prepare alias records.
-
-        Parameters
-        ----------
-        slots:
-            Raw slot dictionary from :class:`SlotFiller`.
-        chapter:
-            Chapter number used for context.
-        chunk_id:
-            Identifier of the ``ChunkNode`` the aliases belong to.
-        snippet:
-            Raw text snippet where the alias appeared.
-
-        Returns
-        -------
-        BulkResolveResult
-            Contains ``mapped_slots`` with canonical IDs and the ``alias_tasks``
-            that must be committed after rendering.
-        """
-        mapped_slots = dict(slots)  # copy
+        mapped_slots = dict(slots)
         alias_tasks: List[AliasTask] = []
 
         for field, raw_val in slots.items():
             etype = _FIELD_TO_ENTITY.get(field)
             if not etype:
-                continue  # – not an entity field
+                continue
 
             decision = await self._resolve_single(
                 raw_name=str(raw_val),
@@ -195,11 +160,6 @@ class IdentityService:
         return BulkResolveResult(mapped_slots=mapped_slots, alias_tasks=alias_tasks)
 
     async def commit_aliases(self, alias_tasks: List[AliasTask]) -> List[str]:
-        """
-        PHASE #2 – called after the entire Cypher batch for the *content* template
-        was prepared.  Writes the Alias objects & returns Cypher strings to be
-        appended to the template batch (if any).
-        """
         cypher_snippets: List[str] = []
         for task in alias_tasks:
             await self._upsert_alias(task)
@@ -207,8 +167,6 @@ class IdentityService:
             if snippet:
                 cypher_snippets.append(snippet)
         return cypher_snippets
-
-    # ---------- internal helpers  ----------------------------------------- #
 
     async def _resolve_single(
         self,
@@ -219,15 +177,9 @@ class IdentityService:
         chunk_id: str,
         snippet: str,
     ) -> Dict[str, Any]:
-        """
-        Internal – returns a dict:
-            { entity_id, alias_text, need_task: bool,
-              template_id, render_slots }
-        """
         cand = await self._nearest_alias(raw_name, entity_type, limit=3)
         best = cand[0] if cand else None
 
-        # ---- CASE A: high-confidence hit -----------------------------------------
         if best and best["score"] >= HI_SIM:
             need_task = best["alias_text"] != raw_name
             return {
@@ -243,7 +195,6 @@ class IdentityService:
                 },
             }
 
-        # ---- CASE B: ambiguous hit – LLM disambiguation --------------------------
         if best and best["score"] >= LO_SIM:
             decision = await self._llm_disambiguate(raw_name, cand, chapter, snippet)
             if decision.action == "use":
@@ -260,7 +211,6 @@ class IdentityService:
                     },
                 }
 
-        # ---- CASE C: brand-new entity -------------------------------------------
         entity_id = f"{entity_type.lower()}-{uuid.uuid4().hex[:8]}"
         return {
             "entity_id": entity_id,
@@ -275,10 +225,9 @@ class IdentityService:
             },
         }
 
-    # ---------- low-level Weaviate ops ------------------------------------ #
-
     async def _collection_exists(self, name: str) -> bool:
-        for col in await self.w.collections.list_all():
+        collections = self.w.collections.list_all()
+        for col in collections:
             if getattr(col, "name", col) == name:
                 return True
         return False
@@ -295,7 +244,8 @@ class IdentityService:
 
         vector = self.embedder(query_text)
         try:
-            res = await self.w.collections.get(ALIAS_CLASS).query.near_vector(
+            collection = self.w.collections.get(ALIAS_CLASS)
+            res = await collection.query.near_vector(
                 near_vector=vector,
                 limit=limit,
                 filters=Filter.by_property("entity_type").equal(entity_type),
@@ -314,8 +264,6 @@ class IdentityService:
                     "score": round(dst, 4),
                 }
             )
-        from typing import cast
-
         hits.sort(key=lambda x: -float(cast(float, x["score"])))
         return hits
 
@@ -326,7 +274,6 @@ class IdentityService:
         chapter: int,
         snippet: str,
     ) -> LLMDecision:
-        """Delegate LLM-powered disambiguation to the provided callable."""
         llm = self.llm_disambiguator
         config = (
             {"callbacks": [self.callback_handler]} if self.callback_handler else None
@@ -365,13 +312,11 @@ class IdentityService:
         raise ValueError("Invalid LLM disambiguation result")
 
     async def _upsert_alias(self, task: AliasTask) -> None:
-        """Write alias object – ignore duplicate key errors."""
         col = self.w.collections.get(ALIAS_CLASS)
         props = {
             "alias_text": task.alias_text,
             "entity_id": task.entity_id,
             "entity_type": task.entity_type,
-            # meta – could be filled by caller if needed
             "canonical": task.render_slots.get("canonical", False),
             "chapter": task.chapter,
             "chunk_id": task.chunk_id,
@@ -380,8 +325,8 @@ class IdentityService:
         vec = self.embedder(task.alias_text) if self.embedder else None
         try:
             await col.data.insert(properties=props, vector=vec)
-        except weaviate.exceptions.WeaviateBaseError:
-            pass  # duplicate – ignore
+        except WeaviateBaseError:
+            pass
 
 
 # --------------------------------------------------------------------------- #
@@ -407,19 +352,37 @@ def _render_alias_cypher(task: AliasTask) -> str:
     )
 
 
-@lru_cache()
-def get_identity_service(
-    llm_disambiguator: (
-        Callable[[str, List[Dict[str, Any]]], Dict[str, Any]] | None
-    ) = None,
-) -> "IdentityService":
-    """Return a cached IdentityService using shared clients."""
-
+@lru_cache(maxsize=1)
+def get_identity_service_async(
+    llm_disambiguator: Optional[
+        Callable[[str, List[Dict[str, Any]]], Dict[str, Any]]
+    ] = None,
+    embedder: EmbedderFn | None = None,
+) -> IdentityService:
+    """Асинхронно создаёт и возвращает IdentityService с подключением к Weaviate."""
     disambiguator = llm_disambiguator or (lambda *_: {"action": "new"})
     handler = provide_callback_handler_with_tags(tags=[IdentityService.__name__])
+    embedder = embedder or openai_embedder
+
+    if app_settings.WEAVIATE_MODE == "local":
+        client = connect_to_local(
+            host=app_settings.WEAVIATE_LOCAL_HOST,
+            port=app_settings.WEAVIATE_LOCAL_PORT,
+        )
+    elif app_settings.WEAVIATE_MODE == "cloud":
+        client = connect_to_weaviate_cloud(
+            cluster_url=app_settings.WEAVIATE_URL,
+            auth_credentials=Auth().api_key(api_key=app_settings.WEAVIATE_API_KEY),
+        )
+    else:
+        raise ValueError(
+            f"Unsupported WEAVIATE_MODE: {app_settings.WEAVIATE_MODE}. "
+            "Use 'local' or 'cloud'."
+        )
+
     return IdentityService(
-        weaviate_async_client=get_weaviate_client().async_,
-        embedder=openai_embedder,
+        weaviate_async_client=client,
+        embedder=embedder,
         llm_disambiguator=disambiguator,
         callback_handler=handler,
     )

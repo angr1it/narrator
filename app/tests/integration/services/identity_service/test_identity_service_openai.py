@@ -8,7 +8,7 @@ import openai
 pytestmark = pytest.mark.integration
 from weaviate.collections.classes.data import DataObject
 
-from services.identity_service import IdentityService
+from services.identity_service import IdentityService, get_identity_service_async
 from services.templates.service import get_weaviate_client
 
 MODEL_NAME = "text-embedding-3-small"
@@ -23,41 +23,23 @@ def openai_embedder(text: str) -> list[float]:
     return response.data[0].embedding
 
 
-# ─────────────────── Weaviate client ──────────────────────────────────────────
-@pytest.fixture(scope="session")
-def wclient():
-    OPENAI_KEY = os.getenv("OPENAI_API_KEY")
-    openai.api_key = OPENAI_KEY
-
-    client = get_weaviate_client()
-
-    yield client
-
-    # cleanup
-    time.sleep(0.5)
-    if "Alias" in client.collections.list_all():
-        client.collections.delete("Alias")
-    client.close()
-
-
 # ─────────────────── Prepare test data ────────────────────────────────────────
 eid_a = str(uuid4())  # фиксированные ID для alias "Zorian"
 eid_b = str(uuid4())  # фиксированные ID для alias "Miranda"
 
 
 @pytest.fixture(scope="session", autouse=True)
-async def prepare_alias_data(wclient):
+async def prepare_alias_data():
     """Создаём коллекцию и добавляем тестовые alias-данные."""
-    service = IdentityService(
-        weaviate_async_client=wclient.async_,
-        embedder=openai_embedder,
-        llm_disambiguator=lambda *_: {"action": "new"},  # dummy
-    )
+    OPENAI_KEY = os.getenv("OPENAI_API_KEY")
+    openai.api_key = OPENAI_KEY
+
+    service = get_identity_service_async()
+
     await service.startup()
 
-    alias_col = wclient.collections.get("Alias")
-
-    alias_col.data.insert_many(
+    alias_col = service.w.collections.get("Alias")
+    await alias_col.data.insert_many(
         [
             DataObject(
                 properties={
@@ -96,13 +78,9 @@ def make_dummy_llm(forced_response: dict):
 
 # ─────────────────── IdentityService factory ──────────────────────────────────
 @pytest.fixture
-def identity_service_factory(wclient):
-    async def _factory(llm):
-        service = IdentityService(
-            weaviate_async_client=wclient.async_,
-            embedder=openai_embedder,
-            llm_disambiguator=llm,
-        )
+def identity_service_factory():
+    async def _factory(llm=None):
+        service = get_identity_service_async(llm_disambiguator=llm)
         await service.startup()
         return service
 
@@ -112,7 +90,7 @@ def identity_service_factory(wclient):
 # ─────────────────── Tests ────────────────────────────────────────────────────
 @pytest.mark.asyncio
 async def test_exact_canonical_match(identity_service_factory):
-    service = await identity_service_factory(make_dummy_llm({"action": "new"}))
+    service = await identity_service_factory()
     result = await service.resolve_bulk(
         {"character": "Zorian"},
         chapter=1,
@@ -125,7 +103,7 @@ async def test_exact_canonical_match(identity_service_factory):
 
 @pytest.mark.asyncio
 async def test_exact_almost_canonical_match(identity_service_factory):
-    service = await identity_service_factory(make_dummy_llm({"action": "new"}))
+    service = await identity_service_factory()
     result = await service.resolve_bulk(
         {"character": "Zorian's"},
         chapter=1,
