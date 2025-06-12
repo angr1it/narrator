@@ -1,29 +1,24 @@
 import os
 from pathlib import Path
-import time
 from uuid import uuid4
+import hashlib
+import subprocess
 
 import pytest
-import openai
+import pytest_asyncio
 
 pytestmark = pytest.mark.integration
 import weaviate
 from weaviate.collections.classes.data import DataObject
 from weaviate.embedded import EmbeddedOptions
 
-from services.identity_service import IdentityService, get_identity_service_async
-from services.templates.service import get_weaviate_client
-
-MODEL_NAME = "text-embedding-3-small"
+from services.identity_service import get_identity_service_async
 
 
 def openai_embedder(text: str) -> list[float]:
-    response = openai.embeddings.create(
-        input=text,
-        model=MODEL_NAME,
-        user="identity-tests",
-    )
-    return response.data[0].embedding
+    """Deterministic pseudo-embedding for offline tests."""
+    h = int(hashlib.sha256(text.encode()).hexdigest(), 16)
+    return [float(h % 1000)]
 
 
 # ─────────────────── Prepare test data ────────────────────────────────────────
@@ -31,31 +26,49 @@ eid_a = str(uuid4())  # фиксированные ID для alias "Zorian"
 eid_b = str(uuid4())  # фиксированные ID для alias "Miranda"
 
 
-@pytest.fixture(scope="session")
+from _pytest.monkeypatch import MonkeyPatch
+
+
+@pytest_asyncio.fixture(scope="session")
 async def wclient(tmp_path_factory):
     data_dir = tmp_path_factory.mktemp("weaviate-data")
     binary_dir = Path(__file__).parent / "weaviate_bin"
+
+    mp = MonkeyPatch()
+    orig_popen = subprocess.Popen
+
+    def silent_popen(*args, **kwargs):
+        kwargs.setdefault("stdout", subprocess.DEVNULL)
+        kwargs.setdefault("stderr", subprocess.DEVNULL)
+        return orig_popen(*args, **kwargs)
+
+    mp.setattr(subprocess, "Popen", silent_popen)
 
     client = weaviate.WeaviateAsyncClient(
         embedded_options=EmbeddedOptions(
             binary_path=str(binary_dir),
             persistence_data_path=str(data_dir),
             hostname="127.0.0.1",
-            port=8080,
+            port=8079,
+            grpc_port=50060,
         )
     )
+    try:
+        await client.connect()
+    except Exception:
+        await client._connection.wait_for_weaviate(30)
+        await client.connect()
     yield client
 
     await client.close()
+    mp.undo()
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture(scope="session", autouse=True)
 async def prepare_alias_data(wclient: weaviate.WeaviateAsyncClient):
     """Создаём коллекцию и добавляем тестовые alias-данные."""
-    OPENAI_KEY = os.getenv("OPENAI_API_KEY")
-    openai.api_key = OPENAI_KEY
 
-    service = get_identity_service_async(wclient=wclient)
+    service = get_identity_service_async(wclient=wclient, embedder=openai_embedder)
 
     await service.startup()
 
@@ -101,7 +114,11 @@ def make_dummy_llm(forced_response: dict):
 @pytest.fixture
 def identity_service_factory(wclient: weaviate.WeaviateAsyncClient):
     async def _factory(llm=None):
-        service = get_identity_service_async(llm_disambiguator=llm, wclient=wclient)
+        service = get_identity_service_async(
+            llm_disambiguator=llm,
+            wclient=wclient,
+            embedder=openai_embedder,
+        )
         await service.startup()
         return service
 
