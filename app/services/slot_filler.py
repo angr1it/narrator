@@ -23,10 +23,18 @@ TYPE_MAP = {
 
 
 def build_slot_model(template: CypherTemplate) -> type[BaseModel]:
-    fields = {
-        slot.name: (TYPE_MAP[slot.type], Field(description=slot.description or "..."))
-        for slot in template.slots.values()
-    }
+    fields = {}
+    for slot in template.slots.values():
+        field_type: Any = TYPE_MAP[slot.type]
+        if slot.required:
+            default = ...
+        else:
+            field_type = field_type | type(None)
+            default = None
+        fields[slot.name] = (
+            field_type,
+            Field(default=default, description=slot.description or "..."),
+        )
     fields["details"] = (str, Field(description="Как извлечены значения"))
     return create_model("ResponseItem", **fields)  # type: ignore[misc, call-overload]
 
@@ -107,16 +115,18 @@ class SlotFiller:
         chain = prompt | self.llm | parser
 
         attempts = 0
+        trace_name = f"{self.__class__.__name__.lower()}.{phase}"
+        config = None
+        if self.callback_handler:
+            config = {
+                "callbacks": [self.callback_handler],
+                "run_name": trace_name,
+                "tags": [self.__class__.__name__],
+            }
+
         while True:
             try:
-                result = chain.invoke(
-                    {},
-                    config=(
-                        {"callbacks": [self.callback_handler]}
-                        if self.callback_handler
-                        else None
-                    ),
-                )
+                result = chain.invoke({}, config=config)
                 break
             except Exception as e:
                 attempts += 1
@@ -141,10 +151,15 @@ class SlotFiller:
     def _validate_and_cast(
         self, obj: Dict[str, Any], template: CypherTemplate
     ) -> Dict[str, Any]:
-        fields = {
-            s.name: (TYPE_MAP[s.type], ... if s.required else None)
-            for s in template.slots.values()
-        }
+        fields = {}
+        for s in template.slots.values():
+            field_type: Any = TYPE_MAP[s.type]
+            if s.required:
+                default = ...
+            else:
+                field_type = field_type | type(None)
+                default = None
+            fields[s.name] = (field_type, default)
         DynamicModel = create_model("DynamicSlotsModel", **fields)  # type: ignore[misc, call-overload]
         filtered = {k: obj.get(k) for k in fields.keys() if k in obj}
         validated: BaseModel = DynamicModel(**filtered)

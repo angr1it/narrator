@@ -63,4 +63,8 @@ def test_run_phase_retries(monkeypatch):
     res = filler._run_phase("extract", "extract_slots.j2", tpl, "txt")
     assert dummy_chain.calls == 2
     assert res == [{"character": "A"}]
-    assert dummy_chain.last_config == {"callbacks": [handler]}
+    assert dummy_chain.last_config == {
+        "callbacks": [handler],
+        "run_name": "slotfiller.extract",
+        "tags": ["SlotFiller"],
+    }
