@@ -36,12 +36,11 @@ from typing import Any, Dict, List, Literal, Optional, Callable, cast
 import inspect
 import json
 import uuid
-from urllib.parse import urlparse
 
 from weaviate.exceptions import WeaviateQueryError, WeaviateBaseError
-from weaviate import WeaviateAsyncClient
-from weaviate.connect import ConnectionParams
+from weaviate import WeaviateAsyncClient, connect_to_weaviate_cloud, connect_to_local
 from weaviate.classes.init import Auth
+from weaviate.exceptions import WeaviateQueryError
 from weaviate.classes.query import Filter, MetadataQuery
 from weaviate.classes.config import Configure, Property, DataType
 
@@ -101,7 +100,7 @@ class IdentityService:
     async def startup(self) -> None:
         if await self._collection_exists(ALIAS_CLASS):
             return
-        await self.w.collections.create(
+        self.w.collections.create(
             name=ALIAS_CLASS,
             description="Stores all known aliases for story entities",
             vectorizer_config=Configure.Vectorizer.none(),
@@ -366,21 +365,9 @@ def get_identity_service_async(
     embedder = embedder or openai_embedder
 
     if not wclient:
-        parsed = urlparse(app_settings.WEAVIATE_URL)
-        secure = parsed.scheme == "https"
-        host = parsed.hostname or "localhost"
-        port = parsed.port or (443 if secure else 8080)
-        params = ConnectionParams.from_params(
-            http_host=host,
-            http_port=port,
-            http_secure=secure,
-            grpc_host=host,
-            grpc_port=50051,
-            grpc_secure=secure,
-        )
-        wclient = WeaviateAsyncClient(
-            connection_params=params,
-            auth_client_secret=Auth.api_key(app_settings.WEAVIATE_API_KEY),
+        wclient = connect_to_weaviate_cloud(
+            cluster_url=app_settings.WEAVIATE_URL,
+            auth_credentials=Auth().api_key(api_key=app_settings.WEAVIATE_API_KEY),
         )
 
     return IdentityService(
