@@ -33,6 +33,8 @@ import logging
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Dict, List, Literal, Optional, Callable
+import inspect
+import json
 
 import uuid
 import weaviate
@@ -43,6 +45,7 @@ from weaviate.classes.config import Configure, Property, DataType
 
 from config.embeddings import openai_embedder
 from services.templates.service import get_weaviate_client
+from config.langfuse import provide_callback_handler_with_tags
 
 from pydantic import BaseModel
 
@@ -95,10 +98,12 @@ class IdentityService:
         embedder: EmbedderFn,
         *,
         llm_disambiguator: Callable[[str, List[Dict[str, Any]]], Dict[str, Any]],
+        callback_handler=None,
     ):
         self.w = weaviate_async_client
         self.embedder = embedder
         self.llm_disambiguator = llm_disambiguator
+        self.callback_handler = callback_handler
 
     async def startup(self) -> None:
         """Ensure the ``Alias`` collection exists in Weaviate.
@@ -318,10 +323,44 @@ class IdentityService:
         aliases: List[Dict[str, Any]],
         chapter: int,
         snippet: str,
-    ) -> LLMDecision:  # mocked – replace w/ real model call
-        # Minimal stub to keep example runnable; plug your LangChain chain here.
-        # naive – always “new”
-        return LLMDecision(action="new")
+    ) -> LLMDecision:
+        """Delegate LLM-powered disambiguation to the provided callable."""
+        llm = self.llm_disambiguator
+        config = (
+            {"callbacks": [self.callback_handler]} if self.callback_handler else None
+        )
+        if hasattr(llm, "ainvoke"):
+            result = await llm.ainvoke(
+                {
+                    "raw_name": raw_name,
+                    "aliases": aliases,
+                    "chapter": chapter,
+                    "snippet": snippet,
+                },
+                config=config,
+            )
+        elif hasattr(llm, "invoke"):
+            result = llm.invoke(
+                {
+                    "raw_name": raw_name,
+                    "aliases": aliases,
+                    "chapter": chapter,
+                    "snippet": snippet,
+                },
+                config=config,
+            )
+        elif inspect.iscoroutinefunction(llm):
+            result = await llm(raw_name, aliases)
+        else:
+            result = llm(raw_name, aliases)
+
+        if isinstance(result, str):
+            result = json.loads(result)
+        if isinstance(result, dict):
+            return LLMDecision(**result)
+        if isinstance(result, LLMDecision):
+            return result
+        raise ValueError("Invalid LLM disambiguation result")
 
     async def _upsert_alias(self, task: AliasTask) -> None:
         """Write alias object – ignore duplicate key errors."""
@@ -375,8 +414,10 @@ def get_identity_service(
     """Return a cached IdentityService using shared clients."""
 
     disambiguator = llm_disambiguator or (lambda *_: {"action": "new"})
+    handler = provide_callback_handler_with_tags(tags=[IdentityService.__name__])
     return IdentityService(
         weaviate_async_client=get_weaviate_client().async_,
         embedder=openai_embedder,
         llm_disambiguator=disambiguator,
+        callback_handler=handler,
     )

@@ -10,7 +10,7 @@ from core.slots.prompts import PROMPTS_ENV
 from schemas.cypher import CypherTemplate
 from schemas.slots import SlotFill
 from utils.logger import get_logger
-from config.langfuse import get_client, start_as_current_span
+
 
 logger = get_logger(__name__)
 

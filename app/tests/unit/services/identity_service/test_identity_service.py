@@ -87,3 +87,27 @@ async def test_startup_skips_if_exists():
     svc = StartupService(client)
     await svc.startup()
     assert client.created is None
+
+
+@pytest.mark.asyncio
+async def test_llm_disambiguate_uses_handler():
+    class DummyLLM:
+        def __init__(self):
+            self.received = None
+
+        async def ainvoke(self, data, config=None):
+            self.received = config
+            return {"action": "use", "entity_id": "e1"}
+
+    llm = DummyLLM()
+    handler = object()
+    svc = IdentityService(
+        weaviate_async_client=type("C", (), {"collections": None})(),
+        embedder=lambda x: [0.0],
+        llm_disambiguator=llm,
+        callback_handler=handler,
+    )
+
+    decision = await svc._llm_disambiguate("n", [], 1, "t")
+    assert decision.entity_id == "e1"
+    assert llm.received == {"callbacks": [handler]}
