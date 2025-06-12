@@ -38,9 +38,9 @@ class FlatRaptorIndex:
 
     def _ensure_schema(self) -> None:
         """Create the ``RaptorNode`` class if it doesn't exist."""
-        if self.client.collections.exists(self.CLASS_NAME):
+        if self.client.collections.exists(self.CLASS_NAME):  # type: ignore[attr-defined]
             return
-        self.client.collections.create(
+        self.client.collections.create(  # type: ignore[attr-defined]
             name=self.CLASS_NAME,
             vectorizer_config=Configure.Vectorizer.none(),
             inverted_index_config=Configure.inverted_index(),
@@ -63,7 +63,7 @@ class FlatRaptorIndex:
             np.array(text_vec) * self.alpha + np.array(fact_vec) * (1 - self.alpha)
         ).tolist()
 
-        coll = self.client.collections.get(self.CLASS_NAME)
+        coll = self.client.collections.get(self.CLASS_NAME)  # type: ignore[attr-defined]
         res = coll.query.near_vector(
             near_vector=centroid,
             limit=1,

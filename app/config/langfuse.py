@@ -17,7 +17,7 @@ def get_client() -> Langfuse:
 
 
 def provide_callback_handler_with_tags(
-    tags: list[str] = None,
+    tags: list[str] | None = None,
 ) -> LangchainCallbackHandler:
     if tags is None:
         tags = []

@@ -2,6 +2,15 @@ from fastapi import APIRouter, Depends
 
 from core.auth import token_auth
 from schemas import ExtractSaveIn, ExtractSaveOut
+from typing import Any
+
+
+class _DummyPipeline:
+    def run(self, text: str, meta: dict[str, Any]):
+        raise NotImplementedError
+
+
+extract_pipeline = _DummyPipeline()
 
 
 route = APIRouter()

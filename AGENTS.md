@@ -70,4 +70,5 @@ app/services/pipeline.py
 ## Обязательные проверки перед слиянием
 - `black --check .`
 - `flake8`
+- `mypy app`
 - `pytest -q`
