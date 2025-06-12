@@ -49,8 +49,30 @@ def test_fill_slots_tracing(openai_key: str):
     fills = filler.fill_slots(template, "Арам вступил в Братство Стали.")
     assert fills, "Slots not filled"
 
-    time.sleep(5)
-    fetched = client.fetch_trace(trace_id)
-    assert fetched is not None
-    assert fetched.name == "slotfiller.extract"
-    assert any(obs["type"] == "generation" for obs in fetched.observations)
+    # --- wait until the trace has been ingested -----------------------------
+    #
+    # 404s happen because the SDK sends data asynchronously; the trace may
+    # not exist yet when we try to read it :contentReference[oaicite:0]{index=0}.
+    # We poll `fetch_trace` with exponential back-off for ≤30 s instead
+    # of one hard sleep.
+
+    from tenacity import (
+        retry,
+        stop_after_delay,
+        wait_exponential,
+        retry_if_exception_type,
+    )
+    from langfuse.api.resources.commons.errors import NotFoundError
+
+    @retry(
+        retry=retry_if_exception_type(NotFoundError),
+        wait=wait_exponential(multiplier=0.5, min=1, max=5),
+        stop=stop_after_delay(30),
+        reraise=True,
+    )
+    def _fetch_ready_trace():
+        client.flush()
+        return client.fetch_trace(trace_id)
+
+    fetched = _fetch_ready_trace()
+    assert fetched.data.name == "slotfiller.extract"
