@@ -9,6 +9,7 @@ from core.slots.prompts import PROMPTS_ENV
 from schemas.cypher import CypherTemplate
 from schemas.slots import SlotFill
 from utils.logger import get_logger
+from config.langfuse import get_client, start_as_current_span
 
 logger = get_logger(__name__)
 
@@ -103,24 +104,20 @@ class SlotFiller:
         )
 
         chain = prompt | self.llm | parser
-        span = self.tracer.span(name=f"slotfiller.{phase}") if self.tracer else None
 
         attempts = 0
-        while True:
-            try:
-                result = chain.invoke({})
-                break
-            except Exception as e:
-                attempts += 1
-                logger.error(f"Error in phase {phase}: {str(e)}")
-                if attempts > 1:
-                    if span:
-                        span.end()
-                    raise
+        with start_as_current_span(name=f"slotfiller.{phase}") as span:
+            while True:
+                try:
+                    result = chain.invoke({})
+                    break
+                except Exception as e:
+                    attempts += 1
+                    logger.error(f"Error in phase {phase}: {str(e)}")
+                    if attempts > 1:
+                        raise
 
-        if span:
-            span.end()
-
+            span.update(input={"phase": phase})
         return result.model_dump()
 
     @staticmethod
