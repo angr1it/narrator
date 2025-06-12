@@ -1,6 +1,7 @@
 from jinja2 import Template
-from services.slot_filler import SlotFiller
-from services.slot_filler import PROMPTS_ENV
+from contextlib import contextmanager
+import services.slot_filler as services
+from services.slot_filler import SlotFiller, PROMPTS_ENV
 from schemas.cypher import CypherTemplate, SlotDefinition
 from langchain.prompts import PromptTemplate
 import uuid
@@ -49,6 +50,24 @@ def test_run_phase_retries(monkeypatch):
 
     monkeypatch.setattr(PromptTemplate, "__or__", patched_or, raising=False)
 
+    called = {"n": 0}
+
+    @contextmanager
+    def dummy_span(name: str):
+        called["n"] += 1
+
+        class S:
+            def update(self, **_):
+                pass
+
+        yield S()
+
+    monkeypatch.setattr(
+        services,
+        "start_as_current_span",
+        dummy_span,
+    )
+
     tpl = DummyTemplate(
         id=uuid.uuid4(),
         name="t",
@@ -61,3 +80,4 @@ def test_run_phase_retries(monkeypatch):
     res = filler._run_phase("extract", "extract_slots.j2", tpl, "txt")
     assert dummy_chain.calls == 2
     assert res == [{"character": "A"}]
+    assert called["n"] == 1
