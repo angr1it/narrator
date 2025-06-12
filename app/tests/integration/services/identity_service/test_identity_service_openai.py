@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import time
 from uuid import uuid4
 
@@ -6,7 +7,9 @@ import pytest
 import openai
 
 pytestmark = pytest.mark.integration
+import weaviate
 from weaviate.collections.classes.data import DataObject
+from weaviate.embedded import EmbeddedOptions
 
 from services.identity_service import IdentityService, get_identity_service_async
 from services.templates.service import get_weaviate_client
@@ -28,13 +31,31 @@ eid_a = str(uuid4())  # фиксированные ID для alias "Zorian"
 eid_b = str(uuid4())  # фиксированные ID для alias "Miranda"
 
 
+@pytest.fixture(scope="session")
+async def wclient(tmp_path_factory):
+    data_dir = tmp_path_factory.mktemp("weaviate-data")
+    binary_dir = Path(__file__).parent / "weaviate_bin"
+
+    client = weaviate.WeaviateAsyncClient(
+        embedded_options=EmbeddedOptions(
+            binary_path=str(binary_dir),
+            persistence_data_path=str(data_dir),
+            hostname="127.0.0.1",
+            port=8080,
+        )
+    )
+    yield client
+
+    await client.close()
+
+
 @pytest.fixture(scope="session", autouse=True)
-async def prepare_alias_data():
+async def prepare_alias_data(wclient: weaviate.WeaviateAsyncClient):
     """Создаём коллекцию и добавляем тестовые alias-данные."""
     OPENAI_KEY = os.getenv("OPENAI_API_KEY")
     openai.api_key = OPENAI_KEY
 
-    service = get_identity_service_async()
+    service = get_identity_service_async(wclient=wclient)
 
     await service.startup()
 
@@ -78,9 +99,9 @@ def make_dummy_llm(forced_response: dict):
 
 # ─────────────────── IdentityService factory ──────────────────────────────────
 @pytest.fixture
-def identity_service_factory():
+def identity_service_factory(wclient: weaviate.WeaviateAsyncClient):
     async def _factory(llm=None):
-        service = get_identity_service_async(llm_disambiguator=llm)
+        service = get_identity_service_async(llm_disambiguator=llm, wclient=wclient)
         await service.startup()
         return service
 

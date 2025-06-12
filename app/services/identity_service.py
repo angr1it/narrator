@@ -226,8 +226,7 @@ class IdentityService:
         }
 
     async def _collection_exists(self, name: str) -> bool:
-        collections = self.w.collections.list_all()
-        for col in collections:
+        for col in await self.w.collections.list_all():
             if getattr(col, "name", col) == name:
                 return True
         return False
@@ -358,30 +357,21 @@ def get_identity_service_async(
         Callable[[str, List[Dict[str, Any]]], Dict[str, Any]]
     ] = None,
     embedder: EmbedderFn | None = None,
+    wclient: Optional[WeaviateAsyncClient] = None,
 ) -> IdentityService:
     """Асинхронно создаёт и возвращает IdentityService с подключением к Weaviate."""
     disambiguator = llm_disambiguator or (lambda *_: {"action": "new"})
     handler = provide_callback_handler_with_tags(tags=[IdentityService.__name__])
     embedder = embedder or openai_embedder
 
-    if app_settings.WEAVIATE_MODE == "local":
-        client = connect_to_local(
-            host=app_settings.WEAVIATE_LOCAL_HOST,
-            port=app_settings.WEAVIATE_LOCAL_PORT,
-        )
-    elif app_settings.WEAVIATE_MODE == "cloud":
-        client = connect_to_weaviate_cloud(
+    if not wclient:
+        wclient = connect_to_weaviate_cloud(
             cluster_url=app_settings.WEAVIATE_URL,
             auth_credentials=Auth().api_key(api_key=app_settings.WEAVIATE_API_KEY),
         )
-    else:
-        raise ValueError(
-            f"Unsupported WEAVIATE_MODE: {app_settings.WEAVIATE_MODE}. "
-            "Use 'local' or 'cloud'."
-        )
 
     return IdentityService(
-        weaviate_async_client=client,
+        weaviate_async_client=wclient,
         embedder=embedder,
         llm_disambiguator=disambiguator,
         callback_handler=handler,
