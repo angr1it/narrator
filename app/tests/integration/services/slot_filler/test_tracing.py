@@ -8,11 +8,7 @@ from langchain_openai import ChatOpenAI
 from services.slot_filler import SlotFiller
 from schemas.cypher import CypherTemplate, SlotDefinition, GraphRelationDescriptor
 from config.langfuse import get_client
-
-try:
-    from config import app_settings
-except Exception:
-    pytest.skip("Settings not configured", allow_module_level=True)
+from config import app_settings
 
 
 @pytest.fixture(scope="module")

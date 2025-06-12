@@ -12,12 +12,9 @@ from weaviate.classes.config import Property, DataType
 
 from services.templates import TemplateService, CypherTemplateBase, CypherTemplate
 
-try:
-    from services.templates.service import get_weaviate_client, get_template_service
-    from templates.imports import import_templates
-    from templates.base import base_templates
-except Exception:
-    pytest.skip("Settings not configured", allow_module_level=True)
+from services.templates.service import get_weaviate_client, get_template_service
+from templates.imports import import_templates
+from templates.base import base_templates
 
 
 # ---------- GLOBAL TEST CONSTANTS -------------------------------------------

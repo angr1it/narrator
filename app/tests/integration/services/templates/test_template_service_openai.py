@@ -14,13 +14,9 @@ from weaviate.classes.query import Filter
 pytestmark = pytest.mark.integration
 
 from services.templates import TemplateService, CypherTemplateBase
-
-try:
-    from config.weaviate import connect_to_weaviate
-    from templates.base import base_templates
-    from templates.imports import import_templates
-except Exception:
-    pytest.skip("Settings not configured", allow_module_level=True)
+from config.weaviate import connect_to_weaviate
+from templates.base import base_templates
+from templates.imports import import_templates
 
 
 # ----------  ENV & CONSTANTS  ------------------------------------------------
@@ -59,13 +55,9 @@ def narrative_samples():
 # ----------  PYTEST FIXTURES  ------------------------------------------------
 @pytest.fixture(scope="session")
 def wclient():
-    if not OPENAI_KEY:
-        pytest.skip("OPENAI_API_KEY not set")
     openai.api_key = OPENAI_KEY
 
     client = connect_to_weaviate(url=None)  # localhost
-    if not client.is_ready():
-        pytest.skip("Local Weaviate is not running")
     yield client
     client.close()
 

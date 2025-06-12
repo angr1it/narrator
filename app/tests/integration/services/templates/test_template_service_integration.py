@@ -4,12 +4,9 @@ import pytest
 
 pytestmark = pytest.mark.integration
 
-try:
-    from config import app_settings
-    from services.templates import TemplateService
-    from services.templates.service import get_weaviate_client, get_template_service
-except Exception:  # missing environment or config
-    pytest.skip("Settings not configured", allow_module_level=True)
+from config import app_settings
+from services.templates import TemplateService
+from services.templates.service import get_weaviate_client, get_template_service
 from templates.imports import import_templates
 from templates.base import base_templates
 
@@ -41,10 +38,6 @@ def template_service(weaviate_client) -> TemplateService:
         getattr(app_settings, "WEAVIATE_INDEX", None),
         getattr(app_settings, "WEAVIATE_CLASS_NAME", None),
     ]
-    if any(v in (None, "") for v in required):
-        pytest.skip(
-            "Weaviate connection settings are missing – integration tests skipped."
-        )
 
     return get_template_service()
 

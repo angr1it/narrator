@@ -9,11 +9,7 @@ pytestmark = pytest.mark.integration
 from weaviate.collections.classes.data import DataObject
 
 from services.identity_service import IdentityService
-
-try:
-    from services.templates.service import get_weaviate_client
-except Exception:
-    pytest.skip("Settings not configured", allow_module_level=True)
+from services.templates.service import get_weaviate_client
 
 MODEL_NAME = "text-embedding-3-small"
 
@@ -31,13 +27,9 @@ def openai_embedder(text: str) -> list[float]:
 @pytest.fixture(scope="session")
 def wclient():
     OPENAI_KEY = os.getenv("OPENAI_API_KEY")
-    if not OPENAI_KEY:
-        pytest.skip("OPENAI_API_KEY not set")
     openai.api_key = OPENAI_KEY
 
     client = get_weaviate_client()
-    if not client.is_ready():
-        pytest.skip("Weaviate is not available")
 
     yield client
 

@@ -7,11 +7,7 @@ pytestmark = pytest.mark.integration
 from langchain_openai import ChatOpenAI
 from services.slot_filler import SlotFiller
 from schemas.cypher import CypherTemplate, SlotDefinition
-
-try:
-    from config import app_settings
-except Exception:
-    pytest.skip("Settings not configured", allow_module_level=True)
+from config import app_settings
 
 # --- FIXTURES ---------------------------------------------------------------
 
