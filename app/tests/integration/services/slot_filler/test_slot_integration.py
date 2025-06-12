@@ -2,13 +2,13 @@ import pytest
 
 pytestmark = pytest.mark.integration
 
-try:
-    from schemas.cypher import CypherTemplate, FactDescriptor, SlotDefinition
-except ImportError:  # outdated schema
-    pytest.skip(
-        "Missing FactDescriptor in schemas.cypher",
-        allow_module_level=True,
-    )
+from uuid import uuid4
+from langchain_openai import ChatOpenAI
+from schemas.cypher import (
+    CypherTemplate,
+    GraphRelationDescriptor,
+    SlotDefinition,
+)
 from services.slot_filler import SlotFiller
 from templates.base import base_templates
 
@@ -28,26 +28,30 @@ def openai_key() -> str:
 @pytest.fixture
 def trait_template() -> CypherTemplate:
     template_dict = base_templates[0]
-
-    slots = [SlotDefinition(**s) for s in template_dict["slots"]]
-    fact_desc = FactDescriptor(**template_dict["fact_descriptor"])
+    slots = {
+        name: SlotDefinition(**data) for name, data in template_dict["slots"].items()
+    }
+    relation = GraphRelationDescriptor(**template_dict["graph_relation"])
 
     return CypherTemplate(
-        id=template_dict["id"],
+        id=uuid4(),
+        name=template_dict["name"],
         version=template_dict["version"],
         title=template_dict["title"],
         description=template_dict["description"],
         category=template_dict["category"],
         slots=slots,
-        fact_descriptor=fact_desc,
+        graph_relation=relation,
         cypher=template_dict["cypher"],
+        return_map=template_dict.get("return_map", {}),
     )
 
 
 @pytest.fixture
 def filler(openai_key: str) -> SlotFiller:
     # Температуру ставим 0 для большей детерминированности на тестах
-    return SlotFiller(api_key=openai_key, temperature=0.0)
+    llm = ChatOpenAI(api_key=openai_key, temperature=0.0)
+    return SlotFiller(llm)
 
 
 def test_trait_attribution_end_to_end(
