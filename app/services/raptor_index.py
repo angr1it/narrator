@@ -10,6 +10,7 @@ import weaviate
 from weaviate.classes.config import Configure, Property, DataType
 from weaviate.classes import query as wv_query
 
+
 from config.embeddings import openai_embedder
 from utils.logger import get_logger
 
