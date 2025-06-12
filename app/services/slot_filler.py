@@ -105,14 +105,21 @@ class SlotFiller:
         chain = prompt | self.llm | parser
         span = self.tracer.span(name=f"slotfiller.{phase}") if self.tracer else None
 
-        try:
-            result = chain.invoke({})
-        except Exception as e:
-            logger.error(f"Error in phase {phase}: {str(e)}")
-            raise
-        finally:
-            if span:
-                span.end()
+        attempts = 0
+        while True:
+            try:
+                result = chain.invoke({})
+                break
+            except Exception as e:
+                attempts += 1
+                logger.error(f"Error in phase {phase}: {str(e)}")
+                if attempts > 1:
+                    if span:
+                        span.end()
+                    raise
+
+        if span:
+            span.end()
 
         return result.model_dump()
 

@@ -7,8 +7,8 @@ from uuid import uuid4
 
 import numpy as np
 import weaviate
-import weaviate.classes as wvc
-from weaviate.classes.config import Configure
+from weaviate.classes.config import Configure, Property, DataType
+from weaviate.classes import query as wv_query
 
 from config.embeddings import openai_embedder
 from utils.logger import get_logger
@@ -39,18 +39,12 @@ class FlatRaptorIndex:
             return
         self.client.collections.create(
             name=self.CLASS_NAME,
-            vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+            vectorizer_config=Configure.Vectorizer.none(),
             inverted_index_config=Configure.inverted_index(),
             properties=[
-                wvc.config.Property(
-                    name="text_vec", data_type=wvc.config.DataType.NUMBER_ARRAY
-                ),
-                wvc.config.Property(
-                    name="fact_vec", data_type=wvc.config.DataType.NUMBER_ARRAY
-                ),
-                wvc.config.Property(
-                    name="centroid", data_type=wvc.config.DataType.NUMBER_ARRAY
-                ),
+                Property(name="text_vec", data_type=DataType.NUMBER_ARRAY),
+                Property(name="fact_vec", data_type=DataType.NUMBER_ARRAY),
+                Property(name="centroid", data_type=DataType.NUMBER_ARRAY),
             ],
         )
 
@@ -67,6 +61,16 @@ class FlatRaptorIndex:
         ).tolist()
 
         coll = self.client.collections.get(self.CLASS_NAME)
+        res = coll.query.near_vector(
+            near_vector=centroid,
+            limit=1,
+            return_metadata=wv_query.MetadataQuery(distance=True),
+        )
+        if res.objects and res.objects[0].metadata.distance <= 0.1:
+            node_id = res.objects[0].uuid
+            logger.debug("Merged with existing RaptorNode %s", node_id)
+            return node_id
+
         node_id = str(uuid4())
         coll.data.insert(
             uuid=node_id,
