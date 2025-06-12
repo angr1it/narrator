@@ -8,10 +8,21 @@ import openai
 pytestmark = pytest.mark.integration
 from weaviate.collections.classes.data import DataObject
 
+os.environ.setdefault("OPENAI_API_KEY", "x")
+os.environ.setdefault("NEO4J_URI", "bolt://example.com")
+os.environ.setdefault("NEO4J_USER", "neo4j")
+os.environ.setdefault("NEO4J_PASSWORD", "pass")
+os.environ.setdefault("NEO4J_DB", "neo4j")
+os.environ.setdefault("WEAVIATE_URL", "http://localhost")
+os.environ.setdefault("WEAVIATE_API_KEY", "x")
+os.environ.setdefault("WEAVIATE_INDEX", "idx")
+os.environ.setdefault("WEAVIATE_CLASS_NAME", "cls")
+os.environ.setdefault("AUTH_TOKEN", "x")
+
 from services.identity_service import IdentityService
 
 try:
-    from config.weaviate import connect_to_weaviate
+    from services.templates.service import get_weaviate_client
 except Exception:
     pytest.skip("Settings not configured", allow_module_level=True)
 
@@ -35,7 +46,7 @@ def wclient():
         pytest.skip("OPENAI_API_KEY not set")
     openai.api_key = OPENAI_KEY
 
-    client = connect_to_weaviate()
+    client = get_weaviate_client()
     if not client.is_ready():
         pytest.skip("Weaviate is not available")
 

@@ -1,4 +1,5 @@
 import asyncio
+import os
 import pytest
 
 
@@ -8,6 +9,25 @@ def event_loop():
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _set_test_env():
+    """Set default environment variables for tests."""
+    defaults = {
+        "OPENAI_API_KEY": "x",
+        "NEO4J_URI": "bolt://example.com",
+        "NEO4J_USER": "neo4j",
+        "NEO4J_PASSWORD": "pass",
+        "NEO4J_DB": "neo4j",
+        "WEAVIATE_URL": "http://localhost",
+        "WEAVIATE_API_KEY": "x",
+        "WEAVIATE_INDEX": "idx",
+        "WEAVIATE_CLASS_NAME": "cls",
+        "AUTH_TOKEN": "x",
+    }
+    for key, value in defaults.items():
+        os.environ.setdefault(key, value)
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:

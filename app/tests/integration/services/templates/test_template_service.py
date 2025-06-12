@@ -13,7 +13,7 @@ from weaviate.classes.config import Property, DataType
 from services.templates import TemplateService, CypherTemplateBase, CypherTemplate
 
 try:
-    from config.weaviate import connect_to_weaviate
+    from services.templates.service import get_weaviate_client, get_template_service
     from templates.imports import import_templates
     from templates.base import base_templates
 except Exception:
@@ -28,7 +28,7 @@ LOCAL_WEAVIATE_URL = "http://localhost:8080"
 @pytest.fixture(scope="session")
 def wclient():
     """Подключение к локальному Weaviate."""
-    client = connect_to_weaviate(url=None)  # → localhost
+    client = get_weaviate_client()
     assert client.is_ready(), "Weaviate локальный не готов"
     yield client
     client.close()
@@ -60,10 +60,7 @@ def template_service(wclient, test_collection_name):
     )
 
     # --- создаём сервис ---
-    service = TemplateService(
-        weaviate_client=wclient,
-        embedder=lambda text: [0.1, 0.2, 0.3],  # фиктивный embedder
-    )
+    service = get_template_service()
     service.CLASS_NAME = test_collection_name  # переназначаем имя коллекции
 
     yield service

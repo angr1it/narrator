@@ -1,4 +1,5 @@
 from __future__ import annotations
+from functools import lru_cache
 from typing import Dict, Any
 from jinja2 import Environment
 from pydantic import BaseModel
@@ -97,3 +98,11 @@ class TemplateRenderer:
             triple_text=triple_text,
             related_node_ids=related_node_ids,
         )
+
+
+@lru_cache()
+def get_template_renderer(jinja_env: Environment | None = None) -> TemplateRenderer:
+    """Return a cached TemplateRenderer instance."""
+    from templates import env
+
+    return TemplateRenderer(jinja_env or env)
