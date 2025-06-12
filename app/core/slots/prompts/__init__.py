@@ -11,5 +11,5 @@ PROMPTS_ENV = Environment(
     loader=FileSystemLoader(PROMPT_DIR),
     autoescape=select_autoescape(),
     undefined=StrictUndefined,
-    finalize=cypher_escape, 
+    finalize=cypher_escape,
 )

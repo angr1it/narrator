@@ -25,11 +25,9 @@ AUTH_TOKEN = os.getenv("AUTH_TOKEN", "SUPERSECRET123")
 # -----------------------------------------------------------------------------
 
 
-
 # -----------------------------------------------------------------------------
 # Template store (unchanged)
 # -----------------------------------------------------------------------------
-
 
 
 # -----------------------------------------------------------------------------
@@ -50,16 +48,19 @@ class GraphProxy:
             print("--- CYPHER ---\n", s)
         return len(stmts)
 
+
 graph_proxy = GraphProxy()
 
 # -----------------------------------------------------------------------------
 # Pipelines
 # -----------------------------------------------------------------------------
 
+
 class AugmentPipeline:
     def run(self, text: str, meta: Dict[str, Any]):
-        ctx = {"note":"context build TBD"}
+        ctx = {"note": "context build TBD"}
         return AugmentCtxOut(context=ctx, trace_id=str(uuid.uuid4()))
+
 
 augment_pipeline = AugmentPipeline()
 

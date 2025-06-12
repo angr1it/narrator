@@ -11,5 +11,5 @@ env = Environment(
     undefined=StrictUndefined,
     trim_blocks=True,
     lstrip_blocks=True,
-    finalize=cypher_escape, 
+    finalize=cypher_escape,
 )

@@ -28,10 +28,10 @@ class GraphRelationDescriptor(BaseModel):
     Пример: MEMBER_OF, HAS_TRAIT, OWNS_ITEM.
     """
 
-    predicate: str                      # тип связи: MEMBER_OF, HAS_TRAIT и т.д.
-    subject: str                        # "$character" — имя слота
-    object: Optional[str] = None        # "$faction"
-    value: Optional[str] = None         # строковое значение (если не object)
+    predicate: str  # тип связи: MEMBER_OF, HAS_TRAIT и т.д.
+    subject: str  # "$character" — имя слота
+    object: Optional[str] = None  # "$faction"
+    value: Optional[str] = None  # строковое значение (если не object)
 
 
 class CypherTemplateBase(BaseModel):
@@ -106,8 +106,8 @@ class CypherTemplate(CypherTemplateBase):
 
 class RenderedCypher(BaseModel):
     template_id: str
-    content_cypher: str                   # основная часть с MERGE
-    alias_cypher: Optional[str] = None    # если нужен alias
-    relation_cypher: Optional[str] = None # ранее: fact_cypher
-    triple_text: str                      # строка вида "Aren MEMBER_OF Night Front"
-    details: str                          # отладка / chain-of-thought
+    content_cypher: str  # основная часть с MERGE
+    alias_cypher: Optional[str] = None  # если нужен alias
+    relation_cypher: Optional[str] = None  # ранее: fact_cypher
+    triple_text: str  # строка вида "Aren MEMBER_OF Night Front"
+    details: str  # отладка / chain-of-thought
