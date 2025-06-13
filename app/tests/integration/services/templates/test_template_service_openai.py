@@ -11,14 +11,10 @@ from uuid import uuid4
 
 import pytest
 import openai
-import weaviate.classes as wvc
-from weaviate.classes.config import Property, DataType
+from services.templates import TemplateService
 
 pytestmark = pytest.mark.integration
 
-from services.templates import (
-    get_template_service_sync,
-)
 from templates.base import base_templates
 from templates.imports import import_templates
 
@@ -62,23 +58,14 @@ def collection_name():
 
 @pytest.fixture
 def service(wclient, collection_name):
-    # fresh collection
     if wclient.collections.exists(collection_name):
         wclient.collections.delete(collection_name)
 
-    wclient.collections.create(
-        name=collection_name,
-        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
-        properties=[
-            Property(name="name", data_type=DataType.TEXT),
-            Property(name="title", data_type=DataType.TEXT),
-            Property(name="description", data_type=DataType.TEXT),
-            Property(name="cypher", data_type=DataType.TEXT),
-        ],
+    svc = TemplateService(
+        weaviate_client=wclient,
+        embedder=openai_embedder,
+        class_name=collection_name,
     )
-
-    svc = get_template_service_sync(wclient=wclient, embedder=openai_embedder)
-    svc.CLASS_NAME = collection_name
     yield svc
     wclient.collections.delete(collection_name)
 

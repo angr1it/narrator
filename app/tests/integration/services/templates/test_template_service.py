@@ -12,13 +12,11 @@ from datetime import datetime
 
 pytestmark = pytest.mark.integration
 
-import weaviate.classes as wvc
-from weaviate.classes.config import Property, DataType
 
 from services.templates import (
     CypherTemplateBase,
     CypherTemplate,
-    get_template_service_sync,
+    TemplateService,
 )
 
 from templates.imports import import_templates
@@ -33,30 +31,15 @@ def test_collection_name():
 
 @pytest.fixture
 def template_service(wclient, test_collection_name):
-    """Создаём TemplateService c тестовой коллекцией."""
-    # --- создаём схему коллекции ---
     if wclient.collections.exists(test_collection_name):
         wclient.collections.delete(test_collection_name)
 
-    wclient.collections.create(
-        name=test_collection_name,
-        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
-        inverted_index_config=wvc.config.Configure.inverted_index(),
-        properties=[
-            Property(name="name", data_type=DataType.TEXT),
-            Property(name="title", data_type=DataType.TEXT),
-            Property(name="description", data_type=DataType.TEXT),
-            Property(name="cypher", data_type=DataType.TEXT),
-        ],
+    svc = TemplateService(
+        weaviate_client=wclient,
+        embedder=None,
+        class_name=test_collection_name,
     )
-
-    # --- создаём сервис ---
-    service = get_template_service_sync(wclient=wclient)
-    service.CLASS_NAME = test_collection_name  # переназначаем имя коллекции
-
-    yield service
-
-    # --- подчищаем коллекцию после теста ---
+    yield svc
     wclient.collections.delete(test_collection_name)
 
 
@@ -68,7 +51,7 @@ def make_template(slug: str, title: str = "Default Title") -> CypherTemplateBase
         description="Some description",
         slots={},
         cypher="// sample cypher",
-        created_at=datetime.utcnow(),
+        return_map={},
     )
 
 

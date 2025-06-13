@@ -1,21 +1,21 @@
 services:
 
-  web-api:
-    container_name: call-qa-web-api
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file: .env
-    ports:
-      - "8000:8000"
-      - 5678:5678
-    command: |
-      bash -c "
-      python -m debugpy --listen 0.0.0.0:5678 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000"
-    volumes:
-      - ./app:/app
-    networks:
-      - call-qa-net
+  # web-api:
+  #   container_name: call-qa-web-api
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   env_file: .env
+  #   ports:
+  #     - "8000:8000"
+  #     - 5678:5678
+  #   command: |
+  #     bash -c "
+  #     python -m debugpy --listen 0.0.0.0:5678 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000"
+  #   volumes:
+  #     - ./app:/app
+  #   networks:
+  #     - call-qa-net
 
   weaviate:
     command:

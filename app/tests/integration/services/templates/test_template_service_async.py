@@ -15,7 +15,6 @@ pytestmark = pytest.mark.integration
 from services.templates import (
     TemplateService,
     CypherTemplateBase,
-    get_template_service_sync,
 )
 from templates.imports import import_templates
 from templates.base import base_templates
@@ -42,14 +41,11 @@ def service(wclient, collection_name):
     if wclient.collections.exists(collection_name):
         wclient.collections.delete(collection_name)
 
-    wclient.collections.create(
-        name=collection_name,
-        vectorizer_config=None,
-        properties=[],
+    svc = TemplateService(
+        weaviate_client=wclient,
+        embedder=openai_embedder,
+        class_name=collection_name,
     )
-
-    svc = get_template_service_sync(wclient=wclient, embedder=openai_embedder)
-    svc.CLASS_NAME = collection_name
     yield svc
     wclient.collections.delete(collection_name)
 
@@ -57,7 +53,12 @@ def service(wclient, collection_name):
 @pytest.mark.asyncio
 async def test_async_crud(service: TemplateService):
     tpl = CypherTemplateBase(
-        name="a1", title="t", description="d", slots={}, cypher="c.j2"
+        name="a1",
+        title="t",
+        description="d",
+        slots={},
+        cypher="c.j2",
+        return_map={},
     )
     saved = await service.upsert_async(tpl)
     fetched = await service.get_async(saved.id)

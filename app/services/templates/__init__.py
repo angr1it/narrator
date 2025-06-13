@@ -33,12 +33,12 @@ EmbedderFn = Callable[[str], List[float]]  # opaque function → 1536‑d vector
 
 
 class TemplateService:
-    CLASS_NAME = "CypherTemplate"
 
     def __init__(
         self,
         weaviate_client: Optional[weaviate.Client] = None,
         embedder: Optional[EmbedderFn] = None,
+        class_name: str = "CypherTemplate",
     ) -> None:
         """Create the service.
 
@@ -52,7 +52,7 @@ class TemplateService:
         """
 
         self.client: weaviate.Client | None = weaviate_client
-
+        self.CLASS_NAME = class_name
         self.embedder = embedder
         self._ensure_schema()
         self.ensure_base_templates()

@@ -28,9 +28,9 @@
 
 - Создать файл `.env` в корне проекта на основе примера (см. README.md).
 - Поднять локальные сервисы через Docker Compose:
-  ```bash
-  docker-compose up -d weaviate
-  ```
+-  ```bash
+-  docker-compose up -d
+-  ```
 - Проверить доступность Weaviate:
   ```bash
   curl http://localhost:8080/v1/meta

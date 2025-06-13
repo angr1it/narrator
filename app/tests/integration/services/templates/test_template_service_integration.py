@@ -9,15 +9,15 @@ utility and search quality.
 import os
 import openai
 import pytest
+from uuid import uuid4
 
 pytestmark = pytest.mark.integration
 
-from services.templates import TemplateService, get_template_service_sync
+from services.templates import TemplateService
 from templates.imports import import_templates
 from templates.base import base_templates
 
 
-OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 MODEL_NAME = "text-embedding-3-small"
 
 
@@ -30,17 +30,30 @@ def openai_embedder(text: str) -> list[float]:
 
 
 @pytest.fixture(scope="session")
-def template_service(weaviate_client) -> TemplateService:
-    """Create TemplateService via factory."""
-    return get_template_service_sync(wclient=weaviate_client)
+def test_collection_name() -> str:
+    """Generate a unique Weaviate collection name for tests."""
+    return f"TplInt_{uuid4().hex[:8]}"
+
+
+@pytest.fixture(scope="session")
+def template_service(weaviate_client, test_collection_name) -> TemplateService:
+    if weaviate_client.collections.exists(test_collection_name):
+        weaviate_client.collections.delete(test_collection_name)
+
+    svc = TemplateService(
+        weaviate_client=weaviate_client,
+        embedder=openai_embedder,
+        class_name=test_collection_name,
+    )
+    yield svc
+    weaviate_client.collections.delete(test_collection_name)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def load_base_templates(template_service: TemplateService):
-    """Load all templates from `base_templates` into Weaviate once per session."""
-    # Importer already handles upsert semantics and logging.
+    """Import base templates into the test collection before running tests."""
     import_templates(template_service, base_templates)
-    yield  # no teardown – keep data for inspection after tests
+    yield
 
 
 def test_templates_present(template_service: TemplateService):
