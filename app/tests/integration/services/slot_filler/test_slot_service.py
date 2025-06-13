@@ -1,3 +1,10 @@
+"""Functional tests for SlotFiller service.
+
+This module verifies higher level behaviour of :class:`SlotFiller` such as
+extracting multiple results and using generation to fill missing slots.
+Real OpenAI models are used to match production settings.
+"""
+
 import os
 import pytest
 from uuid import uuid4

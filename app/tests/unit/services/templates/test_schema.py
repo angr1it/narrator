@@ -1,3 +1,9 @@
+"""Tests for schema creation logic in :class:`TemplateService`.
+
+The dummy client emulates Weaviate to verify that the service creates the
+collection only when needed and with the expected properties.
+"""
+
 import pytest
 from services.templates import TemplateService
 from weaviate.classes.config import Property

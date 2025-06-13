@@ -1,5 +1,11 @@
+"""Unit tests for IdentityService internal helpers.
+
+These tests focus on startup behaviour, LLM disambiguation logic and alias
+commit handling without relying on external services.
+"""
+
 import pytest
-from services.identity_service import IdentityService, AliasTask
+from services.identity_service import IdentityService, AliasTask, LLMDecision
 
 
 class DummyService(IdentityService):
@@ -53,10 +59,10 @@ class DummyClient:
         self.created = None
 
         class CollMgr:
-            async def list_all(self_inner):
+            def list_all(self_inner):
                 return [type("C", (), {"name": "Alias"})] if exists else []
 
-            async def create(self_inner, **kwargs):
+            def create(self_inner, **kwargs):
                 self.created = kwargs
 
         self.collections = CollMgr()
@@ -90,25 +96,74 @@ async def test_startup_skips_if_exists():
     assert client.created is None
 
 
-@pytest.mark.asyncio
-async def test_llm_disambiguate_uses_handler():
-    class DummyLLM:
-        def __init__(self):
-            self.received = None
+def test_llm_disambiguate_calls_llm():
+    called = {}
 
-        async def ainvoke(self, data, config=None):
-            self.received = config
-            return {"action": "use", "entity_id": "e1"}
+    def llm(raw_name, aliases, chapter, snippet):
+        called["args"] = (raw_name, aliases, chapter, snippet)
+        return {"action": "use", "entity_id": "e1"}
 
-    llm = DummyLLM()
-    handler = object()
     svc = IdentityService(
         weaviate_sync_client=type("C", (), {"collections": None})(),
         embedder=lambda x: [0.0],
         llm=llm,
-        callback_handler=handler,
+        callback_handler=object(),
     )
 
-    decision = await svc._llm_disambiguate_sync("n", [], 1, "t")
+    decision = svc._llm_disambiguate_sync("n", [], 1, "t")
     assert decision.entity_id == "e1"
-    assert llm.received == {"callbacks": [handler]}
+    assert called["args"] == ("n", [], 1, "t")
+
+
+@pytest.mark.asyncio
+async def test_startup_creates_collection():
+    client = DummyClient()
+    svc = StartupService(client)
+    await svc.startup()
+    assert client.created is not None
+    props = client.created["properties"]
+    assert any(p.name == "alias_text" for p in props)
+
+
+def test_llm_disambiguate_accepts_model():
+    class LLMObj:
+        def __call__(self, *a, **kw):
+            return LLMDecision(action="use", entity_id="e2")
+
+    svc = IdentityService(
+        weaviate_sync_client=type("C", (), {"collections": None})(),
+        embedder=lambda x: [0.0],
+        llm=LLMObj(),
+    )
+    decision = svc._llm_disambiguate_sync("n", [], 1, "t")
+    assert isinstance(decision, LLMDecision)
+    assert decision.entity_id == "e2"
+
+
+def test_llm_disambiguate_invalid_type():
+    svc = IdentityService(
+        weaviate_sync_client=type("C", (), {"collections": None})(),
+        embedder=lambda x: [0.0],
+        llm=lambda *a, **k: 42,
+    )
+    with pytest.raises(ValueError):
+        svc._llm_disambiguate_sync("n", [], 1, "t")
+
+
+@pytest.mark.asyncio
+async def test_commit_aliases_empty():
+    svc = DummyService()
+    result = await svc.commit_aliases([])
+    assert result == []
+    assert not svc.logged
+
+
+@pytest.mark.asyncio
+async def test_run_sync_executes_function():
+    svc = DummyService()
+
+    def add(a, b):
+        return a + b
+
+    result = await svc._run_sync(add, 2, 3)
+    assert result == 5

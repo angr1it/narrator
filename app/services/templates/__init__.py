@@ -12,6 +12,7 @@ used by the extraction pipeline.
 """
 
 from typing import Callable, List, Optional, Dict, Any
+import asyncio
 
 import weaviate
 from weaviate.classes.config import Configure, Property, DataType
@@ -92,6 +93,10 @@ class TemplateService:
 
         return CypherTemplate(id=uuid, **payload)  # type: ignore[arg-type]
 
+    async def upsert_async(self, tpl: CypherTemplateBase) -> CypherTemplate:
+        """Thread off :meth:`upsert` for use in async code."""
+        return await asyncio.to_thread(self.upsert, tpl)
+
     def get(self, id: str) -> CypherTemplate:
         assert self.client is not None
         coll = self.client.collections.get(self.CLASS_NAME)  # type: ignore[attr-defined]
@@ -99,6 +104,10 @@ class TemplateService:
         if not obj:
             raise ValueError(f"Template {id} not found")
         return self._from_weaviate(obj)
+
+    async def get_async(self, id: str) -> CypherTemplate:
+        """Async wrapper around :meth:`get`."""
+        return await asyncio.to_thread(self.get, id)
 
     def get_by_name(self, name: str) -> CypherTemplate:
         assert self.client is not None
@@ -109,6 +118,10 @@ class TemplateService:
         if not res:
             raise ValueError(f"Template '{name}' not found")
         return self._from_weaviate(res[0])
+
+    async def get_by_name_async(self, name: str) -> CypherTemplate:
+        """Async wrapper around :meth:`get_by_name`."""
+        return await asyncio.to_thread(self.get_by_name, name)
 
     def top_k(
         self,
@@ -159,6 +172,18 @@ class TemplateService:
             log_low_score_warning(query, objects, distances, distance_threshold)
 
         return [self._from_weaviate(obj) for obj in objects]
+
+    async def top_k_async(
+        self,
+        query: str,
+        category: Optional[str] = None,
+        k: int = 3,
+        distance_threshold: float = 0.5,
+    ) -> List[CypherTemplate]:
+        """Async wrapper around :meth:`top_k`."""
+        return await asyncio.to_thread(
+            self.top_k, query, category, k, distance_threshold
+        )
 
     def _ensure_schema(self) -> None:
         if self.client and self.client.collections.exists(self.CLASS_NAME):  # type: ignore[attr-defined]

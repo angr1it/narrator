@@ -1,3 +1,10 @@
+"""Smoke tests for Langfuse tracing helpers.
+
+The file defines dummy client classes. Actual tests were removed but the module
+is kept to illustrate how to mock Langfuse interactions.
+"""
+
+
 class DummySpan:
     def __init__(self, events):
         self.events = events

@@ -1,3 +1,9 @@
+"""Unit tests for SlotFiller slot extraction.
+
+These tests use dummy LLM chains to verify fallback behaviour and slot
+validation without hitting external services.
+"""
+
 from uuid import uuid4
 from services.slot_filler import SlotFiller
 from schemas.cypher import CypherTemplate, SlotDefinition

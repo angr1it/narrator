@@ -1,3 +1,9 @@
+"""End‑to‑end SlotFiller integration tests.
+
+Using a real OpenAI model, these tests check that :class:`SlotFiller` correctly
+extracts information from narrative text via the default base templates.
+"""
+
 import pytest
 
 pytestmark = pytest.mark.integration
