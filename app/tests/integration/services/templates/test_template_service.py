@@ -18,9 +18,13 @@ import weaviate
 import weaviate.classes as wvc
 from weaviate.classes.config import Property, DataType
 
-from services.templates import TemplateService, CypherTemplateBase, CypherTemplate
+from services.templates import (
+    TemplateService,
+    CypherTemplateBase,
+    CypherTemplate,
+    get_template_service_sync,
+)
 
-from services.templates.service import get_weaviate_client, get_template_service
 from templates.imports import import_templates
 from templates.base import base_templates
 
@@ -31,10 +35,16 @@ LOCAL_WEAVIATE_URL = "http://localhost:8080"
 
 # ---------- PYTEST FIXTURES -------------------------------------------------
 @pytest.fixture(scope="session")
-def wclient():
-    """Подключение к локальному Weaviate."""
-    client = get_weaviate_client()
-    assert client.is_ready(), "Weaviate локальный не готов"
+def wclient(tmp_path_factory):
+    """Запуск embedded Weaviate для тестов."""
+    data_dir = tmp_path_factory.mktemp("wdata")
+    bin_dir = tmp_path_factory.mktemp("wbin")
+    client = weaviate.connect_to_embedded(
+        port=8079,
+        grpc_port=50051,
+        persistence_data_path=str(data_dir),
+        binary_path=str(bin_dir),
+    )
     yield client
     client.close()
 
@@ -65,7 +75,7 @@ def template_service(wclient, test_collection_name):
     )
 
     # --- создаём сервис ---
-    service = get_template_service()
+    service = get_template_service_sync(wclient=wclient)
     service.CLASS_NAME = test_collection_name  # переназначаем имя коллекции
 
     yield service

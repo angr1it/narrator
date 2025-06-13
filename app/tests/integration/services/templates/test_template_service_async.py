@@ -12,8 +12,11 @@ from uuid import uuid4
 
 pytestmark = pytest.mark.integration
 
-from services.templates import TemplateService, CypherTemplateBase
-from services.templates.service import get_weaviate_client
+from services.templates import (
+    TemplateService,
+    CypherTemplateBase,
+    get_template_service_sync,
+)
 from templates.imports import import_templates
 from templates.base import base_templates
 
@@ -30,9 +33,16 @@ def openai_embedder(text: str) -> list[float]:
 
 
 @pytest.fixture(scope="session")
-def wclient():
+def wclient(tmp_path_factory):
     openai.api_key = OPENAI_KEY
-    client = get_weaviate_client()
+    data_dir = tmp_path_factory.mktemp("wdata")
+    bin_dir = tmp_path_factory.mktemp("wbin")
+    client = weaviate.connect_to_embedded(
+        port=8079,
+        grpc_port=50051,
+        persistence_data_path=str(data_dir),
+        binary_path=str(bin_dir),
+    )
     yield client
     client.close()
 
@@ -53,7 +63,7 @@ def service(wclient, collection_name):
         properties=[],
     )
 
-    svc = TemplateService(wclient, embedder=openai_embedder)
+    svc = get_template_service_sync(wclient=wclient, embedder=openai_embedder)
     svc.CLASS_NAME = collection_name
     yield svc
     wclient.collections.delete(collection_name)

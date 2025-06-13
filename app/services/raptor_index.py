@@ -14,7 +14,8 @@ from weaviate.classes import query as wv_query
 
 from config.embeddings import openai_embedder
 from utils.logger import get_logger
-from services.templates.service import get_weaviate_client
+from config.weaviate import connect_to_weaviate
+from config import app_settings
 
 EmbedderFn = Callable[[str], List[float]]
 logger = get_logger(__name__)
@@ -91,4 +92,8 @@ class FlatRaptorIndex:
 @lru_cache()
 def get_raptor_index() -> FlatRaptorIndex:
     """Return a cached Raptor index using the shared Weaviate client."""
-    return FlatRaptorIndex(client=get_weaviate_client(), embedder=openai_embedder)
+    client = connect_to_weaviate(
+        url=app_settings.WEAVIATE_URL,
+        api_key=app_settings.WEAVIATE_API_KEY,
+    )
+    return FlatRaptorIndex(client=client, embedder=openai_embedder)
