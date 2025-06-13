@@ -43,7 +43,7 @@ def wclient():
     client.close()
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture(scope="session", autouse=True)
 async def prepare_alias_data(wclient):
     openai.api_key = app_settings.OPENAI_API_KEY
 
@@ -74,8 +74,12 @@ async def prepare_alias_data(wclient):
         ]
     )
 
+    # Confirm preparation succeeded
     results = alias_col.query.fetch_objects()
-    print("Current aliases:", [obj.properties for obj in results.objects])
+    assert {obj.properties["alias_text"] for obj in results.objects} >= {
+        "Zorian",
+        "Miranda",
+    }
 
 
 # ─────────────────── Dummy LLM factory (Callable) ─────────────────────────────

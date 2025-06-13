@@ -2,8 +2,9 @@
 
 These tests run against a real Weaviate instance and OpenAI embeddings to
 ensure that the asynchronous wrappers of :class:`IdentityService` behave the
-same as the synchronous API.  They insert an alias object and verify that
-`commit_aliases` executes without errors.
+same as the synchronous API. They insert an alias object and verify that it is
+properly persisted when ``commit_aliases`` is called.
+
 """
 
 import os
@@ -62,6 +63,8 @@ async def prepare_data(wclient):
         ]
     )
 
+    results = alias_col.query.fetch_objects()
+    assert any(obj.properties["alias_text"] == "Arthur" for obj in results.objects)
 
 @pytest_asyncio.fixture
 async def service(wclient):
@@ -84,3 +87,8 @@ async def test_commit_aliases_inserts(service: IdentityService):
     )
     cyphers = await service.commit_aliases([task])
     assert not cyphers
+
+    alias_col = service._w.collections.get("Alias")
+    results = alias_col.query.fetch_objects()
+    assert any(obj.properties["alias_text"] == "Art" for obj in results.objects)
+
