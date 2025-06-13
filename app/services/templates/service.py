@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from services.templates import TemplateService
+from services.templates import TemplateService, get_template_service_sync
 from config import app_settings
 from config.weaviate import connect_to_weaviate
 from config.embeddings import openai_embedder
@@ -18,7 +18,7 @@ def get_weaviate_client():
 @lru_cache()
 def get_template_service() -> TemplateService:
     """Return a configured TemplateService instance."""
-    return TemplateService(
-        weaviate_client=get_weaviate_client(),
+    return get_template_service_sync(
+        wclient=get_weaviate_client(),
         embedder=openai_embedder,
     )

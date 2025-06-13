@@ -13,8 +13,7 @@ import pytest
 pytestmark = pytest.mark.integration
 
 from config import app_settings
-from services.templates import TemplateService
-from services.templates.service import get_weaviate_client, get_template_service
+from services.templates import TemplateService, get_template_service_sync
 from templates.imports import import_templates
 from templates.base import base_templates
 
@@ -24,9 +23,18 @@ MODEL_NAME = "text-embedding-3-small"
 
 
 @pytest.fixture(scope="session")
-def weaviate_client():
-    """Return shared Weaviate client."""
-    return get_weaviate_client()
+def weaviate_client(tmp_path_factory):
+    """Запуск embedded Weaviate для всей сессии."""
+    data_dir = tmp_path_factory.mktemp("wdata")
+    bin_dir = tmp_path_factory.mktemp("wbin")
+    client = weaviate.connect_to_embedded(
+        port=8079,
+        grpc_port=50051,
+        persistence_data_path=str(data_dir),
+        binary_path=str(bin_dir),
+    )
+    yield client
+    client.close()
 
 
 def openai_embedder(text: str) -> list[float]:
@@ -40,14 +48,7 @@ def openai_embedder(text: str) -> list[float]:
 @pytest.fixture(scope="session")
 def template_service(weaviate_client) -> TemplateService:
     """Create TemplateService via factory."""
-    required = [
-        app_settings.WEAVIATE_URL,
-        getattr(app_settings, "WEAVIATE_API_KEY", None),
-        getattr(app_settings, "WEAVIATE_INDEX", None),
-        getattr(app_settings, "WEAVIATE_CLASS_NAME", None),
-    ]
-
-    return get_template_service()
+    return get_template_service_sync(wclient=weaviate_client)
 
 
 @pytest.fixture(scope="session", autouse=True)
