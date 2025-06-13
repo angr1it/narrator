@@ -1,3 +1,9 @@
+"""Tests for the ExtractionPipeline orchestration logic.
+
+Only lightweight dummy services are used to validate that the pipeline calls
+its dependencies correctly and returns the expected plan.
+"""
+
 import pytest
 from schemas.stage import StageEnum
 
@@ -15,7 +21,7 @@ async def test_pipeline_simple(
     jinja_env,
 ):
     class FakeTemplateService:
-        def top_k(self, text, k=3):
+        async def top_k_async(self, text, k=3):
             return [sample_template]
 
     class FakeSlotFiller:

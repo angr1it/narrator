@@ -1,3 +1,11 @@
+"""Comprehensive TemplateService integration tests.
+
+The tests in this module use a real Weaviate instance and OpenAI embeddings to
+exercise the full CRUD and semantic search behaviour of
+:class:`TemplateService`.  They serve as a smoke test for the template import
+utility and search quality.
+"""
+
 import os
 import openai
 import pytest

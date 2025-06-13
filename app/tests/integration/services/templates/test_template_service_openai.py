@@ -1,4 +1,10 @@
-# tests/test_template_service_openai.py
+"""Real OpenAI embedding tests for TemplateService.
+
+These slower tests ensure end‑to‑end integration between OpenAI embeddings and
+Weaviate when importing the base templates.  They run only when integration
+tests are enabled and require network access to OpenAI.
+"""
+
 import os
 import time
 from uuid import uuid4

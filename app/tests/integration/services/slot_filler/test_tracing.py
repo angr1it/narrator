@@ -1,3 +1,10 @@
+"""Integration tests for SlotFiller tracing.
+
+These tests ensure that Langfuse tracing works end‑to‑end when SlotFiller is
+used with an OpenAI model.  They poll the API until the trace becomes
+available.
+"""
+
 import time
 import uuid
 import pytest
