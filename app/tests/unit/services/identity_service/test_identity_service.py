@@ -167,4 +167,3 @@ async def test_run_sync_executes_function():
 
     result = await svc._run_sync(add, 2, 3)
     assert result == 5
-

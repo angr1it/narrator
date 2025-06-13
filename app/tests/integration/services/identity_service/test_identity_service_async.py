@@ -15,7 +15,6 @@ from uuid import uuid4
 pytestmark = pytest.mark.integration
 
 from weaviate.collections.classes.data import DataObject
-from config.weaviate import connect_to_weaviate
 from services.identity_service import (
     IdentityService,
     get_identity_service_sync,
@@ -35,13 +34,6 @@ def openai_embedder(text: str) -> list[float]:
     return response.data[0].embedding
 
 
-@pytest.fixture(scope="session")
-def wclient():
-    client = connect_to_weaviate(url=None)
-    yield client
-    client.close()
-
-
 @pytest.fixture(scope="session", autouse=True)
 async def prepare_data(wclient):
     openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -51,7 +43,6 @@ async def prepare_data(wclient):
 
     await service._run_sync(
         alias_col.data.insert_many,
-
         [
             DataObject(
                 properties={
@@ -68,7 +59,6 @@ async def prepare_data(wclient):
     # confirm that the object was inserted to make sure the test setup is valid
     results = alias_col.query.fetch_objects()
     assert any(obj.properties["alias_text"] == "Arthur" for obj in results.objects)
-
 
 
 @pytest_asyncio.fixture
@@ -96,7 +86,6 @@ async def test_commit_aliases_inserts(service: IdentityService):
     alias_col = service._w.collections.get("Alias")
     results = alias_col.query.fetch_objects()
     assert any(obj.properties["alias_text"] == "Art" for obj in results.objects)
-
 
     alias_col = service._w.collections.get("Alias")
     results = alias_col.query.fetch_objects()

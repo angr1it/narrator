@@ -55,6 +55,7 @@ class TemplateService:
 
         self.embedder = embedder
         self._ensure_schema()
+        self.ensure_base_templates()
 
     def upsert(self, tpl: CypherTemplateBase) -> None:
         """Create or update a template in Weaviate.
