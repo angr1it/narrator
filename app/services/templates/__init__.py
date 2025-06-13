@@ -2,6 +2,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 from services.templates.warning import log_low_score_warning
+from utils.logger import get_logger
 
 """High-level helper around Weaviate that stores and retrieves ``CypherTemplate`` objects.
 
@@ -24,6 +25,8 @@ from schemas.cypher import (
     CypherTemplate,
     CypherTemplateBase,
 )
+
+logger = get_logger(__name__)
 
 EmbedderFn = Callable[[str], List[float]]  # opaque function → 1536‑d vector
 
@@ -51,6 +54,7 @@ class TemplateService:
 
         self.embedder = embedder
         self._ensure_schema()
+        self._ensure_base_templates()
 
     def upsert(self, tpl: CypherTemplateBase) -> None:
         """Create or update a template in Weaviate.
@@ -184,6 +188,18 @@ class TemplateService:
         return await asyncio.to_thread(
             self.top_k, query, category, k, distance_threshold
         )
+
+    def _ensure_base_templates(self) -> None:
+        """Load built-in templates into the collection if possible."""
+        if not self.client:
+            return
+        try:
+            from templates.base import base_templates
+            from templates.imports import import_templates
+
+            import_templates(self, base_templates)
+        except Exception as exc:  # pragma: no cover - log but continue
+            logger.warning(f"Failed to import base templates: {exc}")
 
     def _ensure_schema(self) -> None:
         if self.client and self.client.collections.exists(self.CLASS_NAME):  # type: ignore[attr-defined]
