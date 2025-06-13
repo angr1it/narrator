@@ -1,3 +1,9 @@
+"""Tests for TemplateService._get_return_map behaviour.
+
+These unit tests check that return map extraction works correctly when
+retrieving objects from Weaviate query results.
+"""
+
 import uuid
 from services.templates import TemplateService
 

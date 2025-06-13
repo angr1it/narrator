@@ -1,3 +1,10 @@
+"""OpenAI backed IdentityService tests.
+
+These integration tests run against OpenAI embeddings and a local Weaviate
+instance.  They verify the entity resolution logic of :class:`IdentityService`
+including alias creation and LLM disambiguation.
+"""
+
 import os
 import pytest
 import pytest_asyncio

@@ -1,6 +1,7 @@
 # StoryGraph Service – Technical and Architectural Overview
 
 This document serves as a live specification for the StoryGraph prototype. It includes a detailed breakdown of the service's functional purpose, architectural components, data flow, implementation classes, and key algorithms.
+For a full list of design documents see [docs/README.md](docs/README.md).
 
 ---
 
@@ -184,3 +185,7 @@ pre-commit install
 
 ## Codex Dev Environment
 Для локального запуска Codex-агента и интеграционных тестов см. [docs/codex_dev_environment.md](docs/codex_dev_environment.md).
+
+## Agent Quick Start
+A concise checklist for any agent starting work on the project is available at [docs/agent_quick_start.md](docs/agent_quick_start.md). Check it before exploring other files.
+
