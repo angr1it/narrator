@@ -77,7 +77,7 @@ class ExtractionPipeline:
             ``{"chunk_id": ..., "raptor_node_id": ...}``
         """
         chunk_id = f"chunk-{uuid4().hex[:8]}"
-        self._create_chunk(chunk_id, text, chapter, stage, tags or [])
+        await self._create_chunk(chunk_id, text, chapter, stage, tags or [])
 
         templates = await self.template_service.top_k_async(text, k=self.top_k)
         triple_texts: List[str] = []
@@ -94,7 +94,7 @@ class ExtractionPipeline:
 
         triple_str = " \n".join(triple_texts)
         raptor_id = self.raptor_index.insert_chunk(text, triple_str)
-        self.graph_proxy.run_query(
+        await self.graph_proxy.run_query(
             "MATCH (c:Chunk {id:$cid}) SET c.raptor_node_id=$rid",
             {"cid": chunk_id, "rid": raptor_id},
         )
@@ -145,10 +145,10 @@ class ExtractionPipeline:
         render = self.template_renderer.render(template, slot_fill, meta)
 
         batch = alias_cyphers + [render.content_cypher]
-        self.graph_proxy.run_queries(batch)
+        await self.graph_proxy.run_queries(batch)
         triple_texts.append(render.triple_text)
 
-    def _create_chunk(
+    async def _create_chunk(
         self,
         chunk_id: str,
         text: str,
@@ -161,7 +161,7 @@ class ExtractionPipeline:
             "CREATE (c:Chunk {id:$cid, text:$text, chapter:$ch, "
             "draft_stage:$st, tags:$tags})"
         )
-        self.graph_proxy.run_query(
+        await self.graph_proxy.run_query(
             cypher,
             {
                 "cid": chunk_id,

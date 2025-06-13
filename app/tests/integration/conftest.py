@@ -8,6 +8,7 @@ import openai
 from uuid import uuid4
 from urllib.parse import urlparse
 from weaviate.connect.helpers import connect_to_weaviate_cloud, connect_to_local
+from services.graph_proxy import GraphProxy
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -17,11 +18,13 @@ def integration_env():
     if env_path.exists():
         load_dotenv(env_path, override=False)
 
-    os.environ.setdefault("WEAVIATE_URL", "http://localhost:8080")
-    os.environ.setdefault("NEO4J_URI", "bolt://localhost:7687")
-    os.environ.setdefault("NEO4J_USER", "neo4j")
-    os.environ.setdefault("NEO4J_PASSWORD", "test")
-    os.environ.setdefault("NEO4J_DB", "neo4j")
+    # Force local docker-compose endpoints so tests don't accidentally hit
+    # remote services when `.env` specifies different hosts.
+    os.environ["WEAVIATE_URL"] = "http://localhost:8080"
+    os.environ["NEO4J_URI"] = "bolt://localhost:7687"
+    os.environ["NEO4J_USER"] = "neo4j"
+    os.environ["NEO4J_PASSWORD"] = "test"
+    os.environ["NEO4J_DB"] = "neo4j"
     # Configure OpenAI client for integration tests
     _api_key = os.getenv("OPENAI_API_KEY")
     if _api_key:
@@ -93,3 +96,16 @@ def clean_alias_collection(wclient):
     yield
     if wclient.collections.exists("Alias"):
         wclient.collections.delete("Alias")
+
+
+@pytest.fixture()
+async def graph_proxy():
+    """Create :class:`GraphProxy` connected to the local Neo4j instance."""
+    proxy = GraphProxy(
+        uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
+        user=os.getenv("NEO4J_USER", "neo4j"),
+        password=os.getenv("NEO4J_PASSWORD", "test"),
+        database=os.getenv("NEO4J_DB", "neo4j"),
+    )
+    yield proxy
+    await proxy.close()

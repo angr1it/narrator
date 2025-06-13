@@ -8,6 +8,7 @@ Below are the most relevant files:
 - `pipeline_overview.md` – high level view of the pipelines
 - `pipeline_implementation.md` – details of current implementation
 - `fact_examples.md` – example Cypher templates and facts
+- `graph_proxy.md` – explanation of the Neo4j helper
 - `slotfiller_spec.md` – slot filling logic
 
 Legacy and experimental docs:
