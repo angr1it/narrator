@@ -1,3 +1,9 @@
+"""GraphProxy query construction tests.
+
+The dummy Neo4j driver allows checking that cypher queries are executed with
+the correct parameters and that the context manager behaviour works.
+"""
+
 import pytest  # noqa: E402
 from services.graph_proxy import GraphProxy  # noqa: E402
 

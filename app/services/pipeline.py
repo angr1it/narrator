@@ -79,7 +79,7 @@ class ExtractionPipeline:
         chunk_id = f"chunk-{uuid4().hex[:8]}"
         self._create_chunk(chunk_id, text, chapter, stage, tags or [])
 
-        templates = self.template_service.top_k(text, k=self.top_k)
+        templates = await self.template_service.top_k_async(text, k=self.top_k)
         triple_texts: List[str] = []
 
         for tpl in templates:

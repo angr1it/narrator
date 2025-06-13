@@ -1,3 +1,11 @@
+"""TemplateService CRUD and search tests.
+
+These tests exercise :class:`TemplateService` against a real Weaviate instance
+without requiring OpenAI embeddings.  They create a temporary collection for
+each run and validate various behaviours such as upsert, retrieval and
+semantic search.
+"""
+
 import os
 import pytest
 from uuid import uuid4

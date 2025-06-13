@@ -1,3 +1,9 @@
+"""Tests for SlotFiller retry logic during LLM calls.
+
+These tests simulate failures on the first call and check that a second attempt
+is made with the correct tracing configuration.
+"""
+
 from jinja2 import Template
 from services.slot_filler import SlotFiller, PROMPTS_ENV
 from schemas.cypher import CypherTemplate, SlotDefinition

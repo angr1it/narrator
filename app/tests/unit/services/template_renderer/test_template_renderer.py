@@ -1,3 +1,9 @@
+"""Tests for TemplateRenderer Jinja template rendering.
+
+The sample template fixtures mimic the base templates to ensure slot filling and
+return-map logic behave as expected when using Jinja.
+"""
+
 import pytest
 from services.template_renderer import TemplateRenderer
 

@@ -1,3 +1,9 @@
+"""Unit tests for the simplified vector index implementation.
+
+They validate centroid computation, schema setup and merge behaviour of
+:class:`FlatRaptorIndex` without hitting Weaviate.
+"""
+
 import numpy as np
 from services.raptor_index import FlatRaptorIndex
 
