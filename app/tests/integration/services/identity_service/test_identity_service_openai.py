@@ -1,18 +1,16 @@
 import os
-from pathlib import Path
-import time
+import pytest
+import pytest_asyncio
+import openai
 from uuid import uuid4
 
-import pytest
-import openai
-
 pytestmark = pytest.mark.integration
-import weaviate
-from weaviate.collections.classes.data import DataObject
-from weaviate.embedded import EmbeddedOptions
 
-from services.identity_service import IdentityService, get_identity_service_async
-from services.templates.service import get_weaviate_client
+from weaviate.collections.classes.data import DataObject
+from config import app_settings
+from config.weaviate import connect_to_weaviate
+
+from services.identity_service import IdentityService, get_identity_service_sync
 
 MODEL_NAME = "text-embedding-3-small"
 
@@ -32,34 +30,20 @@ eid_b = str(uuid4())  # фиксированные ID для alias "Miranda"
 
 
 @pytest.fixture(scope="session")
-async def wclient(tmp_path_factory):
-    data_dir = tmp_path_factory.mktemp("weaviate-data")
-    binary_dir = Path(__file__).parent / "weaviate_bin"
-
-    client = weaviate.WeaviateAsyncClient(
-        embedded_options=EmbeddedOptions(
-            binary_path=str(binary_dir),
-            persistence_data_path=str(data_dir),
-            hostname="127.0.0.1",
-            port=8080,
-        )
-    )
+def wclient():
+    client = connect_to_weaviate(url=None)
     yield client
-
-    await client.close()
+    client.close()
 
 
 @pytest.fixture(scope="session", autouse=True)
-async def prepare_alias_data(wclient: weaviate.WeaviateAsyncClient):
-    """Создаём коллекцию и добавляем тестовые alias-данные."""
-    OPENAI_KEY = os.getenv("OPENAI_API_KEY")
-    openai.api_key = OPENAI_KEY
+async def prepare_alias_data(wclient):
+    openai.api_key = app_settings.OPENAI_API_KEY
 
-    service = get_identity_service_async(wclient=wclient)
-
+    service = get_identity_service_sync(wclient=wclient)
     await service.startup()
 
-    alias_col = service.w.collections.get("Alias")
+    alias_col = service._w.collections.get("Alias")
     await alias_col.data.insert_many(
         [
             DataObject(
@@ -83,25 +67,23 @@ async def prepare_alias_data(wclient: weaviate.WeaviateAsyncClient):
         ]
     )
 
+    results = alias_col.query.fetch_objects()
+    print("Current aliases:", [obj.properties for obj in results.objects])
+
 
 # ─────────────────── Dummy LLM factory (Callable) ─────────────────────────────
-import json
-
-
 def make_dummy_llm(forced_response: dict):
-    json_response = json.dumps(forced_response)
-
-    def llm_callable(_):
-        return json_response
+    def llm_callable(raw_name: str, aliases: list, chapter: int, snippet: str) -> dict:
+        return forced_response
 
     return llm_callable
 
 
 # ─────────────────── IdentityService factory ──────────────────────────────────
-@pytest.fixture
-def identity_service_factory(wclient: weaviate.WeaviateAsyncClient):
+@pytest_asyncio.fixture
+async def identity_service_factory(prepare_alias_data, wclient):
     async def _factory(llm=None):
-        service = get_identity_service_async(llm_disambiguator=llm, wclient=wclient)
+        service = get_identity_service_sync(llm=llm, wclient=wclient)
         await service.startup()
         return service
 
@@ -143,14 +125,7 @@ async def test_exact_almost_canonical_match(identity_service_factory):
 @pytest.mark.asyncio
 async def test_llm_add_alias(identity_service_factory):
     service = await identity_service_factory(
-        make_dummy_llm(
-            {
-                "action": "use",
-                "entity_id": eid_a,
-                "alias_text": "Zориан",
-                "canonical": False,
-            }
-        )
+        make_dummy_llm({"action": "use", "entity_id": eid_a, "alias_text": "Zориан"})
     )
     result = await service.resolve_bulk(
         {"character": "Zориан"},
@@ -194,14 +169,7 @@ async def test_exact_create_new_entity(identity_service_factory):
 @pytest.mark.asyncio
 async def test_llm_selects_existing_alias_different(identity_service_factory):
     service = await identity_service_factory(
-        make_dummy_llm(
-            {
-                "action": "use",
-                "entity_id": eid_b,
-                "alias_text": "Миранда",
-                "canonical": False,
-            }
-        )
+        make_dummy_llm({"action": "use", "entity_id": eid_b, "alias_text": "Миранда"})
     )
     result = await service.resolve_bulk(
         {"character": "Миранда"},

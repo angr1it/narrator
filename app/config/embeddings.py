@@ -1,5 +1,8 @@
+from typing import Callable, List
 import openai
 from config import app_settings
+
+EmbedderFn = Callable[[str], List[float]]
 
 
 def openai_embedder(text: str) -> list[float]:

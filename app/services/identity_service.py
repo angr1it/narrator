@@ -1,63 +1,27 @@
-# flake8: noqa
-"""
-identity_async.py   – v0.3 (Weaviate Python client v4, async API)
-
-Responsibilities
-----------------
-1.  Maintain a collection `Alias` in Weaviate (async).
-2.  Provide a two-phase interface:
-
-      • phase #1  – `resolve_bulk_for_template(…)`
-        ↳ gets the *raw* slot dict (already extracted by SlotFiller)
-          – returns a tuple:
-              (mapped_slots,  # slot-name ➞ entity_id
-               alias_tasks)   # list[AliasTask] – to be committed later
-
-      • phase #2  – `commit_aliases(alias_tasks)`
-        ↳ actually writes the alias objects (and – if needed – Cypher
-          strings for “create entity” / “add alias”) and returns the list
-          of Cypher statements that must be added to the batch the
-          pipeline will send to Neo4j.
-
-3.  Completely asynchronous – built on top of the official
-   `weaviate.client.WeaviateAsyncClient` v4.
-
-You *do not* need to modify calling code except:
-    - call `resolve_bulk_for_template(…)`
-    - pass its second result later to `commit_aliases(…)`
-"""
-
-from __future__ import annotations
-
 from functools import lru_cache
 import logging
-from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Callable, cast
-import inspect
-import json
+import asyncio
 import uuid
+from dataclasses import dataclass
+from typing import Any, Dict, List, Literal, Optional, Callable, cast, Union
 
-from weaviate.exceptions import WeaviateQueryError, WeaviateBaseError
-from weaviate import WeaviateAsyncClient, connect_to_weaviate_cloud, connect_to_local
+from weaviate import WeaviateClient, connect_to_weaviate_cloud
 from weaviate.classes.init import Auth
-from weaviate.exceptions import WeaviateQueryError
+from weaviate.exceptions import WeaviateQueryError, WeaviateBaseError
 from weaviate.classes.query import Filter, MetadataQuery
 from weaviate.classes.config import Configure, Property, DataType
 
-from config.embeddings import openai_embedder
-from config.langfuse import provide_callback_handler_with_tags
-from config import app_settings
-
-
 from pydantic import BaseModel
 
+from config.embeddings import openai_embedder, EmbedderFn  # type: ignore
+from config.langfuse import provide_callback_handler_with_tags  # type: ignore
+from config import app_settings  # type: ignore
 
-HI_SIM = 0.92  # “sure” threshold
-LO_SIM = 0.40  # “maybe” threshold
-ALIAS_CLASS = "Alias"  # Weaviate collection name
+_logger = logging.getLogger("identity_sync_wrapper")
 
-EmbedderFn = Callable[[str], List[float]]
-_logger = logging.getLogger("identity_async")
+HI_SIM = 0.92
+LO_SIM = 0.40
+ALIAS_CLASS = "Alias"
 
 
 @dataclass
@@ -86,21 +50,58 @@ class LLMDecision(BaseModel):
 class IdentityService:
     def __init__(
         self,
-        weaviate_async_client: WeaviateAsyncClient,
-        embedder: EmbedderFn | None,
+        weaviate_sync_client: WeaviateClient,
+        embedder: Optional[EmbedderFn],
         *,
-        llm_disambiguator: Callable[[str, List[Dict[str, Any]]], Dict[str, Any]],
+        llm: Callable[[str, List[Dict[str, Any]], int, str], Union[LLMDecision, dict]],
         callback_handler=None,
-    ):
-        self.w = weaviate_async_client
-        self.embedder = embedder
-        self.llm_disambiguator = llm_disambiguator
-        self.callback_handler = callback_handler
+    ) -> None:
+        self._w = weaviate_sync_client
+        self._embedder = embedder
+        self._llm = llm
+        self._callback_handler = callback_handler
 
     async def startup(self) -> None:
-        if await self._collection_exists(ALIAS_CLASS):
+        await self._run_sync(self._startup_sync)
+
+    async def resolve_bulk(
+        self,
+        slots: Dict[str, Any],
+        *,
+        chapter: int,
+        chunk_id: str,
+        snippet: str,
+    ) -> BulkResolveResult:
+        return await self._run_sync(
+            self._resolve_bulk_sync,
+            slots,
+            chapter,
+            chunk_id,
+            snippet,
+        )
+
+    async def commit_aliases(self, alias_tasks: List[AliasTask]) -> List[str]:
+        # call async or sync upsert_alias and collect cypher snippets
+        cyphers: List[str] = []
+        for task in alias_tasks:
+            upsert = getattr(self, "_upsert_alias", None)
+            if callable(upsert) and asyncio.iscoroutinefunction(upsert):
+                await upsert(task)
+            else:
+                self._upsert_alias_sync(task)
+            snippet = _render_alias_cypher(task)
+            if snippet:
+                cyphers.append(snippet)
+        return cyphers
+
+    async def _run_sync(self, fn: Callable, *args, **kwargs):
+        loop = asyncio.get_running_loop()
+        return await asyncio.to_thread(fn, *args, **kwargs)
+
+    def _startup_sync(self) -> None:
+        if self._collection_exists(ALIAS_CLASS):
             return
-        self.w.collections.create(
+        self._w.collections.create(
             name=ALIAS_CLASS,
             description="Stores all known aliases for story entities",
             vectorizer_config=Configure.Vectorizer.none(),
@@ -115,17 +116,22 @@ class IdentityService:
                 Property(name="snippet", data_type=DataType.TEXT),
             ],
         )
-        _logger.info("[Identity] ➕ Collection 'Alias' created")
+        _logger.info("[Identity] ➕ Collection 'Alias' created (sync mode)")
 
-    async def resolve_bulk(
+    def _collection_exists(self, name: str) -> bool:
+        for col in self._w.collections.list_all():
+            if getattr(col, "name", col) == name:
+                return True
+        return False
+
+    def _resolve_bulk_sync(
         self,
         slots: Dict[str, Any],
-        *,
         chapter: int,
         chunk_id: str,
         snippet: str,
     ) -> BulkResolveResult:
-        mapped_slots = dict(slots)
+        mapped_slots: Dict[str, Any] = dict(slots)
         alias_tasks: List[AliasTask] = []
 
         for field, raw_val in slots.items():
@@ -133,7 +139,7 @@ class IdentityService:
             if not etype:
                 continue
 
-            decision = await self._resolve_single(
+            decision = self._resolve_single_sync(
                 raw_name=str(raw_val),
                 entity_type=etype,
                 chapter=chapter,
@@ -156,19 +162,18 @@ class IdentityService:
                         snippet=snippet,
                     )
                 )
-
         return BulkResolveResult(mapped_slots=mapped_slots, alias_tasks=alias_tasks)
 
-    async def commit_aliases(self, alias_tasks: List[AliasTask]) -> List[str]:
+    def _commit_aliases_sync(self, alias_tasks: List[AliasTask]) -> List[str]:
         cypher_snippets: List[str] = []
         for task in alias_tasks:
-            await self._upsert_alias(task)
+            self._upsert_alias_sync(task)
             snippet = _render_alias_cypher(task)
             if snippet:
                 cypher_snippets.append(snippet)
         return cypher_snippets
 
-    async def _resolve_single(
+    def _resolve_single_sync(
         self,
         raw_name: str,
         entity_type: str,
@@ -177,7 +182,7 @@ class IdentityService:
         chunk_id: str,
         snippet: str,
     ) -> Dict[str, Any]:
-        cand = await self._nearest_alias(raw_name, entity_type, limit=3)
+        cand = self._nearest_alias_sync(raw_name, entity_type, limit=3)
         best = cand[0] if cand else None
 
         if best and best["score"] >= HI_SIM:
@@ -196,7 +201,7 @@ class IdentityService:
             }
 
         if best and best["score"] >= LO_SIM:
-            decision = await self._llm_disambiguate(raw_name, cand, chapter, snippet)
+            decision = self._llm_disambiguate_sync(raw_name, cand, chapter, snippet)
             if decision.action == "use":
                 return {
                     "entity_id": decision.entity_id,
@@ -225,26 +230,19 @@ class IdentityService:
             },
         }
 
-    async def _collection_exists(self, name: str) -> bool:
-        for col in await self.w.collections.list_all():
-            if getattr(col, "name", col) == name:
-                return True
-        return False
-
-    async def _nearest_alias(
+    def _nearest_alias_sync(
         self,
         query_text: str,
         entity_type: str,
         *,
         limit: int = 3,
     ) -> List[Dict[str, Any]]:
-        if not self.embedder:
+        if not self._embedder:
             return []
-
-        vector = self.embedder(query_text)
+        vector = self._embedder(query_text)
         try:
-            collection = self.w.collections.get(ALIAS_CLASS)
-            res = await collection.query.near_vector(
+            collection = self._w.collections.get(ALIAS_CLASS)
+            res = collection.query.near_vector(
                 near_vector=vector,
                 limit=limit,
                 filters=Filter.by_property("entity_type").equal(entity_type),
@@ -254,64 +252,29 @@ class IdentityService:
             _logger.error("Weaviate near-vector failed: %s", exc)
             return []
 
-        hits = []
+        hits: List[Dict[str, Any]] = []
         for obj in res.objects:
             dst = 1.0 - (obj.metadata.distance or 0.0)
-            hits.append(
-                {
-                    **obj.properties,
-                    "score": round(dst, 4),
-                }
-            )
+            hits.append({**obj.properties, "score": round(dst, 4)})
         hits.sort(key=lambda x: -float(cast(float, x["score"])))
         return hits
 
-    async def _llm_disambiguate(
+    def _llm_disambiguate_sync(
         self,
         raw_name: str,
         aliases: List[Dict[str, Any]],
         chapter: int,
         snippet: str,
     ) -> LLMDecision:
-        llm = self.llm_disambiguator
-        config = (
-            {"callbacks": [self.callback_handler]} if self.callback_handler else None
-        )
-        if hasattr(llm, "ainvoke"):
-            result = await llm.ainvoke(
-                {
-                    "raw_name": raw_name,
-                    "aliases": aliases,
-                    "chapter": chapter,
-                    "snippet": snippet,
-                },
-                config=config,
-            )
-        elif hasattr(llm, "invoke"):
-            result = llm.invoke(
-                {
-                    "raw_name": raw_name,
-                    "aliases": aliases,
-                    "chapter": chapter,
-                    "snippet": snippet,
-                },
-                config=config,
-            )
-        elif inspect.iscoroutinefunction(llm):
-            result = await llm(raw_name, aliases)
-        else:
-            result = llm(raw_name, aliases)
-
-        if isinstance(result, str):
-            result = json.loads(result)
+        result = self._llm(raw_name, aliases, chapter, snippet)
         if isinstance(result, dict):
             return LLMDecision(**result)
         if isinstance(result, LLMDecision):
             return result
-        raise ValueError("Invalid LLM disambiguation result")
+        raise ValueError(f"_llm must return LLMDecision or dict, got {type(result)}")
 
-    async def _upsert_alias(self, task: AliasTask) -> None:
-        col = self.w.collections.get(ALIAS_CLASS)
+    def _upsert_alias_sync(self, task: AliasTask) -> None:
+        col = self._w.collections.get(ALIAS_CLASS)
         props = {
             "alias_text": task.alias_text,
             "entity_id": task.entity_id,
@@ -321,16 +284,12 @@ class IdentityService:
             "chunk_id": task.chunk_id,
             "snippet": task.snippet,
         }
-        vec = self.embedder(task.alias_text) if self.embedder else None
+        vec = self._embedder(task.alias_text) if self._embedder else None
         try:
-            await col.data.insert(properties=props, vector=vec)
+            col.data.insert(properties=props, vector=vec)
         except WeaviateBaseError:
             pass
 
-
-# --------------------------------------------------------------------------- #
-#  🔧  helpers
-# --------------------------------------------------------------------------- #
 
 _FIELD_TO_ENTITY = {
     "character": "CHARACTER",
@@ -342,25 +301,20 @@ _FIELD_TO_ENTITY = {
 
 
 def _render_alias_cypher(task: AliasTask) -> str:
-    """Simplified – you probably have a Jinja2 template system already."""
     if task.cypher_template_id != "create_entity_with_alias":
         return ""
-    return (
-        f"CREATE (e:{task.entity_type} {{id:'{task.entity_id}', "
-        f"name:'{task.alias_text}'}})"
-    )
+    return f"CREATE (e:{task.entity_type} {{id:'{task.entity_id}', name:'{task.alias_text}'}})"
 
 
 @lru_cache(maxsize=1)
-def get_identity_service_async(
-    llm_disambiguator: Optional[
-        Callable[[str, List[Dict[str, Any]]], Dict[str, Any]]
+def get_identity_service_sync(
+    llm: Optional[
+        Callable[[str, List[Dict[str, Any]], int, str], Union[LLMDecision, dict]]
     ] = None,
-    embedder: EmbedderFn | None = None,
-    wclient: Optional[WeaviateAsyncClient] = None,
+    embedder: Optional[EmbedderFn] = None,
+    wclient: Optional[WeaviateClient] = None,
 ) -> IdentityService:
-    """Асинхронно создаёт и возвращает IdentityService с подключением к Weaviate."""
-    disambiguator = llm_disambiguator or (lambda *_: {"action": "new"})
+    resolved_llm = llm or (lambda *_: {"action": "new"})
     handler = provide_callback_handler_with_tags(tags=[IdentityService.__name__])
     embedder = embedder or openai_embedder
 
@@ -371,8 +325,8 @@ def get_identity_service_async(
         )
 
     return IdentityService(
-        weaviate_async_client=wclient,
+        weaviate_sync_client=wclient,
         embedder=embedder,
-        llm_disambiguator=disambiguator,
+        llm=resolved_llm,
         callback_handler=handler,
     )

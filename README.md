@@ -181,3 +181,6 @@ pip install -r requirements.txt
 pre-commit install
 ```
 
+
+## Codex Dev Environment
+Для локального запуска Codex-агента и интеграционных тестов см. [docs/codex_dev_environment.md](docs/codex_dev_environment.md).

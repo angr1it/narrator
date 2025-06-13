@@ -8,9 +8,9 @@ class DummyService(IdentityService):
             collections = None
 
         super().__init__(
-            weaviate_async_client=_C(),
+            weaviate_sync_client=_C(),
             embedder=lambda x: [0.0],
-            llm_disambiguator=lambda x, y: {},
+            llm=lambda x, y: {},
         )
         self.logged = []
 
@@ -65,9 +65,9 @@ class DummyClient:
 class StartupService(IdentityService):
     def __init__(self, client: DummyClient):
         super().__init__(
-            weaviate_async_client=client,
+            weaviate_sync_client=client,
             embedder=lambda x: [0.0],
-            llm_disambiguator=lambda *a, **k: {},
+            llm=lambda *a, **k: {},
         )
 
 
@@ -103,12 +103,12 @@ async def test_llm_disambiguate_uses_handler():
     llm = DummyLLM()
     handler = object()
     svc = IdentityService(
-        weaviate_async_client=type("C", (), {"collections": None})(),
+        weaviate_sync_client=type("C", (), {"collections": None})(),
         embedder=lambda x: [0.0],
-        llm_disambiguator=llm,
+        llm=llm,
         callback_handler=handler,
     )
 
-    decision = await svc._llm_disambiguate("n", [], 1, "t")
+    decision = await svc._llm_disambiguate_sync("n", [], 1, "t")
     assert decision.entity_id == "e1"
     assert llm.received == {"callbacks": [handler]}
