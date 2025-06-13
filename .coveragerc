@@ -1,0 +1,16 @@
+[run]
+omit =
+    app/tests/*
+    app/api/*
+    app/main.py
+    app/config/*
+    app/schemas/*
+    app/templates/*
+    app/services/identity_service.py
+    app/services/templates/*
+    app/utils/helpers/cypher.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == '__main__':

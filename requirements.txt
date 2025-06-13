@@ -6,6 +6,7 @@ fastapi_camelcase
 debugpy
 asyncpg
 pytest-asyncio
+pytest-cov
 httpx
 greenlet
 langchain
@@ -19,5 +20,4 @@ mypy
 pre-commit
 black
 flake8
-pre-commit
 langchain_openai

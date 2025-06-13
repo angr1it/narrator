@@ -16,6 +16,7 @@ This short guide describes the minimal steps for Codex and local agents to start
 ## 3. Useful commands
 - Run formatting and checks: `pre-commit run --all-files`
 - Run unit tests: `pytest -q`
+- Run tests with coverage: `pytest --cov=app --cov-report=xml:coverage.xml --cov-report=html --cov-fail-under=85 -q`
 - Run integration tests: `pytest --runintegration -q`
 
 This document is referenced from the repository root `README.md`.
