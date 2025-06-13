@@ -5,6 +5,7 @@ import pytest
 from dotenv import load_dotenv
 import weaviate
 import openai
+from uuid import uuid4
 from urllib.parse import urlparse
 from weaviate.connect.helpers import connect_to_weaviate_cloud, connect_to_local
 
@@ -54,3 +55,41 @@ def wclient():
 @pytest.fixture(scope="session", name="weaviate_client")
 def weaviate_client_alias(wclient):
     return wclient
+
+
+@pytest.fixture(scope="session")
+def openai_key() -> str:
+    key = os.getenv("OPENAI_API_KEY")
+    assert key, "Set OPENAI_API_KEY in environment to run integration tests"
+    return key
+
+
+@pytest.fixture(scope="session")
+def openai_embedder(openai_key):
+    def _embed(text: str) -> list[float]:
+        openai.api_key = openai_key
+        resp = openai.embeddings.create(
+            input=text,
+            model="text-embedding-3-small",
+            user="integration-tests",
+        )
+        return resp.data[0].embedding
+
+    return _embed
+
+
+@pytest.fixture()
+def temp_collection_name(wclient):
+    name = f"Tmp_{uuid4().hex[:8]}"
+    yield name
+    if wclient.collections.exists(name):
+        wclient.collections.delete(name)
+
+
+@pytest.fixture()
+def clean_alias_collection(wclient):
+    if wclient.collections.exists("Alias"):
+        wclient.collections.delete("Alias")
+    yield
+    if wclient.collections.exists("Alias"):
+        wclient.collections.delete("Alias")

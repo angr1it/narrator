@@ -71,6 +71,7 @@ app/services/pipeline.py
 - Если интеграционные тесты вызывают ошибки окружения, опишите это в ответе, не меняя код тестов.
 - По умолчанию запускается только `pytest -q`; интеграционные тесты помечены маркером `integration` и
 - выполняются при добавлении флага `--runintegration`.
+- Общие фикстуры (`openai_key`, `openai_embedder`, `temp_collection_name`) находятся в `app/tests/integration/conftest.py`.
 
 ### Практика TDD
 

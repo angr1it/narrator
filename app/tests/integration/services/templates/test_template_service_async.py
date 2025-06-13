@@ -5,10 +5,7 @@ These tests verify that the asynchronous helper methods of
 operations when working with a real Weaviate and OpenAI embedder.
 """
 
-import os
 import pytest
-import openai
-from uuid import uuid4
 
 pytestmark = pytest.mark.integration
 
@@ -20,24 +17,13 @@ from templates.imports import import_templates
 from templates.base import base_templates
 
 
-OPENAI_KEY = os.getenv("OPENAI_API_KEY")
-MODEL_NAME = "text-embedding-3-small"
-
-
-def openai_embedder(text: str) -> list[float]:
-    response = openai.embeddings.create(
-        input=text, model=MODEL_NAME, user="template-tests"
-    )
-    return response.data[0].embedding
+@pytest.fixture
+def collection_name(temp_collection_name):
+    return temp_collection_name
 
 
 @pytest.fixture
-def collection_name():
-    return f"TplAsync_{uuid4().hex[:8]}"
-
-
-@pytest.fixture
-def service(wclient, collection_name):
+def service(wclient, collection_name, openai_embedder):
     if wclient.collections.exists(collection_name):
         wclient.collections.delete(collection_name)
 

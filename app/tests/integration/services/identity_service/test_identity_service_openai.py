@@ -5,28 +5,14 @@ instance.  They verify the entity resolution logic of :class:`IdentityService`
 including alias creation and LLM disambiguation.
 """
 
-import os
 import pytest
 import pytest_asyncio
-import openai
 from uuid import uuid4
 
 pytestmark = pytest.mark.integration
 
 from weaviate.collections.classes.data import DataObject
-from config import app_settings
 from services.identity_service import IdentityService, get_identity_service_sync
-
-MODEL_NAME = "text-embedding-3-small"
-
-
-def openai_embedder(text: str) -> list[float]:
-    response = openai.embeddings.create(
-        input=text,
-        model=MODEL_NAME,
-        user="identity-tests",
-    )
-    return response.data[0].embedding
 
 
 # ─────────────────── Prepare test data ────────────────────────────────────────
@@ -35,10 +21,8 @@ eid_b = str(uuid4())  # фиксированные ID для alias "Miranda"
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def prepare_alias_data(wclient):
-    openai.api_key = app_settings.OPENAI_API_KEY
-
-    service = get_identity_service_sync(wclient=wclient)
+async def prepare_alias_data(wclient, openai_embedder, clean_alias_collection):
+    service = get_identity_service_sync(wclient=wclient, embedder=openai_embedder)
     await service.startup()
 
     alias_col = service._w.collections.get("Alias")
@@ -84,9 +68,13 @@ def make_dummy_llm(forced_response: dict):
 
 # ─────────────────── IdentityService factory ──────────────────────────────────
 @pytest_asyncio.fixture
-async def identity_service_factory(prepare_alias_data, wclient):
+async def identity_service_factory(prepare_alias_data, wclient, openai_embedder):
     async def _factory(llm=None):
-        service = get_identity_service_sync(llm=llm, wclient=wclient)
+        service = get_identity_service_sync(
+            llm=llm,
+            wclient=wclient,
+            embedder=openai_embedder,
+        )
         await service.startup()
         return service
 
