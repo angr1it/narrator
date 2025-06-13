@@ -1,32 +1,32 @@
 from __future__ import annotations
 
-"""GraphProxy — thin convenience wrapper around the official Neo4j Python
-   driver.  It provides single-query and batched execution helpers with
-   automatic retry semantics, read/write separation, and optional debug
-   logging controlled by `app_settings.DEBUG`.
+"""Asynchronous helper around the Neo4j driver.
+
+`GraphProxy` exposes only two high level methods: :meth:`run_query` for
+executing a single Cypher statement and :meth:`run_queries` for batching
+multiple statements in one transaction. Queries are routed to the appropriate
+read/write endpoint and retried by the driver if a transient failure occurs.
+Debug output is printed when :data:`app_settings.DEBUG` is enabled.
 """
 
-from contextlib import AbstractContextManager
+from contextlib import AbstractAsyncContextManager
 from functools import lru_cache
 from typing import Any, Dict, Iterable, List, Optional
 
-from neo4j import Driver, GraphDatabase, ManagedTransaction, Transaction
+from neo4j import AsyncDriver, AsyncGraphDatabase, AsyncManagedTransaction
 
 from config import app_settings
 
 __all__ = ["GraphProxy"]
 
 
-class GraphProxy(AbstractContextManager):
-    """Communicates with Neo4j (see README §2 «GRAPH_PROXY»).
+class GraphProxy(AbstractAsyncContextManager):
+    """Client used by the pipeline to talk to Neo4j.
 
-    Notes
-    -----
-    * Uses *transaction functions* (`execute_read` / `execute_write`) so the
-      driver can transparently retry transient failures (e.g. leader switch).
-    * Supports *batched* execution of several Cypher statements inside a single
-      transaction (`run_queries`).
-    * Provides a minimal context-manager interface allowing ``with`` usage.
+    The proxy wraps :class:`neo4j.AsyncDriver` and may be used as an async
+    context manager. Resources are released by calling :meth:`close` or by
+    leaving the ``async with`` block. All operations rely on transaction
+    functions so that the driver can automatically retry on transient failures.
     """
 
     def __init__(
@@ -36,24 +36,26 @@ class GraphProxy(AbstractContextManager):
         password: str,
         database: str | None = None,
     ) -> None:
-        self._driver: Driver = GraphDatabase.driver(uri, auth=(user, password))
+        self._driver: AsyncDriver = AsyncGraphDatabase.driver(
+            uri, auth=(user, password)
+        )
         self._database = database
 
     # ------------------------------------------------------------------ utils
     @staticmethod
-    def _run(
-        tx: ManagedTransaction, cypher: str, params: Optional[Dict[str, Any]]
+    async def _run(
+        tx: AsyncManagedTransaction, cypher: str, params: Optional[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:  # noqa: E501
         """Internal helper executed inside a transaction function."""
-        result = tx.run(cypher, params or {})
-        return [record.data() for record in result]
+        result = await tx.run(cypher, params or {})
+        return [record.data() async for record in result]
 
     def _log(self, cypher: str, params: Optional[Dict[str, Any]]) -> None:
         if app_settings.DEBUG:
             print(">>> CYPHER", "\n", cypher, "\nPARAMS =", params, "\n<<<")
 
     # ----------------------------------------------------------- public api --
-    def run_query(
+    async def run_query(
         self,
         cypher: str,
         params: Optional[Dict[str, Any]] = None,
@@ -72,11 +74,11 @@ class GraphProxy(AbstractContextManager):
             If ``False`` the statement is routed to a *read* replica.
         """
         self._log(cypher, params)
-        with self._driver.session(database=self._database) as session:
+        async with self._driver.session(database=self._database) as session:
             fn = session.execute_write if write else session.execute_read
-            return fn(self._run, cypher, params)
+            return await fn(self._run, cypher, params)
 
-    def run_queries(
+    async def run_queries(
         self,
         cyphers: Iterable[str],
         params_list: Optional[Iterable[Optional[Dict[str, Any]]]] = None,
@@ -94,28 +96,28 @@ class GraphProxy(AbstractContextManager):
         if len(cypher_list) != len(params_list):
             raise ValueError("params_list length mismatch with cyphers")
 
-        def batch_tx(tx: ManagedTransaction) -> List[Dict[str, Any]]:
+        async def batch_tx(tx: AsyncManagedTransaction) -> List[Dict[str, Any]]:
             results: List[Dict[str, Any]] = []
             for c, p in zip(cypher_list, params_list):
                 self._log(c, p)
-                results.extend(self._run(tx, c, p))
+                results.extend(await self._run(tx, c, p))
             return results
 
-        with self._driver.session(database=self._database) as session:
+        async with self._driver.session(database=self._database) as session:
             fn = session.execute_write if write else session.execute_read
-            return fn(batch_tx)
+            return await fn(batch_tx)
 
     # -------------------------------------------------------------- cleanup --
-    def close(self) -> None:  # noqa: D401
+    async def close(self) -> None:  # noqa: D401
         """Close underlying driver (call at application shutdown)."""
-        self._driver.close()
+        await self._driver.close()
 
     # -------------------------------------------------------- context-manager --
-    def __enter__(self):
+    async def __aenter__(self):  # noqa: D401
         return self
 
-    def __exit__(self, exc_type, exc, tb):  # noqa: D401
-        self.close()
+    async def __aexit__(self, exc_type, exc, tb):  # noqa: D401
+        await self.close()
 
 
 @lru_cache()

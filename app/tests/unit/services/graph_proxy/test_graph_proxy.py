@@ -16,13 +16,26 @@ class DummyRecord:
         return self._data
 
 
+class DummyResult:
+    def __init__(self, records):
+        self._records = records
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if not self._records:
+            raise StopAsyncIteration
+        return self._records.pop(0)
+
+
 class DummyTx:
     def __init__(self):
         self.calls = []
 
-    def run(self, cypher, params):
+    async def run(self, cypher, params):
         self.calls.append((cypher, params))
-        return [DummyRecord({"ok": True})]
+        return DummyResult([DummyRecord({"ok": True})])
 
 
 class DummySession:
@@ -30,21 +43,21 @@ class DummySession:
         self.write_calls = []
         self.read_calls = []
 
-    def __enter__(self):
+    async def __aenter__(self):
         return self
 
-    def __exit__(self, exc_type, exc, tb):
+    async def __aexit__(self, exc_type, exc, tb):
         return False
 
-    def execute_write(self, func, *args):
+    async def execute_write(self, func, *args):
         tx = DummyTx()
-        res = func(tx, *args) if args else func(tx)
+        res = await (func(tx, *args) if args else func(tx))
         self.write_calls.extend(tx.calls)
         return res
 
-    def execute_read(self, func, *args):
+    async def execute_read(self, func, *args):
         tx = DummyTx()
-        res = func(tx, *args) if args else func(tx)
+        res = await (func(tx, *args) if args else func(tx))
         self.read_calls.extend(tx.calls)
         return res
 
@@ -59,7 +72,7 @@ class DummyDriver:
         self.sessions.append(sess)
         return sess
 
-    def close(self):
+    async def close(self):
         self.closed = True
 
 
@@ -75,37 +88,64 @@ class DummyGraphDB:
 def dummy_driver(monkeypatch):
     drv = DummyDriver()
     monkeypatch.setattr(
-        "services.graph_proxy.GraphDatabase",
+        "services.graph_proxy.AsyncGraphDatabase",
         DummyGraphDB(drv),
     )
     yield drv
 
 
-def test_run_query_write_and_read(dummy_driver):
+@pytest.mark.asyncio
+async def test_run_query_write_and_read(dummy_driver):
     gp = GraphProxy("bolt://x", "u", "p")
-    gp.run_query("MATCH (n)")
-    gp.run_query("MATCH (n)", write=False)
+    await gp.run_query("MATCH (n)")
+    await gp.run_query("MATCH (n)", write=False)
     write_sess = dummy_driver.sessions[0]
     read_sess = dummy_driver.sessions[1]
     assert write_sess.write_calls
     assert read_sess.read_calls
 
 
-def test_run_queries_multiple(dummy_driver):
+@pytest.mark.asyncio
+async def test_run_queries_multiple(dummy_driver):
     gp = GraphProxy("bolt://x", "u", "p")
-    res = gp.run_queries(["A", "B"], [{"a": 1}, {"b": 2}])
+    res = await gp.run_queries(["A", "B"], [{"a": 1}, {"b": 2}])
     session = dummy_driver.sessions[0]
     assert session.write_calls == [("A", {"a": 1}), ("B", {"b": 2})]
     assert res == [{"ok": True}, {"ok": True}]
 
 
-def test_run_queries_param_mismatch(dummy_driver):
+@pytest.mark.asyncio
+async def test_run_queries_param_mismatch(dummy_driver):
     gp = GraphProxy("bolt://x", "u", "p")
     with pytest.raises(ValueError):
-        gp.run_queries(["A"], [{"a": 1}, {"b": 2}])
+        await gp.run_queries(["A"], [{"a": 1}, {"b": 2}])
 
 
-def test_context_manager_closes(dummy_driver):
-    with GraphProxy("bolt://x", "u", "p") as gp:
-        gp.run_query("MATCH (n)")
+@pytest.mark.asyncio
+async def test_context_manager_closes(dummy_driver):
+    async with GraphProxy("bolt://x", "u", "p") as gp:
+        await gp.run_query("MATCH (n)")
+    assert dummy_driver.closed
+
+
+@pytest.mark.asyncio
+async def test_run_queries_read_mode(dummy_driver):
+    gp = GraphProxy("bolt://x", "u", "p")
+    await gp.run_queries(["MATCH (n) RETURN 1"], write=False)
+    session = dummy_driver.sessions[0]
+    assert session.read_calls == [("MATCH (n) RETURN 1", {})]
+
+
+@pytest.mark.asyncio
+async def test_run_queries_no_params(dummy_driver):
+    gp = GraphProxy("bolt://x", "u", "p")
+    await gp.run_queries(["MATCH (n) RETURN 1"])
+    session = dummy_driver.sessions[0]
+    assert session.write_calls == [("MATCH (n) RETURN 1", {})]
+
+
+@pytest.mark.asyncio
+async def test_close_method(dummy_driver):
+    gp = GraphProxy("bolt://x", "u", "p")
+    await gp.close()
     assert dummy_driver.closed
