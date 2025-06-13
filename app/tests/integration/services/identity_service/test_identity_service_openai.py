@@ -15,8 +15,6 @@ pytestmark = pytest.mark.integration
 
 from weaviate.collections.classes.data import DataObject
 from config import app_settings
-from config.weaviate import connect_to_weaviate
-
 from services.identity_service import IdentityService, get_identity_service_sync
 
 MODEL_NAME = "text-embedding-3-small"
@@ -34,13 +32,6 @@ def openai_embedder(text: str) -> list[float]:
 # ─────────────────── Prepare test data ────────────────────────────────────────
 eid_a = str(uuid4())  # фиксированные ID для alias "Zorian"
 eid_b = str(uuid4())  # фиксированные ID для alias "Miranda"
-
-
-@pytest.fixture(scope="session")
-def wclient():
-    client = connect_to_weaviate(url=None)
-    yield client
-    client.close()
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
