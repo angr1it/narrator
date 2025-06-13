@@ -18,11 +18,13 @@ def integration_env():
     if env_path.exists():
         load_dotenv(env_path, override=False)
 
-    os.environ.setdefault("WEAVIATE_URL", "http://localhost:8080")
-    os.environ.setdefault("NEO4J_URI", "bolt://localhost:7687")
-    os.environ.setdefault("NEO4J_USER", "neo4j")
-    os.environ.setdefault("NEO4J_PASSWORD", "test")
-    os.environ.setdefault("NEO4J_DB", "neo4j")
+    # Force local docker-compose endpoints so tests don't accidentally hit
+    # remote services when `.env` specifies different hosts.
+    os.environ["WEAVIATE_URL"] = "http://localhost:8080"
+    os.environ["NEO4J_URI"] = "bolt://localhost:7687"
+    os.environ["NEO4J_USER"] = "neo4j"
+    os.environ["NEO4J_PASSWORD"] = "test"
+    os.environ["NEO4J_DB"] = "neo4j"
     # Configure OpenAI client for integration tests
     _api_key = os.getenv("OPENAI_API_KEY")
     if _api_key:
