@@ -17,12 +17,11 @@ repos:
           - --ignore-missing-imports
           - --install-types
           - --non-interactive
-
   - repo: local
     hooks:
       - id: pytest
-        name: Run tests
+        name: Run tests with coverage
         entry: |
-          bash -c "pip install -r requirements.txt && pytest -q"
+          bash -c "pip install -r requirements.txt && pytest --cov=app --cov-report=xml:coverage.xml --cov-report=html --cov-fail-under=85 -q"
         language: python
         pass_filenames: false
