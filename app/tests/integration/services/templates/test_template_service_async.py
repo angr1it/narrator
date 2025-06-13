@@ -32,21 +32,6 @@ def openai_embedder(text: str) -> list[float]:
     return response.data[0].embedding
 
 
-@pytest.fixture(scope="session")
-def wclient(tmp_path_factory):
-    openai.api_key = OPENAI_KEY
-    data_dir = tmp_path_factory.mktemp("wdata")
-    bin_dir = tmp_path_factory.mktemp("wbin")
-    client = weaviate.connect_to_embedded(
-        port=8079,
-        grpc_port=50051,
-        persistence_data_path=str(data_dir),
-        binary_path=str(bin_dir),
-    )
-    yield client
-    client.close()
-
-
 @pytest.fixture
 def collection_name():
     return f"TplAsync_{uuid4().hex[:8]}"

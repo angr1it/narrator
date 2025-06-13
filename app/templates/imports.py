@@ -12,6 +12,7 @@ def import_templates(
     service: TemplateService, templates: List[Union[CypherTemplateBase, Dict]]
 ) -> None:
     """Bulk import a list of CypherTemplates into Weaviate."""
+
     for entry in templates:
         if isinstance(entry, dict):
             tpl = CypherTemplateBase(**entry)

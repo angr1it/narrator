@@ -8,20 +8,15 @@ tests are enabled and require network access to OpenAI.
 import os
 import time
 from uuid import uuid4
-from datetime import datetime
 
 import pytest
 import openai
-import weaviate
 import weaviate.classes as wvc
 from weaviate.classes.config import Property, DataType
-from weaviate.classes.query import Filter
 
 pytestmark = pytest.mark.integration
 
 from services.templates import (
-    TemplateService,
-    CypherTemplateBase,
     get_template_service_sync,
 )
 from templates.base import base_templates
@@ -31,7 +26,6 @@ from templates.imports import import_templates
 # ----------  ENV & CONSTANTS  ------------------------------------------------
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")
 MODEL_NAME = "text-embedding-3-small"
-LOCAL_WEAVIATE = "http://localhost:8080"
 
 
 # ----------  HELPERS  --------------------------------------------------------
@@ -59,22 +53,6 @@ def narrative_samples():
             "character_relation_v1",
         ),
     ]
-
-
-# ----------  PYTEST FIXTURES  ------------------------------------------------
-@pytest.fixture(scope="session")
-def wclient(tmp_path_factory):
-    openai.api_key = OPENAI_KEY
-    data_dir = tmp_path_factory.mktemp("wdata")
-    bin_dir = tmp_path_factory.mktemp("wbin")
-    client = weaviate.connect_to_embedded(
-        port=8079,
-        grpc_port=50051,
-        persistence_data_path=str(data_dir),
-        binary_path=str(bin_dir),
-    )
-    yield client
-    client.close()
 
 
 @pytest.fixture

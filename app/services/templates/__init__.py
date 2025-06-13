@@ -55,7 +55,6 @@ class TemplateService:
 
         self.embedder = embedder
         self._ensure_schema()
-        self._ensure_base_templates()
 
     def upsert(self, tpl: CypherTemplateBase) -> None:
         """Create or update a template in Weaviate.
@@ -190,7 +189,7 @@ class TemplateService:
             self.top_k, query, category, k, distance_threshold
         )
 
-    def _ensure_base_templates(self) -> None:
+    def ensure_base_templates(self) -> None:
         """Load built-in templates into the collection if possible."""
         if not self.client:
             return
@@ -246,6 +245,14 @@ class TemplateService:
                 Property(name="author", data_type=DataType.TEXT),
                 Property(name="created_at", data_type=DataType.DATE),
                 Property(name="updated_at", data_type=DataType.DATE),
+                Property(
+                    name="return_map",
+                    data_type=DataType.OBJECT,
+                    nested_properties=[
+                        Property(name="variable", data_type=DataType.TEXT),
+                        Property(name="node_id", data_type=DataType.TEXT),
+                    ],
+                ),
             ],
         )
 

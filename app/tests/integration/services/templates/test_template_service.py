@@ -6,20 +6,16 @@ each run and validate various behaviours such as upsert, retrieval and
 semantic search.
 """
 
-import os
 import pytest
 from uuid import uuid4
 from datetime import datetime
-from typing import List
 
 pytestmark = pytest.mark.integration
 
-import weaviate
 import weaviate.classes as wvc
 from weaviate.classes.config import Property, DataType
 
 from services.templates import (
-    TemplateService,
     CypherTemplateBase,
     CypherTemplate,
     get_template_service_sync,
@@ -27,26 +23,6 @@ from services.templates import (
 
 from templates.imports import import_templates
 from templates.base import base_templates
-
-
-# ---------- GLOBAL TEST CONSTANTS -------------------------------------------
-LOCAL_WEAVIATE_URL = "http://localhost:8080"
-
-
-# ---------- PYTEST FIXTURES -------------------------------------------------
-@pytest.fixture(scope="session")
-def wclient(tmp_path_factory):
-    """Запуск embedded Weaviate для тестов."""
-    data_dir = tmp_path_factory.mktemp("wdata")
-    bin_dir = tmp_path_factory.mktemp("wbin")
-    client = weaviate.connect_to_embedded(
-        port=8079,
-        grpc_port=50051,
-        persistence_data_path=str(data_dir),
-        binary_path=str(bin_dir),
-    )
-    yield client
-    client.close()
 
 
 @pytest.fixture
