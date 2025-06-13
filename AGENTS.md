@@ -12,7 +12,7 @@
 - `app/templates` — Jinja2-шаблоны
 - `app/tests` — тесты
 - `docs/` — документация
-- `main.py` — точка входа
+- `app/main.py` — точка входа
 
 ## Код-стайл
 - PEP8 и аннотации типов
@@ -24,7 +24,9 @@
 
 ## Локальная разработка
 - Создайте `.env` на основе примера
-- Запустите зависимости: `docker-compose up -d`
+- Запустите API: `docker compose up -d`
+- Для интеграционных тестов дополнительно запустите зависимости:
+  `docker compose --profile integration up -d`
 - Проверьте Weaviate: `curl http://localhost:8080/v1/meta`
 
 ## Тестирование

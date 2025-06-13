@@ -1,21 +1,18 @@
-from fastapi import APIRouter, Depends
-
-from core.auth import token_auth
+from fastapi import APIRouter
 from schemas import ExtractSaveIn, ExtractSaveOut
-from typing import Any
-
-
-class _DummyPipeline:
-    def run(self, text: str, meta: dict[str, Any]):
-        raise NotImplementedError
-
-
-extract_pipeline = _DummyPipeline()
+from services.pipeline import get_extraction_pipeline
 
 
 route = APIRouter()
 
 
 @route.post("/extract-save", response_model=ExtractSaveOut)
-def extract_save(req: ExtractSaveIn, token=Depends(token_auth)):
-    return extract_pipeline.run(req.text, {"chapter": req.chapter})
+async def extract_save(req: ExtractSaveIn) -> ExtractSaveOut:
+    """Run the extraction pipeline for the given fragment."""
+    pipeline = get_extraction_pipeline()
+    return await pipeline.extract_and_save(
+        text=req.text,
+        chapter=req.chapter,
+        stage=req.stage,
+        tags=req.tags,
+    )

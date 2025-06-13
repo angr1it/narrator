@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 from uuid import uuid4
 
 from schemas.stage import StageEnum
@@ -12,6 +12,7 @@ from services.template_renderer import TemplateRenderer
 from services.templates import TemplateService
 from services.identity_service import IdentityService
 from services.raptor_index import FlatRaptorIndex
+from functools import lru_cache
 
 
 class ExtractionPipeline:
@@ -81,9 +82,11 @@ class ExtractionPipeline:
 
         templates = await self.template_service.top_k_async(text, k=self.top_k)
         triple_texts: List[str] = []
+        relationships: List[Dict[str, str | None]] = []
+        aliases: List[Dict[str, str]] = []
 
         for tpl in templates:
-            await self._process_template(
+            rel, alias_list = await self._process_template(
                 tpl,
                 text,
                 chapter,
@@ -91,6 +94,8 @@ class ExtractionPipeline:
                 chunk_id,
                 triple_texts,
             )
+            relationships.extend(rel)
+            aliases.extend(alias_list)
 
         triple_str = " \n".join(triple_texts)
         raptor_id = self.raptor_index.insert_chunk(text, triple_str)
@@ -98,7 +103,12 @@ class ExtractionPipeline:
             "MATCH (c:Chunk {id:$cid}) SET c.raptor_node_id=$rid",
             {"cid": chunk_id, "rid": raptor_id},
         )
-        return {"chunk_id": chunk_id, "raptor_node_id": raptor_id}
+        return {
+            "chunk_id": chunk_id,
+            "raptor_node_id": raptor_id,
+            "relationships": relationships,
+            "aliases": aliases,
+        }
 
     async def _process_template(
         self,
@@ -108,7 +118,7 @@ class ExtractionPipeline:
         stage: StageEnum,
         chunk_id: str,
         triple_texts: List[str],
-    ) -> None:
+    ) -> Tuple[List[Dict[str, str | None]], List[Dict[str, str]]]:
         """Fill slots for a template and commit its Cypher.
 
         The method handles alias resolution, template rendering and
@@ -117,7 +127,7 @@ class ExtractionPipeline:
         """
         fills = self.slot_filler.fill_slots(template, text)
         if not fills:
-            return
+            return [], []
         fill = fills[0]
 
         resolve = await self.identity_service.resolve_bulk(
@@ -129,6 +139,9 @@ class ExtractionPipeline:
 
         alias_tasks = resolve.alias_tasks
         alias_cyphers = await self.identity_service.commit_aliases(alias_tasks)
+        alias_info = [
+            {"alias_text": t.alias_text, "entity_id": t.entity_id} for t in alias_tasks
+        ]
 
         slot_fill = SlotFill(
             template_id=str(template.id),
@@ -147,6 +160,26 @@ class ExtractionPipeline:
         batch = alias_cyphers + [render.content_cypher]
         await self.graph_proxy.run_queries(batch)
         triple_texts.append(render.triple_text)
+
+        relations: List[Dict[str, str | None]] = []
+        if template.graph_relation:
+
+            def pick(expr: str | None) -> str | None:
+                if expr and expr.startswith("$"):
+                    return resolve.mapped_slots.get(expr[1:])
+                return expr
+
+            subj = pick(template.graph_relation.subject)
+            obj = pick(template.graph_relation.object)
+            relations.append(
+                {
+                    "subject": str(subj),
+                    "predicate": template.graph_relation.predicate,
+                    "object": str(obj) if obj is not None else None,
+                }
+            )
+
+        return relations, alias_info
 
     async def _create_chunk(
         self,
@@ -171,3 +204,35 @@ class ExtractionPipeline:
                 "tags": tags,
             },
         )
+
+
+@lru_cache(maxsize=1)
+def get_extraction_pipeline() -> ExtractionPipeline:
+    """Return a lazily created :class:`ExtractionPipeline`.
+
+    The pipeline is initialised on first use and reused across requests.
+    It wires together external services (Weaviate, Neo4j, OpenAI) using
+    credentials from :data:`app_settings`.
+    """
+    from langchain_openai import ChatOpenAI
+
+    from config import app_settings
+    from config.langfuse import provide_callback_handler_with_tags
+    from services.templates.service import get_template_service
+    from services.template_renderer import get_template_renderer
+    from services.graph_proxy import get_graph_proxy
+    from services.identity_service import get_identity_service_sync
+    from services.raptor_index import get_raptor_index
+
+    llm = ChatOpenAI(api_key=app_settings.OPENAI_API_KEY, temperature=0.0)
+    handler = provide_callback_handler_with_tags(tags=["SlotFiller"])
+    filler = SlotFiller(llm=llm, callback_handler=handler)
+
+    return ExtractionPipeline(
+        template_service=get_template_service(),
+        slot_filler=filler,
+        graph_proxy=get_graph_proxy(),
+        identity_service=get_identity_service_sync(),
+        template_renderer=get_template_renderer(),
+        raptor_index=get_raptor_index(),
+    )

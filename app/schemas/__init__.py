@@ -1,21 +1,19 @@
+from __future__ import annotations
+
 from typing import Any
 
 from fastapi_camelcase import CamelModel
 
-
-class ExtractSaveIn(CamelModel):
-    chapter: int
-    tags: list[str] = []
-    text: str
-
-
-class ExtractSaveOut(CamelModel):
-    status: str
-    cypher_batch: list[str]
-    trace_id: str
+from schemas.extract import (
+    AliasOut,
+    ExtractSaveIn,
+    ExtractSaveOut,
+    Relationship,
+)
 
 
-class AugmentCtxIn(ExtractSaveIn): ...
+class AugmentCtxIn(ExtractSaveIn):
+    pass
 
 
 class AugmentCtxOut(CamelModel):

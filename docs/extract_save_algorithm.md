@@ -25,7 +25,7 @@ graph TD
 {
   "text": "Арен присоединился к Ночному фронту.",
   "chapter": 5,
-  "type": "brainstorm",
+  "stage": "brainstorm",
   "tags": ["recruitment", "Night Front"]
 }
 ```
@@ -33,12 +33,14 @@ graph TD
 → Преобразуется в модель:
 
 ```python
-class ExtractRequest(BaseModel):
+class ExtractSaveIn(BaseModel):
     text: str
     chapter: int
-    type: Literal["brainstorm", "outline", "draft1", ...] = "brainstorm"
+    stage: StageEnum = StageEnum.brainstorm
     tags: list[str] = []
 ```
+
+Текст ограничен 1000 символами, что примерно соответствует 2–8 предложениям.
 
 ---
 
@@ -49,9 +51,8 @@ CREATE (c:Chunk {
   id: $chunk_id,
   text: $text,
   chapter: $chapter,
-  type: $type,
   tags: $tags,
-  draft_stage: $type,
+  draft_stage: $stage,
   raptor_node_id: NULL
 })
 ```

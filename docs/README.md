@@ -10,11 +10,12 @@ Below are the most relevant files:
 - `fact_examples.md` – example Cypher templates and facts
 - `graph_proxy.md` – explanation of the Neo4j helper
 - `slotfiller_spec.md` – slot filling logic
+- `test_cases_extract_save.md` – expected tests for `/extract-save`
 
 Legacy and experimental docs:
 
 - `legacy_fact_docs_overview.md`
-- `рефакторинг_моделей.md`
+- `models_refactoring_pipeline.md`
 - other `*.md` files contain assorted notes
 
 Use this index to find the right document before searching further.

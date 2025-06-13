@@ -1,13 +1,14 @@
 """С Монго все плохо."""
 
-import os
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 
-# Получение строки из энв.
-MONGO_URI = os.getenv("MONGO_URI")
+from config import app_settings
+
+# Получение строки подключения из конфигурации
+MONGO_URI = app_settings.MONGO_URI
 if not MONGO_URI:
-    raise RuntimeError("MONGO_URI is not set in environment")
+    raise RuntimeError("MONGO_URI is not set in app_settings")
 
 
 def get_mongo_client() -> MongoClient:
@@ -18,9 +19,9 @@ def get_mongo_client() -> MongoClient:
     :raises RuntimeError: Если подключение не удалось.
     """
 
-    mongo_uri = os.getenv("MONGO_URI")
+    mongo_uri = app_settings.MONGO_URI
     if not mongo_uri:
-        raise RuntimeError("MONGO_URI is not set in environment")
+        raise RuntimeError("MONGO_URI is not set in app_settings")
 
     try:
         client = MongoClient(mongo_uri, serverSelectionTimeoutMS=3000)

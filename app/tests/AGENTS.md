@@ -4,7 +4,7 @@
 
 - Структура тестов зеркалирует `app/`.
 - Юнит-тесты находятся в `app/tests/unit`, не используют внешние сервисы и опираются на фикстуры из `conftest.py`.
-- Интеграционные тесты живут в `app/tests/integration`; перед запуском поднимаются зависимости через Docker Compose.
+- Интеграционные тесты живут в `app/tests/integration`; перед запуском поднимите зависимости командой `docker compose --profile integration up -d`.
 - Запуск всех тестов: `pytest -q`. Для интеграционных добавьте `--runintegration`.
 - Покрытие: `pytest --cov=app --cov-report=xml:coverage.xml --cov-report=html --cov-fail-under=85 -q`.
 - Следуйте TDD: при добавлении логики пишите минимальные тесты сразу.

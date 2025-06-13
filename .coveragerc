@@ -8,7 +8,7 @@ omit =
     app/templates/*
     app/services/identity_service.py
     app/services/templates/*
-    app/utils/helpers/cypher.py
+    app/utils/*
 
 [report]
 exclude_lines =

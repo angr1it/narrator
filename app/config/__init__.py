@@ -1,4 +1,3 @@
-from dataclasses import Field
 from pydantic_settings import BaseSettings
 
 
@@ -20,6 +19,8 @@ class AppSettings(BaseSettings):
     WEAVIATE_API_KEY: str
     WEAVIATE_INDEX: str
     WEAVIATE_CLASS_NAME: str
+
+    MONGO_URI: str | None = None
 
     LANGFUSE_HOST: str | None = None
     LANGFUSE_PUBLIC_KEY: str | None = None

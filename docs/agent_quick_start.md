@@ -9,7 +9,9 @@ This short guide describes the minimal steps for Codex and local agents to start
 
 ## 2. Prepare environment
 1. Copy `.env.example` to `.env` and fill in credentials
-2. Run `docker-compose up -d` to start dependencies (Weaviate and Neo4j)
+2. Start the API: `docker compose up -d`
+   - For integration tests, run `docker compose --profile integration up -d` to
+     launch Weaviate and Neo4j
 3. Install Python requirements: `pip install -r requirements.txt`
 4. Install pre-commit hooks: `pre-commit install`
 
