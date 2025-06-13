@@ -4,7 +4,6 @@ These tests run against a real Weaviate instance and OpenAI embeddings to
 ensure that the asynchronous wrappers of :class:`IdentityService` behave the
 same as the synchronous API. They insert an alias object and verify that it is
 properly persisted when ``commit_aliases`` is called.
-
 """
 
 import os
@@ -49,7 +48,10 @@ async def prepare_data(wclient):
     service = get_identity_service_sync(wclient=wclient)
     await service.startup()
     alias_col = service._w.collections.get("Alias")
-    await alias_col.data.insert_many(
+
+    await service._run_sync(
+        alias_col.data.insert_many,
+
         [
             DataObject(
                 properties={
@@ -60,11 +62,14 @@ async def prepare_data(wclient):
                 },
                 vector=openai_embedder("Arthur"),
             )
-        ]
+        ],
     )
 
+    # confirm that the object was inserted to make sure the test setup is valid
     results = alias_col.query.fetch_objects()
     assert any(obj.properties["alias_text"] == "Arthur" for obj in results.objects)
+
+
 
 @pytest_asyncio.fixture
 async def service(wclient):
@@ -92,3 +97,7 @@ async def test_commit_aliases_inserts(service: IdentityService):
     results = alias_col.query.fetch_objects()
     assert any(obj.properties["alias_text"] == "Art" for obj in results.objects)
 
+
+    alias_col = service._w.collections.get("Alias")
+    results = alias_col.query.fetch_objects()
+    assert any(obj.properties["alias_text"] == "Art" for obj in results.objects)

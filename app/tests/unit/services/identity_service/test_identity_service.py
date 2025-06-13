@@ -156,3 +156,15 @@ async def test_commit_aliases_empty():
     result = await svc.commit_aliases([])
     assert result == []
     assert not svc.logged
+
+
+@pytest.mark.asyncio
+async def test_run_sync_executes_function():
+    svc = DummyService()
+
+    def add(a, b):
+        return a + b
+
+    result = await svc._run_sync(add, 2, 3)
+    assert result == 5
+

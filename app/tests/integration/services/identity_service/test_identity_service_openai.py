@@ -51,7 +51,8 @@ async def prepare_alias_data(wclient):
     await service.startup()
 
     alias_col = service._w.collections.get("Alias")
-    await alias_col.data.insert_many(
+    await service._run_sync(
+        alias_col.data.insert_many,
         [
             DataObject(
                 properties={
@@ -71,7 +72,7 @@ async def prepare_alias_data(wclient):
                 },
                 vector=openai_embedder("Miranda"),
             ),
-        ]
+        ],
     )
 
     # Confirm preparation succeeded
