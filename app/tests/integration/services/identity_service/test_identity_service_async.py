@@ -6,10 +6,8 @@ same as the synchronous API. They insert an alias object and verify that it is
 properly persisted when ``commit_aliases`` is called.
 """
 
-import os
 import pytest
 import pytest_asyncio
-import openai
 from uuid import uuid4
 
 pytestmark = pytest.mark.integration
@@ -22,22 +20,9 @@ from services.identity_service import (
 )
 
 
-MODEL_NAME = "text-embedding-3-small"
-
-
-def openai_embedder(text: str) -> list[float]:
-    response = openai.embeddings.create(
-        input=text,
-        model=MODEL_NAME,
-        user="identity-tests",
-    )
-    return response.data[0].embedding
-
-
 @pytest.fixture(scope="session", autouse=True)
-async def prepare_data(wclient):
-    openai.api_key = os.getenv("OPENAI_API_KEY")
-    service = get_identity_service_sync(wclient=wclient)
+async def prepare_data(wclient, openai_embedder, clean_alias_collection):
+    service = get_identity_service_sync(wclient=wclient, embedder=openai_embedder)
     await service.startup()
     alias_col = service._w.collections.get("Alias")
 
@@ -62,8 +47,8 @@ async def prepare_data(wclient):
 
 
 @pytest_asyncio.fixture
-async def service(wclient):
-    svc = get_identity_service_sync(wclient=wclient)
+async def service(wclient, openai_embedder):
+    svc = get_identity_service_sync(wclient=wclient, embedder=openai_embedder)
     await svc.startup()
     return svc
 

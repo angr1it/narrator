@@ -17,14 +17,6 @@ from schemas.cypher import (
 )
 from services.slot_filler import SlotFiller
 from templates.base import base_templates
-from config import app_settings
-
-
-@pytest.fixture(scope="module")
-def openai_key() -> str:
-    key = app_settings.OPENAI_API_KEY
-    assert key, "Установите переменную окружения OPENAI_API_KEY для теста"
-    return key
 
 
 @pytest.fixture

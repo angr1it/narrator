@@ -5,7 +5,6 @@ extracting multiple results and using generation to fill missing slots.
 Real OpenAI models are used to match production settings.
 """
 
-import os
 import pytest
 from uuid import uuid4
 
@@ -19,13 +18,6 @@ from config import app_settings
 # --- FIXTURES ---------------------------------------------------------------
 
 FIXED_UUID = uuid4()
-
-
-@pytest.fixture(scope="module")
-def openai_key() -> str:
-    key = app_settings.OPENAI_API_KEY
-    assert key, "Set OPENAI_API_KEY in environment to run integration tests"
-    return key
 
 
 @pytest.fixture

@@ -5,32 +5,15 @@ Weaviate when importing the base templates.  They run only when integration
 tests are enabled and require network access to OpenAI.
 """
 
-import os
 import time
-from uuid import uuid4
 
 import pytest
-import openai
 from services.templates import TemplateService
 
 pytestmark = pytest.mark.integration
 
 from templates.base import base_templates
 from templates.imports import import_templates
-
-
-# ----------  ENV & CONSTANTS  ------------------------------------------------
-OPENAI_KEY = os.getenv("OPENAI_API_KEY")
-MODEL_NAME = "text-embedding-3-small"
-
-
-# ----------  HELPERS  --------------------------------------------------------
-def openai_embedder(text: str) -> list[float]:
-    """Real call to OpenAI embeddings."""
-    response = openai.embeddings.create(
-        input=text, model=MODEL_NAME, user="template-tests"
-    )
-    return response.data[0].embedding
 
 
 def narrative_samples():
@@ -52,12 +35,12 @@ def narrative_samples():
 
 
 @pytest.fixture
-def collection_name():
-    return f"Template_{uuid4().hex[:8]}"
+def collection_name(temp_collection_name):
+    return temp_collection_name
 
 
 @pytest.fixture
-def service(wclient, collection_name):
+def service(wclient, collection_name, openai_embedder):
     if wclient.collections.exists(collection_name):
         wclient.collections.delete(collection_name)
 

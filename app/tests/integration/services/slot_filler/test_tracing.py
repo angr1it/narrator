@@ -15,14 +15,6 @@ from langchain_openai import ChatOpenAI
 from services.slot_filler import SlotFiller
 from schemas.cypher import CypherTemplate, SlotDefinition, GraphRelationDescriptor
 from config.langfuse import get_client
-from config import app_settings
-
-
-@pytest.fixture(scope="module")
-def openai_key() -> str:
-    key = app_settings.OPENAI_API_KEY
-    assert key, "Set OPENAI_API_KEY in environment to run integration tests"
-    return key
 
 
 def test_fill_slots_tracing(openai_key: str):

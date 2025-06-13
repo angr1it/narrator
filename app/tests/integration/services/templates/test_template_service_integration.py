@@ -6,10 +6,7 @@ exercise the full CRUD and semantic search behaviour of
 utility and search quality.
 """
 
-import os
-import openai
 import pytest
-from uuid import uuid4
 
 pytestmark = pytest.mark.integration
 
@@ -18,25 +15,16 @@ from templates.imports import import_templates
 from templates.base import base_templates
 
 
-MODEL_NAME = "text-embedding-3-small"
-
-
-def openai_embedder(text: str) -> list[float]:
-    """Real call to OpenAI embeddings."""
-    response = openai.embeddings.create(
-        input=text, model=MODEL_NAME, user="template-tests"
-    )
-    return response.data[0].embedding
-
-
 @pytest.fixture(scope="session")
-def test_collection_name() -> str:
+def test_collection_name(temp_collection_name) -> str:
     """Generate a unique Weaviate collection name for tests."""
-    return f"TplInt_{uuid4().hex[:8]}"
+    return temp_collection_name
 
 
 @pytest.fixture(scope="session")
-def template_service(weaviate_client, test_collection_name) -> TemplateService:
+def template_service(
+    weaviate_client, test_collection_name, openai_embedder
+) -> TemplateService:
     if weaviate_client.collections.exists(test_collection_name):
         weaviate_client.collections.delete(test_collection_name)
 
