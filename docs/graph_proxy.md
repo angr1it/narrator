@@ -21,7 +21,7 @@ from services.graph_proxy import GraphProxy
 async with GraphProxy(
     uri="bolt://localhost:7687",
     user="neo4j",
-    password="test",
+    password="testtest",
     database="neo4j",
 ) as gp:
     await gp.run_query("CREATE (:Tmp {id:$id})", {"id": "42"})

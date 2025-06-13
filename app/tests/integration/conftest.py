@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 from dotenv import load_dotenv
+import pytest_asyncio
 import weaviate
 import openai
 from uuid import uuid4
@@ -23,7 +24,7 @@ def integration_env():
     os.environ["WEAVIATE_URL"] = "http://localhost:8080"
     os.environ["NEO4J_URI"] = "bolt://localhost:7687"
     os.environ["NEO4J_USER"] = "neo4j"
-    os.environ["NEO4J_PASSWORD"] = "test"
+    os.environ["NEO4J_PASSWORD"] = "testtest"
     os.environ["NEO4J_DB"] = "neo4j"
     # Configure OpenAI client for integration tests
     _api_key = os.getenv("OPENAI_API_KEY")
@@ -98,13 +99,13 @@ def clean_alias_collection(wclient):
         wclient.collections.delete("Alias")
 
 
-@pytest.fixture()
+@pytest_asyncio.fixture()
 async def graph_proxy():
     """Create :class:`GraphProxy` connected to the local Neo4j instance."""
     proxy = GraphProxy(
         uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
         user=os.getenv("NEO4J_USER", "neo4j"),
-        password=os.getenv("NEO4J_PASSWORD", "test"),
+        password=os.getenv("NEO4J_PASSWORD", "testtest"),
         database=os.getenv("NEO4J_DB", "neo4j"),
     )
     yield proxy

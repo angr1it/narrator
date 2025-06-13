@@ -43,10 +43,12 @@ services:
   neo4j:
     image: neo4j:5.19
     ports:
-      - "7474:7474"
-      - "7687:7687"
+      - '7474:7474'
+      - '7687:7687'
     environment:
-      NEO4J_AUTH: "neo4j/test"
+      NEO4J_AUTH: 'neo4j/testtest'
+      NEO4J_dbms_connector_bolt_listen__address: ':7687'
+      NEO4J_dbms_connector_bolt_advertised__address: 'localhost:7687'
 
 volumes:
   weaviate_data:
