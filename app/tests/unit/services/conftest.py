@@ -11,11 +11,11 @@ class FakeGraphProxy:
     def __init__(self):
         self.calls: list[tuple] = []
 
-    def run_query(self, cypher: str, params=None, *, write=True):
+    async def run_query(self, cypher: str, params=None, *, write=True):
         self.calls.append((cypher, params))
         return []
 
-    def run_queries(self, cyphers, params_list=None, *, write=True):
+    async def run_queries(self, cyphers, params_list=None, *, write=True):
         self.calls.append((list(cyphers), params_list))
         return []
 
