@@ -14,6 +14,7 @@ class RenderPlan(BaseModel):
     return_keys: Dict[str, str]
     triple_text: str
     related_node_ids: list[str]
+    details: str
 
 
 class TemplateRenderer:
@@ -64,7 +65,7 @@ class TemplateRenderer:
         RenderPlan
             Готовый Cypher-запрос + карта ожидаемых возвращаемых значений.
         """
-        context = {**slot_fill.slots, **meta}
+        context = {**slot_fill.slots, **meta, "details": slot_fill.details}
         chunk_id = meta.get("chunk_id")
         if not chunk_id:
             raise ValueError("chunk_id is required for rendering")
@@ -97,6 +98,7 @@ class TemplateRenderer:
             return_keys=template.return_map,
             triple_text=triple_text,
             related_node_ids=related_node_ids,
+            details=slot_fill.details,
         )
 
 

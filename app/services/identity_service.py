@@ -49,7 +49,7 @@ class LLMDecision(BaseModel):
     entity_id: Optional[str] = None
     alias_text: Optional[str] = None
     canonical: Optional[bool] = None
-    rationale: Optional[str] = None
+    details: Optional[str] = None
 
 
 class IdentityService:

@@ -20,6 +20,7 @@ def test_render_returns_triple_and_nodes(sample_template, slot_fill, template_re
     assert "MERGE" in plan.content_cypher
     assert plan.triple_text == "char1 IS_ALIVE true"
     assert plan.related_node_ids == ["char1", "true"]
+    assert plan.details == ""
 
 
 def test_missing_chunk_id_raises(sample_template, slot_fill, template_renderer):
