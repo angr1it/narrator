@@ -20,6 +20,7 @@ def import_templates(
             tpl = entry
         else:
             raise TypeError(f"Invalid template type: {type(entry)}")
+        tpl.validate_augment()
         try:
             service.upsert(tpl)
             logger.info(f"✓ Imported template: {tpl.name}")

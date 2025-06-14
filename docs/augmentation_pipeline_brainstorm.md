@@ -10,10 +10,18 @@ model. Two endpoints are available:
 
 ## Current status
 
-The extraction flow is fully implemented, while the augmentation feature exists
-only as a stub. File `app/api/augment/__init__.py` exposes a `_DummyPipeline`
-that raises `NotImplementedError`. No query templates or business logic are
-present yet.
+The extraction flow is fully implemented. Work on augmentation has begun:
+
+- `CypherTemplateBase` now defines `augment_cypher`, `use_base_augment` and
+  `supports_augment` fields.
+- `TemplateService.top_k` accepts a `mode` flag to filter templates for
+  augmentation.
+- Query templates with `_aug_v1.j2` suffix provide MATCH statements and share
+  the partials `_augment_filters.j2` and `_augment_meta.j2`.
+- `IdentityService` respects the `is_entity_ref` flag when resolving aliases.
+
+The actual pipeline is still missing and `app/api/augment/__init__.py` continues
+to raise `NotImplementedError`.
 
 According to the main `README.md`, extraction relies on templates, LLM slot filling
 and a Neo4j graph store. Weaviate provides template search and RaptorNode keeps
@@ -125,3 +133,46 @@ Thought (CoT) explanations are stored.
 
 These changes will allow CoT details to be retrieved from the graph and make the
 pipeline auditable.
+
+## Implemented refactoring
+
+The following components were updated during the recent refactor:
+
+### TemplateService
+- Loads built‑in templates at startup using `ensure_base_templates`.
+- Weaviate schema now includes `augment_cypher`, `use_base_augment` and
+  `supports_augment`.
+- `top_k` and `top_k_async` accept :class:`TemplateRenderMode` to filter
+  augmentation templates.
+
+### CypherTemplate
+- `render` accepts :class:`TemplateRenderMode` and validates augment fields.
+- Base wrapper `chunk_mentions.j2` can be disabled per mode via
+  `use_base_extract` and `use_base_augment`.
+
+### IdentityService
+- `resolve_bulk` now takes slot definitions and skips slots where
+  `is_entity_ref` is ``False``.
+
+### Templates
+- Added augment query files with `_aug_v1.j2` suffix.
+- Shared partials `_augment_filters.j2` and `_augment_meta.j2` reduce
+  boilerplate.
+
+### Tests
+- Unit tests cover augment rendering, template import and top‑k filtering.
+
+The augmentation API itself remains unimplemented.
+
+## Next steps
+
+To complete `/augment-context` the following actions are planned:
+
+1. Implement :class:`AugmentPipeline` mirroring the extraction flow:
+   - search templates via `TemplateService.top_k(..., mode=AUGMENT)`
+   - fill slots and resolve IDs
+   - render augment queries and run them with :class:`GraphProxy`
+   - aggregate rows and optionally summarise the result
+2. Expose a FastAPI endpoint that uses the pipeline.
+3. Document request/response format and filtering behaviour.
+4. Refine query templates to guarantee the required meta fields.

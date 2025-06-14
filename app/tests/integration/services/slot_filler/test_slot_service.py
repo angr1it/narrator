@@ -44,7 +44,7 @@ def base_template() -> CypherTemplate:
                 required=False,
             ),
         },
-        cypher="mock.cypher",
+        extract_cypher="mock.cypher",
         return_map={},
     )
 
@@ -59,6 +59,7 @@ def filler(openai_key) -> SlotFiller:
 
 
 def test_extract_multiple_results(filler: SlotFiller, base_template: CypherTemplate):
+    """Multiple events in the text should yield multiple slot fills."""
     text = "Арен покинул Дом Зари и примкнул к Северному фронту."
     results = filler.fill_slots(base_template, text)
 
@@ -73,6 +74,7 @@ def test_extract_multiple_results(filler: SlotFiller, base_template: CypherTempl
 
 
 def test_extract_missing_then_generate(filler: SlotFiller):
+    """Missing slots trigger generation phase to fill them in."""
     template = CypherTemplate(
         id=FIXED_UUID,
         name="emotion_event",
@@ -101,7 +103,7 @@ def test_extract_missing_then_generate(filler: SlotFiller):
                 required=False,
             ),
         },
-        cypher="mock.cypher",
+        extract_cypher="mock.cypher",
         return_map={},
     )
     text = "Мира посмотрела на Эрика с презрением."
@@ -119,6 +121,7 @@ def test_extract_missing_then_generate(filler: SlotFiller):
 
 
 def test_extract_single_object(filler: SlotFiller):
+    """Single match should return exactly one slot fill."""
     template = CypherTemplate(
         id=FIXED_UUID,
         name="trait_reveal",
@@ -132,7 +135,7 @@ def test_extract_single_object(filler: SlotFiller):
                 name="trait", type="STRING", description="Какая черта", required=True
             ),
         },
-        cypher="mock.cypher",
+        extract_cypher="mock.cypher",
         return_map={},
     )
     text = "Мира раскрыла, что Арен с рождения был одноруким."

@@ -50,13 +50,14 @@ def make_template(slug: str, title: str = "Default Title") -> CypherTemplateBase
         title=title,
         description="Some description",
         slots={},
-        cypher="// sample cypher",
+        extract_cypher="// sample cypher",
         return_map={},
     )
 
 
 # ---------- TEST CASES -------------------------------------------------------
 def test_upsert_insert_and_update(template_service):
+    """Objects should be inserted and then updated on second upsert."""
     tpl = make_template("slug-upsert")
     saved = template_service.upsert(tpl)
     assert isinstance(saved, CypherTemplate)
@@ -70,6 +71,7 @@ def test_upsert_insert_and_update(template_service):
 
 
 def test_get_and_get_by_name(template_service):
+    """Retrieval should work both by id and name."""
     tpl = make_template("slug-get")
     saved = template_service.upsert(tpl)
 
@@ -81,6 +83,7 @@ def test_get_and_get_by_name(template_service):
 
 
 def test_top_k_search(template_service):
+    """Semantic search should return at least one hit."""
     tpl1 = make_template("slug1", title="First Template")
     tpl2 = make_template("slug2", title="Second Template")
     template_service.upsert(tpl1)
@@ -92,6 +95,7 @@ def test_top_k_search(template_service):
 
 
 def test_import_base_templates(template_service):
+    """All base templates should import without errors."""
     # Импортируем базовые шаблоны
     import_templates(template_service, base_templates)
 
@@ -101,4 +105,4 @@ def test_import_base_templates(template_service):
         fetched = template_service.get_by_name(tpl_id)
         assert fetched.name == tpl_id
         assert fetched.title == tpl_dict["title"]
-        assert fetched.cypher == tpl_dict["cypher"]
+        assert fetched.extract_cypher == tpl_dict["extract_cypher"]

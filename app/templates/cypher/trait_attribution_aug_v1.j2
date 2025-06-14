@@ -1,0 +1,5 @@
+MATCH (c:Character {id: "{{ character }}"})-[r:HAS_TRAIT]->(t:Trait)
+{% include "_augment_filters.j2" %}
+{% set return_relation = '"HAS_TRAIT"' %}
+{% set return_value = 't.name AS value' %}
+{% include "_augment_meta.j2" %}

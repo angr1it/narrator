@@ -1,0 +1,5 @@
+MATCH (a:Character {id: "{{ character_a }}"})-[r:`{{ relation_type|upper }}_OF`]->(b:Character {id: "{{ character_b }}"})
+{% include "_augment_filters.j2" %}
+{% set return_relation = 'type(r)' %}
+{% set return_value = 'b.id AS target' %}
+{% include "_augment_meta.j2" %}

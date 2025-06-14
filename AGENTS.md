@@ -30,6 +30,7 @@
 - `pytest -q` (интеграция: `--runintegration`)
 - Покрытие: `pytest --cov=app --cov-report=xml:coverage.xml --cov-report=html --cov-fail-under=85 -q`
 - Подробнее — `app/tests/AGENTS.md`
+- Каждый тест должен содержать докстринг с описанием проверяемого поведения.
 
 ## Pull request
 - Краткий глагол в заголовке

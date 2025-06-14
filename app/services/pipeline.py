@@ -132,6 +132,7 @@ class ExtractionPipeline:
 
         resolve = await self.identity_service.resolve_bulk(
             fill.slots,
+            slot_defs=template.slots,
             chapter=chapter,
             chunk_id=chunk_id,
             snippet=text,

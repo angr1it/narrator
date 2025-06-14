@@ -82,7 +82,7 @@
 Реализация бизнес-логики.
 
 - `extraction.py` — Pipeline `extract-save`.
-- `augmentation.py` — Pipeline `augment-context`.
+- `pipeline.py` — пайплайны `extract-save` и `augment-context`.
 - `template_service.py` — Поиск шаблонов через Weaviate.
 - `slot_filler.py` — Извлечение слотов из текста через LLM.
 - `graph_proxy.py` — Работа с Neo4j и выполнение Cypher-запросов.
@@ -94,7 +94,6 @@
 Модели данных для валидации запросов и ответов (Pydantic).
 
 - `extract.py` — схемы для `/v1/extract-save`.
-- `augment.py` — схемы для `/v1/augment-context`.
 - `template.py` — схемы шаблонов `CypherTemplate`.
 
 ---

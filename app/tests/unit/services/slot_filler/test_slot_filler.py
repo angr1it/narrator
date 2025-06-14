@@ -55,12 +55,13 @@ def make_template(required=True, with_summary=False):
         title="t",
         description="d",
         slots=slots,
-        cypher="simple.j2",
+        extract_cypher="simple.j2",
         return_map={"a": "b"},
     )
 
 
 def test_fill_slots_simple(monkeypatch):
+    """Basic extraction should populate mandatory slots."""
     tpl = make_template()
     llm = DummyLLM(
         {
@@ -79,6 +80,7 @@ def test_fill_slots_simple(monkeypatch):
 
 
 def test_fallback_triggered(monkeypatch):
+    """Fallback phase should run when extract returns empty."""
     tpl = make_template()
     calls = {
         "extract": [{}],
@@ -97,6 +99,7 @@ def test_fallback_triggered(monkeypatch):
 
 
 def test_generate_additional_field(monkeypatch):
+    """Generation phase may return optional fields such as summary."""
     tpl = make_template(with_summary=True)
     responses = {
         "extract": [{"character": "A"}],
@@ -113,6 +116,7 @@ def test_generate_additional_field(monkeypatch):
 
 
 def test_validate_and_cast():
+    """Validation should keep strings unchanged for STRING type."""
     tpl = make_template()
     filler = SlotFiller(DummyLLM({}))
     obj = {"character": "c"}

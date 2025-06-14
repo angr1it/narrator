@@ -31,13 +31,17 @@ class DummyClient:
 
 
 def test_ensure_schema_creates_collection():
+    """Collection should be created with required properties."""
     client = DummyClient()
     TemplateService(weaviate_client=client, embedder=lambda x: [])
     props = client.created["properties"]
     assert any(isinstance(p, Property) and p.name == "name" for p in props)
+    assert any(isinstance(p, Property) and p.name == "supports_augment" for p in props)
+    assert any(isinstance(p, Property) and p.name == "supports_extract" for p in props)
 
 
 def test_ensure_schema_skips_if_exists():
+    """Service should not attempt creation if collection exists."""
     client = DummyClient(exists=True)
     TemplateService(weaviate_client=client, embedder=lambda x: [])
     assert client.created is None

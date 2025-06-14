@@ -38,12 +38,13 @@ def service(wclient, collection_name, openai_embedder):
 
 @pytest.mark.asyncio
 async def test_async_crud(service: TemplateService):
+    """Async CRUD operations mirror the sync implementations."""
     tpl = CypherTemplateBase(
         name="a1",
         title="t",
         description="d",
         slots={},
-        cypher="c.j2",
+        extract_cypher="c.j2",
         return_map={},
     )
     saved = await service.upsert_async(tpl)
@@ -55,6 +56,7 @@ async def test_async_crud(service: TemplateService):
 
 @pytest.mark.asyncio
 async def test_async_search(service: TemplateService):
+    """Async ``top_k`` search should return results."""
     import_templates(service, base_templates)
     hits = await service.top_k_async("bravery", k=5)
     assert hits

@@ -8,4 +8,5 @@
 - Запуск: `pytest -q` (добавьте `--runintegration` для интеграции).
 - Покрытие: `pytest --cov=app --cov-report=xml:coverage.xml --cov-report=html --cov-fail-under=85 -q`.
 - Следуйте TDD и используйте фикстуры, `pytest.mark.parametrize`, один тест — одна проверка.
+- У каждого теста должна быть докстринг с кратким описанием проверяемого поведения.
 - Инфраструктурные детали описаны в `app/tests/integration/AGENTS.md`.

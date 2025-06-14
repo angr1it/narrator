@@ -21,7 +21,7 @@ class FakeGraphProxy:
 
 
 class FakeIdentityService:
-    async def resolve_bulk(self, slots, *, chapter, chunk_id, snippet):
+    async def resolve_bulk(self, slots, *, slot_defs=None, chapter, chunk_id, snippet):
         from services.identity_service import BulkResolveResult
 
         return BulkResolveResult(mapped_slots=slots, alias_tasks=[])
@@ -60,8 +60,8 @@ def sample_template(jinja_env):
         title="t",
         description="d",
         slots={"character": SlotDefinition(name="character", type="STRING")},
-        cypher="simple.j2",
-        use_base=False,
+        extract_cypher="simple.j2",
+        use_base_extract=False,
         graph_relation=GraphRelationDescriptor(
             predicate="IS_ALIVE",
             subject="$character",

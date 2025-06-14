@@ -18,6 +18,7 @@ from config.langfuse import get_client
 
 
 def test_fill_slots_tracing(openai_key: str):
+    """Traces should be recorded and retrievable via Langfuse API."""
     client = get_client()
     trace = client.trace()
     handler = trace.get_langchain_handler(update_parent=True)
@@ -38,7 +39,7 @@ def test_fill_slots_tracing(openai_key: str):
         graph_relation=GraphRelationDescriptor(
             predicate="MEMBER_OF", subject="$character", object="$faction"
         ),
-        cypher="member_of.j2",
+        extract_cypher="member_of.j2",
         return_map={"c": "Character", "f": "Faction"},
     )
     fills = filler.fill_slots(template, "Арам вступил в Братство Стали.")
