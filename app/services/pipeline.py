@@ -146,7 +146,7 @@ class ExtractionPipeline:
         slot_fill = SlotFill(
             template_id=str(template.id),
             slots=resolve.mapped_slots,
-            details="",
+            details=fill.details,
         )
         meta = {
             "chunk_id": chunk_id,
@@ -176,6 +176,7 @@ class ExtractionPipeline:
                     "subject": str(subj),
                     "predicate": template.graph_relation.predicate,
                     "object": str(obj) if obj is not None else None,
+                    "details": fill.details,
                 }
             )
 

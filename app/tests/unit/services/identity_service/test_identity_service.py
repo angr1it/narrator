@@ -134,7 +134,7 @@ async def test_startup_skips_if_exists():
 def test_llm_disambiguate_calls_llm():
     fake_llm = MyFakeLLM(
         [
-            '{"action": "use", "entity_id": "e1", "alias_text": "n", "canonical": false, "rationale": "ok"}'
+            '{"action": "use", "entity_id": "e1", "alias_text": "n", "canonical": false, "details": "ok"}'
         ]
     )
 
@@ -148,7 +148,7 @@ def test_llm_disambiguate_calls_llm():
     decision = svc._llm_disambiguate_sync("n", [], 1, "t")
     assert decision.entity_id == "e1"
     assert decision.canonical is False
-    assert decision.rationale == "ok"
+    assert decision.details == "ok"
     assert "n" in fake_llm.get_prompt()
 
 
@@ -191,7 +191,7 @@ def test_llm_disambiguate_invalid_type():
 async def test_llm_disambiguate_async():
     fake_llm = MyFakeLLM(
         [
-            '{"action": "use", "entity_id": "e1", "alias_text": "A", "canonical": false, "rationale": "ok"}'
+            '{"action": "use", "entity_id": "e1", "alias_text": "A", "canonical": false, "details": "ok"}'
         ]
     )
     svc = IdentityService(
@@ -207,7 +207,7 @@ async def test_llm_disambiguate_async():
     )
     assert res.action == "use"
     assert res.entity_id == "e1"
-    assert res.rationale == "ok"
+    assert res.details == "ok"
     assert "A" in fake_llm.get_prompt()
 
 

@@ -31,6 +31,7 @@ class GraphRelationDescriptor(BaseModel):
     subject: str                     # "$character" — имя слота
     object: Optional[str] = None     # "$faction"
     value: Optional[str] = None      # строковое значение (если не object)
+    details: Optional[str] = None    # chain-of-thought reasoning
 ```
 
 Используется для:
