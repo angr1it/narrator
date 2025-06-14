@@ -5,7 +5,7 @@ pydantic-settings>=2.0.3
 fastapi_camelcase
 debugpy
 asyncpg
-pytest-asyncio
+pytest-asyncio>=1.0.0
 pytest-cov
 httpx
 greenlet
