@@ -1,12 +1,11 @@
 # AGENTS.md
 
-Рекомендации по тестированию.
+Минимальные правила тестирования.
 
-- Структура тестов зеркалирует `app/`.
-- Юнит-тесты находятся в `app/tests/unit`, не используют внешние сервисы и опираются на фикстуры из `conftest.py`.
-- Интеграционные тесты живут в `app/tests/integration`; перед запуском поднимите зависимости командой `docker compose --profile integration up -d`.
-- Запуск всех тестов: `pytest -q`. Для интеграционных добавьте `--runintegration`.
+- Дерево тестов повторяет структуру `app/`.
+- Unit-тесты (`app/tests/unit`) используют фикстуры из `conftest.py` и не обращаются к внешним сервисам.
+- Интеграционные тесты (`app/tests/integration`) требуют `docker compose --profile integration up -d`.
+- Запуск: `pytest -q` (добавьте `--runintegration` для интеграции).
 - Покрытие: `pytest --cov=app --cov-report=xml:coverage.xml --cov-report=html --cov-fail-under=85 -q`.
-- Следуйте TDD: при добавлении логики пишите минимальные тесты сразу.
-- Best practices: используйте фикстуры для подготовки окружения, избегайте сохранения состояния, давайте тестам говорящие имена, выносите общую логику в helpers, применяйте `pytest.mark.parametrize`, один тест — одна проверка.
-- Подробности об инфраструктуре смотрите в `app/tests/integration/AGENTS.md`.
+- Следуйте TDD и используйте фикстуры, `pytest.mark.parametrize`, один тест — одна проверка.
+- Инфраструктурные детали описаны в `app/tests/integration/AGENTS.md`.
