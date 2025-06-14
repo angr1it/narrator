@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Callable, Awaitable
 from uuid import uuid4
+import inspect
 
 from schemas.stage import StageEnum
 from schemas.slots import SlotFill
-from schemas.cypher import CypherTemplate
+from schemas.cypher import CypherTemplate, TemplateRenderMode
 from services.graph_proxy import GraphProxy
 from services.slot_filler import SlotFiller
 from services.template_renderer import TemplateRenderer
@@ -237,4 +238,100 @@ def get_extraction_pipeline() -> ExtractionPipeline:
         identity_service=get_identity_service_sync(),
         template_renderer=get_template_renderer(),
         raptor_index=get_raptor_index(),
+    )
+
+
+class AugmentPipeline:
+    """Pipeline that enriches a text fragment with context from the graph."""
+
+    def __init__(
+        self,
+        template_service: TemplateService,
+        slot_filler: SlotFiller,
+        identity_service: IdentityService,
+        template_renderer: TemplateRenderer,
+        graph_proxy: GraphProxy,
+        *,
+        summariser: (
+            Callable[[List[Dict[str, Any]]], Awaitable[str] | str] | None
+        ) = None,
+        top_k: int = 3,
+    ) -> None:
+        self.template_service = template_service
+        self.slot_filler = slot_filler
+        self.identity_service = identity_service
+        self.template_renderer = template_renderer
+        self.graph_proxy = graph_proxy
+        self.summariser = summariser
+        self.top_k = top_k
+
+    async def augment_context(
+        self, text: str, chapter: int, tags: List[str] | None = None
+    ) -> Dict[str, Any]:  # pragma: no cover - integration tested separately
+        templates = await self.template_service.top_k_async(
+            text, k=self.top_k, mode=TemplateRenderMode.AUGMENT
+        )
+
+        rows: List[Dict[str, Any]] = []
+        for tpl in templates:
+            fills = self.slot_filler.fill_slots(tpl, text)
+            for fill in fills:
+                resolve = await self.identity_service.resolve_bulk(
+                    fill.slots,
+                    slot_defs=tpl.slots,
+                    chapter=chapter,
+                    chunk_id="aug",
+                    snippet=text,
+                )
+
+                slot_fill = SlotFill(
+                    template_id=str(tpl.id),
+                    slots=resolve.mapped_slots,
+                    details=fill.details,
+                )
+                meta = {
+                    "chunk_id": "aug",
+                    "chapter": chapter,
+                    "description": tpl.description,
+                }
+                plan = self.template_renderer.render(
+                    tpl, slot_fill, meta, mode=TemplateRenderMode.AUGMENT
+                )
+                result = await self.graph_proxy.run_query(
+                    plan.content_cypher, write=False
+                )
+                rows.extend(result)
+
+        summary = None
+        if self.summariser:
+            if inspect.iscoroutinefunction(self.summariser):
+                summary = await self.summariser(rows)  # type: ignore[arg-type]
+            else:
+                summary = self.summariser(rows)  # type: ignore[arg-type]
+
+        return {"context": {"rows": rows, "summary": summary}, "trace_id": ""}
+
+
+@lru_cache(maxsize=1)
+def get_augment_pipeline() -> AugmentPipeline:
+    """Return a lazily created :class:`AugmentPipeline`."""  # pragma: no cover
+    from langchain_openai import ChatOpenAI
+
+    from config import app_settings
+    from config.langfuse import provide_callback_handler_with_tags
+    from services.templates.service import get_template_service
+    from services.template_renderer import get_template_renderer
+    from services.graph_proxy import get_graph_proxy
+    from services.identity_service import get_identity_service_sync
+
+    llm = ChatOpenAI(api_key=app_settings.OPENAI_API_KEY, temperature=0.0)
+    handler = provide_callback_handler_with_tags(tags=["SlotFiller"])
+    filler = SlotFiller(llm=llm, callback_handler=handler)
+
+    return AugmentPipeline(
+        template_service=get_template_service(),
+        slot_filler=filler,
+        identity_service=get_identity_service_sync(),
+        template_renderer=get_template_renderer(),
+        graph_proxy=get_graph_proxy(),
     )

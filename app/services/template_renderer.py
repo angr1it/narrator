@@ -4,7 +4,7 @@ from typing import Dict, Any
 from jinja2 import Environment
 from pydantic import BaseModel
 
-from schemas.cypher import CypherTemplate
+from schemas.cypher import CypherTemplate, TemplateRenderMode
 from schemas.slots import SlotFill
 
 
@@ -43,6 +43,8 @@ class TemplateRenderer:
         template: CypherTemplate,
         slot_fill: SlotFill,
         meta: Dict[str, Any],
+        *,
+        mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
     ) -> RenderPlan:
         """
         Рендерит доменный Cypher, подставляя слоты и мета-данные.
@@ -58,6 +60,8 @@ class TemplateRenderer:
             Объект со слотами и деталями извлечения.
         meta : Dict[str, Any]
             Внешний контекст (например, chapter, fragment_id).
+        mode : TemplateRenderMode
+            Режим рендеринга (extract или augment).
 
         Returns
         -------
@@ -68,7 +72,7 @@ class TemplateRenderer:
         chunk_id = meta.get("chunk_id")
         if not chunk_id:
             raise ValueError("chunk_id is required for rendering")
-        cypher_query = template.render(context, chunk_id)
+        cypher_query = template.render(context, chunk_id, mode=mode)
 
         triple_text = ""
         related_node_ids: list[str] = []

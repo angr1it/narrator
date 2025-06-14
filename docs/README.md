@@ -14,7 +14,8 @@ Use this index to navigate the design docs.
 - `pipeline_implementation.md` – implementation notes
 - `extract_save_algorithm.md` – detailed flow
 - `raptor_pipeline_architecture.md` – Raptor index design
-- `augmentation_pipeline_brainstorm.md` – ideas for `/augment-context`
+- `augmentation_pipeline_brainstorm.md` – early notes on `/augment-context`
+- `augment_context_tz.md` – итоговое ТЗ и реализованные шаги
 
 ## Models and Templates
 - `pydantic_models_for_cypher_template.md` – template models

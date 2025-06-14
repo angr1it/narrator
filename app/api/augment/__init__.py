@@ -1,14 +1,6 @@
 from fastapi import APIRouter
 from schemas import AugmentCtxIn, AugmentCtxOut
-from typing import Any
-
-
-class _DummyPipeline:
-    def run(self, text: str, meta: dict[str, Any]):
-        raise NotImplementedError
-
-
-augment_pipeline = _DummyPipeline()
+from services.pipeline import get_augment_pipeline
 
 
 route = APIRouter()
@@ -17,4 +9,5 @@ route = APIRouter()
 @route.post("/augment-context", response_model=AugmentCtxOut)
 async def augment_ctx(req: AugmentCtxIn):
     """Augment the text fragment with additional context."""
-    return augment_pipeline.run(req.text, {"chapter": req.chapter})
+    pipeline = get_augment_pipeline()
+    return await pipeline.augment_context(req.text, req.chapter)
