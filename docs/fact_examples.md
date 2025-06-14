@@ -32,7 +32,7 @@
    ```
 4. **IdentityService.** Все имена сопоставляются с `entity_id`, создаются записи `AliasRecord` с `chunk_id`.
 5. **Raptor слой.** `flat_raptor.insert_chunk(text_vec, fact_vec)` возвращает `raptor_node_id`, который записывается в поле `ChunkNode.raptor_node_id`.
-6. **Рендер и выполнение Cypher.** Шаблон генерирует связи `MEMBER_OF` и `MENTIONS` через `base_fact.j2`:
+6. **Рендер и выполнение Cypher.** Шаблон генерирует связи `MEMBER_OF` и `MENTIONS` через `chunk_mentions.j2`:
    ```cypher
    MERGE (a:Character {id: "UUID-123"})
    MERGE (b:Faction {id: "UUID-456"})

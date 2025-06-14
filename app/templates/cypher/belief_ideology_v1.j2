@@ -1,12 +1,8 @@
 MERGE (c:Character {id: "{{ character }}"})
 MERGE (d:Ideology {id: "{{ ideology }}"})
 MERGE (c)-[r:BELIEVES_IN {
-    chapter: {{ chapter }},
-    template_id: "belief_ideology_v1",
-    description: "{{ description }}",
-    chunk_id: "{{ chunk_id }}",
-    draft_stage: "{{ draft_stage }}",
-    confidence: {{ confidence }}
+    {% include "_relation_meta.j2" %}
+    description: "{{ description }}"
 }]->(d)
 
 {% set related_node_ids = [character, ideology] %}

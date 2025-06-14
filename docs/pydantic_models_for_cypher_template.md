@@ -62,7 +62,7 @@ class CypherTemplateBase(BaseModel):
     attachment_policy: Literal["chunk", "raptor", "both"] = "chunk"
 
     cypher: str                           # путь к Jinja-файлу шаблона
-    use_base: bool = True                # нужно ли оборачивать через base_fact.j2
+    use_base: bool = True                # нужно ли оборачивать через chunk_mentions.j2
 
     author: Optional[str] = None
     created_at: Optional[datetime] = None
@@ -97,10 +97,10 @@ class CypherTemplateBase(BaseModel):
         # fallback if template_id missing
         context["template_id"] = self.name
 
-        # optional wrapping via base_fact
+        # optional wrapping via chunk_mentions
         cypher_name = self.cypher
         if self.use_base and not self.cypher.startswith("base_"):
-            cypher_name = "base_fact.j2"
+            cypher_name = "chunk_mentions.j2"
             context["template_body"] = self.cypher  # used for {% include %}
 
         template = env.get_template(cypher_name)

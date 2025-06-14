@@ -8,6 +8,13 @@ model. Two endpoints are available:
 - **`/extract-save`** — turns text into graph relations.
 - **`/augment-context`** — planned endpoint to enrich text with context.
 
+## Current status
+
+The extraction flow is fully implemented, while the augmentation feature exists
+only as a stub. File `app/api/augment/__init__.py` exposes a `_DummyPipeline`
+that raises `NotImplementedError`. No query templates or business logic are
+present yet.
+
 According to the main `README.md`, extraction relies on templates, LLM slot filling
 and a Neo4j graph store. Weaviate provides template search and RaptorNode keeps
 embeddings for clustering【F:README.md†L8-L73】.
@@ -91,3 +98,30 @@ The service already has clear architecture for converting text to graph via
 `/extract-save`. Implementing `augment-context` can reuse the same components
 (TemplateService, SlotFiller, GraphProxy) but drive them with query templates to
 retrieve and summarise existing story data.
+
+## Planned refactoring
+
+Work on the augmentation pipeline surfaced several issues with how Chain-of-
+Thought (CoT) explanations are stored.
+
+1. **Domain edges lack details.** Relationships like `MEMBER_OF` are created
+   without the `details` produced during slot filling. The
+   `GraphRelationDescriptor.details` field already exists but is ignored. The
+   renderer should pass `SlotFill.details` into the descriptor and templates must
+   write this value to the domain relationship.
+2. **Alias decisions lose context.** The prompt `verify_alias_llm.j2` returns a
+   justification string, however :class:`IdentityService` drops it when creating
+   alias tasks. This information should be stored on `AliasRecord` and when a
+   new entity is created — as a property of that node.
+3. **`chunk_mentions.j2` conflates chunk linkage and domain data.** This template
+   currently adds `triple_text` and `details` onto `MENTIONS` edges
+   【F:app/templates/cypher/chunk_mentions.j2†L1-L11】. To separate concerns it will be
+   renamed to `chunk_mentions.j2` and keep only the `MATCH`/`MERGE` logic linking
+   entities with the originating chunk.
+4. **Shared descriptor snippet.** Domain templates repeat boilerplate to add
+   `template_id`, `chapter` and future `details` to relationships. A small Jinja
+   partial can expose fields from `GraphRelationDescriptor` so that domain
+   templates simply include it.
+
+These changes will allow CoT details to be retrieved from the graph and make the
+pipeline auditable.

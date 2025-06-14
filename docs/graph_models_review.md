@@ -71,8 +71,8 @@ fact_cypher → relation_cypher
 
 | Параметр           | Где используется                                  | Назначение                                                                                  |
 | ------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `chunk_id`         | `base_fact.j2`, Cypher шаблон, aliases, embedding | Связывает все действия (ноды, связи, алиасы, raptor) с одним чанк-блоком текста.            |
-| `related_node_ids` | `base_fact.j2`                                    | Список ID сущностей, участвующих в доменных отношениях; позволяет связать их с `ChunkNode`. |
+| `chunk_id`         | `chunk_mentions.j2`, Cypher шаблон, aliases, embedding | Связывает все действия (ноды, связи, алиасы, raptor) с одним чанк-блоком текста.            |
+| `related_node_ids` | `chunk_mentions.j2`                                    | Список ID сущностей, участвующих в доменных отношениях; позволяет связать их с `ChunkNode`. |
 | `template_id`      | Cypher → `MERGE (... {template_id: ...})`         | Логирует происхождение связи — из какого шаблона она произошла.                             |
 | `description`      | Cypher, UI                                        | Текстовая подпись/расшифровка, вставляемая в свойства рёбер и узлов.                        |
 | `confidence`       | Cypher                                            | Уровень уверенности (например, для weak facts из LLM).                                      |
@@ -100,7 +100,7 @@ rendered = template.render(
 context["chunk_id"] = chunk_id  # передаётся явно
 ```
 
-Шаблон `base_fact.j2` затем использует это значение для вставки:
+Шаблон `chunk_mentions.j2` затем использует это значение для вставки:
 
 ```cypher
 MATCH (chunk:Chunk {id: "{{ chunk_id }}"})
@@ -122,7 +122,7 @@ MATCH (chunk:Chunk {id: "{{ chunk_id }}"})
 
 ---
 
-### Шаг 2: `base_fact.j2` добавляет обвязку
+### Шаг 2: `chunk_mentions.j2` добавляет обвязку
 
 ```jinja2
 MATCH (chunk:Chunk {id: "{{ chunk_id }}"})

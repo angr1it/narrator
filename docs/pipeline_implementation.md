@@ -27,7 +27,7 @@ refactor that removed `FactNode`.
 5. **Cypher rendering & execution**
    - `TemplateRenderer.render` merges the slot dictionary with meta
      information (`chunk_id`, `chapter`, etc.).
-   - The domain template is rendered through `base_fact.j2` which adds a
+   - The domain template is rendered through `chunk_mentions.j2` which adds a
      `MATCH (chunk)` statement and `MENTIONS` edges.
    - Alias Cypher and template Cypher are sent to `GraphProxy` as a
      single batch.
