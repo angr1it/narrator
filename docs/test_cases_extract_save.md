@@ -14,6 +14,7 @@
 * `aliases` возвращает все записанные упоминания.
 * `chunk_id` используется для связи всех выходных сущностей.
 * `raptor_node_id` сохраняется в `Chunk`.
+* Поле `details` из SlotFiller сохраняется в `relationships` и на новых узлах Alias.
 
 Тесты, реализующие эти сценарии, находятся в `app/tests/unit/api/test_extract_save_endpoint.py`.
 

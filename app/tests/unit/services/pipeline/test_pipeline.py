@@ -6,6 +6,7 @@ its dependencies correctly and returns the expected plan.
 
 import pytest
 from schemas.stage import StageEnum
+from schemas.slots import SlotFill
 
 from services.pipeline import ExtractionPipeline
 
@@ -51,3 +52,38 @@ async def test_pipeline_simple(
         c for c, _ in graph_proxy.calls if isinstance(c, str) and "raptor_node_id" in c
     ]
     assert update, "raptor id update not executed"
+
+
+@pytest.mark.asyncio
+async def test_pipeline_returns_details(
+    sample_template,
+    template_renderer,
+    graph_proxy,
+    identity_service,
+    raptor_index,
+):
+    class FakeTemplateService:
+        async def top_k_async(self, text, k=3):
+            return [sample_template]
+
+    class FakeSlotFiller:
+        def fill_slots(self, template, text):
+            return [
+                SlotFill(
+                    template_id=str(template.id),
+                    slots={"character": "c"},
+                    details="why",
+                )
+            ]
+
+    pipeline = ExtractionPipeline(
+        template_service=FakeTemplateService(),
+        slot_filler=FakeSlotFiller(),
+        graph_proxy=graph_proxy,
+        identity_service=identity_service,
+        template_renderer=template_renderer,
+        raptor_index=raptor_index,
+    )
+
+    result = await pipeline.extract_and_save("txt", chapter=1)
+    assert result["relationships"][0]["details"] == "why"
