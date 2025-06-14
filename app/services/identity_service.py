@@ -37,6 +37,7 @@ class AliasTask:
     chapter: int
     chunk_id: str
     snippet: str
+    details: Optional[str] = None
 
 
 class BulkResolveResult(BaseModel):
@@ -119,6 +120,7 @@ class IdentityService:
                 Property(name="chapter", data_type=DataType.INT),
                 Property(name="chunk_id", data_type=DataType.TEXT),
                 Property(name="snippet", data_type=DataType.TEXT),
+                Property(name="details", data_type=DataType.TEXT),
             ],
         )
         _logger.info("[Identity] ➕ Collection 'Alias' created (sync mode)")
@@ -165,6 +167,7 @@ class IdentityService:
                         chapter=chapter,
                         chunk_id=chunk_id,
                         snippet=snippet,
+                        details=decision.get("details"),
                     )
                 )
         return BulkResolveResult(mapped_slots=mapped_slots, alias_tasks=alias_tasks)
@@ -203,6 +206,7 @@ class IdentityService:
                     "entity_type": entity_type,
                     "canonical": False,
                 },
+                "details": None,
             }
 
         if best and best["score"] >= LO_SIM:
@@ -219,6 +223,7 @@ class IdentityService:
                         "entity_type": entity_type,
                         "canonical": False,
                     },
+                    "details": decision.details,
                 }
 
         entity_id = f"{entity_type.lower()}-{uuid.uuid4().hex[:8]}"
@@ -233,6 +238,7 @@ class IdentityService:
                 "entity_type": entity_type,
                 "canonical": True,
             },
+            "details": None,
         }
 
     def _nearest_alias_sync(
@@ -333,6 +339,7 @@ class IdentityService:
             "chapter": task.chapter,
             "chunk_id": task.chunk_id,
             "snippet": task.snippet,
+            "details": task.details,
         }
         vec = self._embedder(task.alias_text) if self._embedder else None
         try:
@@ -353,7 +360,10 @@ _FIELD_TO_ENTITY = {
 def _render_alias_cypher(task: AliasTask) -> str:
     if task.cypher_template_id != "create_entity_with_alias":
         return ""
-    return f"CREATE (e:{task.entity_type} {{id:'{task.entity_id}', name:'{task.alias_text}'}})"
+    return (
+        f"CREATE (e:{task.entity_type} {{id:'{task.entity_id}', "
+        f"name:'{task.alias_text}', details:'{task.details}'}})"
+    )
 
 
 @lru_cache(maxsize=1)

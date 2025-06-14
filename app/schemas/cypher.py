@@ -91,10 +91,10 @@ class CypherTemplateBase(BaseModel):
         # fallback if template_id missing
         context["template_id"] = self.name
 
-        # optional wrapping via base_fact
+        # optional wrapping via chunk_mentions
         cypher_name = self.cypher
-        if self.use_base and not self.cypher.startswith("base_"):
-            cypher_name = "base_fact.j2"
+        if self.use_base and not self.cypher.startswith("chunk_"):
+            cypher_name = "chunk_mentions.j2"
             context["template_body"] = self.cypher  # used for {% include %}
 
         template = env.get_template(cypher_name)

@@ -6,7 +6,7 @@
 
 - Слоты в `SlotFiller` собирают поле `details`, однако при создании `SlotFill` в `ExtractionPipeline` оно перезаписывается пустой строкой. Рассуждения модели теряются ещё до рендера Cypher.
 - Шаблон `verify_alias_llm.j2` возвращает только действие без объяснений, поэтому CoT отсутствует.
-- В `base_fact.j2` не выводятся поля из `GraphRelationDescriptor` и отсутствует место для `details`, поэтому связям и узлам негде хранить мотивацию решения.
+- В `chunk_mentions.j2` не выводятся поля из `GraphRelationDescriptor` и отсутствует место для `details`, поэтому связям и узлам негде хранить мотивацию решения.
 
 ## Обзор промптов
 
@@ -37,7 +37,7 @@
 2. **Дополнение `GraphRelationDescriptor`.**
    - Расширить модель, включив `details: Optional[str]`.
    - При рендере передавать `SlotFill.details` в `GraphRelationDescriptor`.
-3. **Шаблон `base_fact.j2`.**
+3. **Шаблон `chunk_mentions.j2`.**
    - Включить вывод `triple_text`, `related_node_ids` и `details` в создаваемые свойства узлов/связей.
 4. **Модификация `verify_alias_llm.j2`.**
    - Добавить инструкцию описывать логику выбора в отдельном поле `details`.

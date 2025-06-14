@@ -72,6 +72,7 @@ async def test_commit_aliases_filters_add_alias():
             chapter=1,
             chunk_id="c1",
             snippet="txt",
+            details=None,
         ),
         AliasTask(
             cypher_template_id="create_entity_with_alias",
@@ -82,11 +83,12 @@ async def test_commit_aliases_filters_add_alias():
             chapter=1,
             chunk_id="c1",
             snippet="txt",
+            details=None,
         ),
     ]
     cyphers = await svc.commit_aliases(tasks)
     assert len(svc.logged) == 2
-    assert cyphers == ["CREATE (e:CHARACTER {id:'e2', name:'B'})"]
+    assert cyphers == ["CREATE (e:CHARACTER {id:'e2', name:'B', details:'None'})"]
 
 
 class DummyClient:

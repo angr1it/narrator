@@ -1,12 +1,8 @@
 MERGE (c:Character {id: "{{ character }}"})
 MERGE (t:Title {id: "{{ title_name }}"})
 MERGE (c)-[r:HAS_TITLE {
-    chapter: {{ chapter }},
-    template_id: "title_acquisition_v1",
-    description: "{{ description }}",
-    chunk_id: "{{ chunk_id }}",
-    draft_stage: "{{ draft_stage }}",
-    confidence: {{ confidence }}
+    {% include "_relation_meta.j2" %}
+    description: "{{ description }}"
 }]->(t)
 
 {% set related_node_ids = [character, title_name] %}

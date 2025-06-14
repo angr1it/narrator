@@ -3,12 +3,8 @@ MERGE (c:Character {id: "{{ character }}"})
   MERGE (t:Character {id: "{{ target }}"})
   WITH c, t
   CALL apoc.create.relationship(c, '{{ emotion|upper }}_OF', {
-      chapter: {{ chapter }},
-      template_id: "emotion_state_v1",
-      description: "{{ description }}",
-      chunk_id: "{{ chunk_id }}",
-      draft_stage: "{{ draft_stage }}",
-      confidence: {{ confidence }}
+      {% include "_relation_meta.j2" %}
+      description: "{{ description }}"
   }, t) YIELD rel
   {% set related_node_ids = [character, target] %}
 {% else %}

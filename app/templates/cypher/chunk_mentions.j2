@@ -3,9 +3,5 @@
 MATCH (chunk:Chunk {id: "{{ chunk_id }}"})
 {% for node_id in related_node_ids %}
   MATCH (x{{ loop.index }} {id: "{{ node_id }}"})
-  MERGE (chunk)-[:MENTIONS {
-    template_id: "{{ template_id }}",
-    triple_text: "{{ triple_text }}",
-    details: "{{ details }}"
-  }]->(x{{ loop.index }})
+  MERGE (chunk)-[:MENTIONS]->(x{{ loop.index }})
 {% endfor %}

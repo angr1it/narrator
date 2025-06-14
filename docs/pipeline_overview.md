@@ -15,7 +15,7 @@
   - `slots` — описание входных данных.
   - `graph_relation` — описание семантики (`subject`, `predicate`, `object`).
   - `cypher` — шаблон Cypher-кода.
-  - `use_base` — обёртка в `base_fact.j2`, которая формирует `MENTIONS`-связи к `ChunkNode`.
+  - `use_base` — обёртка в `chunk_mentions.j2`, которая формирует `MENTIONS`-связи к `ChunkNode`.
 
 ### 3. `AliasRecord` (в Weaviate)
 - Отражает конкретное текстовое упоминание сущности.
@@ -51,7 +51,7 @@
 
 5. **Slots + Template → Cypher**  
    `template.render(slots, chunk_id)` → генерирует `content_cypher`.  
-   `base_fact.j2` вставляет `MATCH (chunk)`, `MENTIONS`.
+   `chunk_mentions.j2` вставляет `MATCH (chunk)`, `MENTIONS`.
 
 6. **Cypher → Graph**  
    `GraphProxy` выполняет `content_cypher` в Neo4j.  

@@ -42,7 +42,7 @@ def test_missing_return_map_raises(sample_template, slot_fill, template_renderer
 
 
 def test_use_base_includes_base(jinja_env, sample_template, slot_fill):
-    jinja_env.loader.mapping["base_fact.j2"] = "{% include template_body %}"
+    jinja_env.loader.mapping["chunk_mentions.j2"] = "{% include template_body %}"
     template = sample_template.model_copy()
     template.use_base = True
     renderer = TemplateRenderer(jinja_env)

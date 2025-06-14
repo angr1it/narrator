@@ -64,6 +64,7 @@ async def test_commit_aliases_inserts(service: IdentityService):
         chapter=1,
         chunk_id="c1",
         snippet="Art is brave",
+        details=None,
     )
     cyphers = await service.commit_aliases([task])
     assert not cyphers

@@ -9,7 +9,7 @@
 1. **TemplateService** – поиск подходящих `CypherTemplate` по `text_vec`.
 2. **SlotFiller** – заполнение слотов LLM и валидация по `slot_schema`.
 3. **IdentityService** – сопоставление имён с `entity_id`, создание `AliasRecord`.
-4. **TemplateRenderer** – рендер контентного Cypher (`base_fact.j2` добавляет `MENTIONS`).
+4. **TemplateRenderer** – рендер контентного Cypher (`chunk_mentions.j2` добавляет `MENTIONS`).
 5. **GraphProxy** – выполнение Cypher и создание узлов/связей в Neo4j.
 6. **FlatRaptorIndex** – вычисление `text_vec` и `fact_vec`, формирование или обновление `RaptorNode`.
 

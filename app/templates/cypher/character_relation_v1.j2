@@ -2,12 +2,8 @@ MERGE (a:Character {id: "{{ character_a }}"})
 MERGE (b:Character {id: "{{ character_b }}"})
 WITH a, b
 CALL apoc.create.relationship(a, '{{ relation_type|upper }}_OF', {
-    chapter: {{ chapter }},
-    template_id: "character_relation_v1",
-    description: "{{ description }}",
-    chunk_id: "{{ chunk_id }}",
-    draft_stage: "{{ draft_stage }}",
-    confidence: {{ confidence }}
+    {% include "_relation_meta.j2" %}
+    description: "{{ description }}"
 }, b) YIELD rel
 
 {% set related_node_ids = [character_a, character_b] %}
