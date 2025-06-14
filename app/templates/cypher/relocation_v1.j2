@@ -2,7 +2,6 @@ MERGE (c:Character {id: "{{ character }}"})
 MERGE (p:Place {id: "{{ place }}"})
 MERGE (c)-[r:AT_LOCATION {
     {% include "_relation_meta.j2" %}
-    description: "{{ description }}"
 }]->(p)
 
 {% set related_node_ids = [character, place] %}

@@ -2,7 +2,6 @@ MERGE (c:Character {id: "{{ character }}"})
 MERGE (g:Goal {id: "{{ goal }}"})
 MERGE (c)-[r:VOWS {
     {% include "_relation_meta.j2" %}
-    description: "{{ description }}"
 }]->(g)
 
 {% set related_node_ids = [character, goal] %}

@@ -5,6 +5,10 @@ return-map logic behave as expected when using Jinja.
 """
 
 import pytest
+from uuid import uuid4
+
+from schemas.cypher import CypherTemplate, SlotDefinition, GraphRelationDescriptor
+from schemas.slots import SlotFill
 from services.template_renderer import TemplateRenderer
 
 
@@ -49,3 +53,47 @@ def test_use_base_includes_base(jinja_env, sample_template, slot_fill):
     meta = {"chunk_id": "c1"}
     plan = renderer.render(template, slot_fill, meta)
     assert "MERGE" in plan.content_cypher
+
+
+def test_render_includes_details(jinja_env):
+    """Ensure SlotFill.details is inserted via the relation meta snippet."""
+    jinja_env.loader.mapping["_relation_meta.j2"] = (
+        'details: "{{ details }}", description: "{{ description }}"'
+    )
+    jinja_env.loader.mapping["with_meta.j2"] = (
+        "MERGE (a:Character {id: '{{ character }}'})\n"
+        "MERGE (a)-[:REL { {% include '_relation_meta.j2' %} }]-(b)\n"
+        "{% set related_node_ids=[character] %}"
+    )
+    template = CypherTemplate(
+        id=uuid4(),
+        name="with_meta",
+        title="t",
+        description="d",
+        slots={"character": SlotDefinition(name="character", type="STRING")},
+        cypher="with_meta.j2",
+        use_base=False,
+        graph_relation=GraphRelationDescriptor(
+            predicate="REL",
+            subject="$character",
+            object=None,
+        ),
+        return_map={"c": "Character"},
+    )
+    renderer = TemplateRenderer(jinja_env)
+    fill = SlotFill(
+        template_id=str(template.id),
+        slots={"character": "char1"},
+        details="why",
+    )
+    meta = {
+        "chunk_id": "c1",
+        "chapter": 1,
+        "draft_stage": "draft",
+        "description": "d",
+        "confidence": 0.1,
+    }
+    plan = renderer.render(template, fill, meta)
+    assert 'details: "why"' in plan.content_cypher
+    assert 'description: "d"' in plan.content_cypher
+    assert plan.details == "why"

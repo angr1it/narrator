@@ -5,7 +5,12 @@ commit handling without relying on external services.
 """
 
 import pytest
-from services.identity_service import IdentityService, AliasTask, LLMDecision
+from services.identity_service import (
+    IdentityService,
+    AliasTask,
+    LLMDecision,
+    _render_alias_cypher,
+)
 from langchain_core.language_models.fake import FakeListLLM
 
 
@@ -89,6 +94,22 @@ async def test_commit_aliases_filters_add_alias():
     cyphers = await svc.commit_aliases(tasks)
     assert len(svc.logged) == 2
     assert cyphers == ["CREATE (e:CHARACTER {id:'e2', name:'B', details:'None'})"]
+
+
+def test_render_alias_cypher_includes_details():
+    task = AliasTask(
+        cypher_template_id="create_entity_with_alias",
+        render_slots={},
+        entity_id="e3",
+        alias_text="C",
+        entity_type="CHARACTER",
+        chapter=1,
+        chunk_id="c1",
+        snippet="txt",
+        details="why",
+    )
+    cypher = _render_alias_cypher(task)
+    assert "details:'why'" in cypher
 
 
 class DummyClient:

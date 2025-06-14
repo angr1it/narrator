@@ -2,7 +2,6 @@ MERGE (c:Character {id: "{{ character }}"})
 MERGE (i:Item {id: "{{ item }}"})
 MERGE (c)-[r:OWNS_ITEM {
     {% include "_relation_meta.j2" %}
-    description: "{{ description }}"
 }]->(i)
 
 {% set related_node_ids = [character, item] %}

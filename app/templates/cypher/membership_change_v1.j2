@@ -2,7 +2,6 @@ MERGE (a:Character {id: "{{ character }}"})
 MERGE (b:Faction {id: "{{ faction }}"})
 MERGE (a)-[r:MEMBER_OF {
     {% include "_relation_meta.j2" %}
-    description: "{{ description }}"
 }]->(b)
 
 {% set related_node_ids = [character, faction] %}
