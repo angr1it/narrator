@@ -6,9 +6,14 @@ import pytest
 
 @pytest.fixture(scope="session")
 def event_loop():
+    """Create a single event loop for the entire test session."""
     loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+    asyncio.set_event_loop(loop)
+    try:
+        yield loop
+    finally:
+        loop.close()
+        asyncio.set_event_loop(None)
 
 
 def pytest_addoption(parser):
