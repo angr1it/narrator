@@ -7,37 +7,47 @@ is made with the correct tracing configuration.
 from jinja2 import Template
 from services.slot_filler import SlotFiller, PROMPTS_ENV
 from schemas.cypher import CypherTemplate, SlotDefinition
-from langchain.prompts import PromptTemplate
+from langchain_core.language_models.fake import FakeListLLM
+from langchain_core.callbacks.base import BaseCallbackHandler
 import uuid
 
 
-class DummyChain:
-    def __init__(self):
-        self.calls = 0
-        self.last_config = None
+class MyFakeLLM(FakeListLLM):
+    model_config = {"extra": "allow"}
 
-    def __or__(self, other):
-        return self
+    def __init__(self, responses):
+        super().__init__(responses=responses)
+        self._last_prompt = None
+        self._calls = 0
+        self._last_run_manager = None
 
-    def invoke(self, _, config=None):
-        self.calls += 1
-        self.last_config = config
-        if self.calls == 1:
-            raise ValueError("bad json")
+    def _call(self, prompt, stop=None, run_manager=None, **kwargs):
+        self._last_prompt = prompt
+        self._last_run_manager = run_manager
+        self._calls += 1
+        return super()._call(prompt, stop=stop, run_manager=run_manager, **kwargs)
 
-        class R:
-            def model_dump(self):
-                return [{"character": "A"}]
+    async def _acall(self, prompt, stop=None, run_manager=None, **kwargs):
+        self._last_prompt = prompt
+        self._last_run_manager = run_manager
+        self._calls += 1
+        return await super()._acall(
+            prompt, stop=stop, run_manager=run_manager, **kwargs
+        )
 
-        return R()
+    def get_prompt(self):
+        return self._last_prompt
+
+    def get_run_manager(self):
+        return self._last_run_manager
+
+    @property
+    def calls(self):
+        return self._calls
 
 
-dummy_chain = DummyChain()
-
-
-class DummyLLM:
-    def __or__(self, other):
-        return dummy_chain
+class DummyHandler(BaseCallbackHandler):
+    pass
 
 
 class DummyTemplate(CypherTemplate):
@@ -45,17 +55,15 @@ class DummyTemplate(CypherTemplate):
 
 
 def test_run_phase_retries(monkeypatch):
-    handler = object()
-    filler = SlotFiller(DummyLLM(), callback_handler=handler)
+    handler = DummyHandler()
+    llm = MyFakeLLM(
+        [
+            "not json",
+            '[{"character": "A", "details": "d"}]',
+        ]
+    )
+    filler = SlotFiller(llm, callback_handler=handler)
     monkeypatch.setattr(PROMPTS_ENV, "get_template", lambda pf: Template("text"))
-    orig_or = PromptTemplate.__or__
-
-    def patched_or(self, other):
-        if other is filler.llm:
-            return dummy_chain
-        return orig_or(self, other)
-
-    monkeypatch.setattr(PromptTemplate, "__or__", patched_or, raising=False)
 
     tpl = DummyTemplate(
         id=uuid.uuid4(),
@@ -67,10 +75,8 @@ def test_run_phase_retries(monkeypatch):
         return_map={"a": "b"},
     )
     res = filler._run_phase("extract", "extract_slots.j2", tpl, "txt")
-    assert dummy_chain.calls == 2
-    assert res == [{"character": "A"}]
-    assert dummy_chain.last_config == {
-        "callbacks": [handler],
-        "run_name": "slotfiller.extract",
-        "tags": ["SlotFiller"],
-    }
+    assert llm.calls == 2
+    assert res == [{"character": "A", "details": "d"}]
+    rm = llm.get_run_manager()
+    assert rm.handlers == [handler]
+    assert "SlotFiller" in rm.tags
