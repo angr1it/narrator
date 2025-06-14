@@ -6,7 +6,7 @@ StoryGraph is a FastAPI service that processes small text fragments and updates 
 model. Two endpoints are available:
 
 - **`/extract-save`** — turns text into graph relations.
-- **`/augment-context`** — planned endpoint to enrich text with context.
+- **`/augment-context`** — endpoint to enrich text with context.
 
 ## Current status
 
@@ -18,10 +18,10 @@ The extraction flow is fully implemented. Work on augmentation has begun:
   augmentation.
 - Query templates with `_aug_v1.j2` suffix provide MATCH statements and share
   the partials `_augment_filters.j2` and `_augment_meta.j2`.
-- `IdentityService` respects the `is_entity_ref` flag when resolving aliases.
+ - `IdentityService` respects the `is_entity_ref` flag when resolving aliases.
 
-The actual pipeline is still missing and `app/api/augment/__init__.py` continues
-to raise `NotImplementedError`.
+`AugmentPipeline` now orchestrates template search, slot filling and query execution
+and is wired to the API.
 
 According to the main `README.md`, extraction relies on templates, LLM slot filling
 and a Neo4j graph store. Weaviate provides template search and RaptorNode keeps
@@ -162,17 +162,10 @@ The following components were updated during the recent refactor:
 ### Tests
 - Unit tests cover augment rendering, template import and top‑k filtering.
 
-The augmentation API itself remains unimplemented.
-
 ## Next steps
 
-To complete `/augment-context` the following actions are planned:
+The pipeline runs end-to-end. Remaining tasks focus on polishing:
 
-1. Implement :class:`AugmentPipeline` mirroring the extraction flow:
-   - search templates via `TemplateService.top_k(..., mode=AUGMENT)`
-   - fill slots and resolve IDs
-   - render augment queries and run them with :class:`GraphProxy`
-   - aggregate rows and optionally summarise the result
-2. Expose a FastAPI endpoint that uses the pipeline.
-3. Document request/response format and filtering behaviour.
-4. Refine query templates to guarantee the required meta fields.
+1. Integrate a summariser to condense returned rows.
+2. Expand unit and integration tests.
+3. Finalise request/response documentation and tagging rules for templates.

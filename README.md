@@ -155,22 +155,17 @@ def fill_slots_for_template(template, chunk, meta):
 
 ## 8. Summary: What Is Implemented Now
 - FastAPI service with `/v1/extract-save` and `/v1/augment-context`
-- Jinja2-based Cypher templates with LLM-filled slot schema
-- LLM-only extraction pipeline (NER + fallback + freeform)
-- In-memory or mock `TemplateService`, ready for Weaviate integration
-- `GraphProxy` abstraction for Cypher query execution
+- Jinja2-based Cypher templates stored in Weaviate
+- Extraction and augmentation pipelines orchestrate slot filling, identity resolution and Neo4j queries
+- `GraphProxy` abstraction for Cypher execution
 - Relations linked to `ChunkNode` and `RaptorNode` for implicit versioning
 
 ---
 
 ## 9. Next Steps
-- Implement LangChain prompt wrappers (extract, fallback, generate)
-- Add Langfuse `trace_id` to all LLM steps
-- Finish Weaviate-based template search
-- Replace mock graph proxy with Neo4j driver
-- Include `TextFragment` and `IN_CHAPTER` in Cypher patterns
-- Add automated test harness for both pipelines
-- Introduce support for `from_chapter`, `to_chapter` versioning in graph model
+- Integrate LLM summariser for augmentation results
+- Expand unit and integration tests for both pipelines
+- Finalise documentation of request/response format and tagging rules
 
 ---
 

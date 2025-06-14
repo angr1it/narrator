@@ -113,7 +113,7 @@
 Тесты (unit + интеграционные).
 
 - `test_extraction.py` — тесты `extract-save`.
-- `test_augmentation.py` — тесты `augment-context`.
+- `test_full_pipelines.py` — пайплайны `extract` и `augment`.
 - `test_templates.py` — поведение шаблонов.
 - `conftest.py` — фикстуры и общий setup.
 
