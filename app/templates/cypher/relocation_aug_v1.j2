@@ -1,0 +1,5 @@
+MATCH (c:Character {id: "{{ character }}"})-[r:AT_LOCATION]->(p:Place {id: "{{ place }}"})
+{% include "_augment_filters.j2" %}
+{% set return_relation = '"AT_LOCATION"' %}
+{% set return_value = 'p.name AS value' %}
+{% include "_augment_meta.j2" %}

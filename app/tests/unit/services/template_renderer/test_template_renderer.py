@@ -13,6 +13,7 @@ from services.template_renderer import TemplateRenderer
 
 
 def test_render_returns_triple_and_nodes(sample_template, slot_fill, template_renderer):
+    """Rendered Cypher should contain MERGE and triple info."""
     meta = {
         "chunk_id": "c1",
         "chapter": 1,
@@ -28,6 +29,7 @@ def test_render_returns_triple_and_nodes(sample_template, slot_fill, template_re
 
 
 def test_missing_chunk_id_raises(sample_template, slot_fill, template_renderer):
+    """A missing chunk_id should raise ValueError."""
     meta = {}
     try:
         template_renderer.render(sample_template, slot_fill, meta)
@@ -38,6 +40,7 @@ def test_missing_chunk_id_raises(sample_template, slot_fill, template_renderer):
 
 
 def test_missing_return_map_raises(sample_template, slot_fill, template_renderer):
+    """Renderer requires return_map to be defined."""
     template = sample_template.model_copy()
     template.return_map = {}
     meta = {"chunk_id": "c1"}
@@ -46,9 +49,10 @@ def test_missing_return_map_raises(sample_template, slot_fill, template_renderer
 
 
 def test_use_base_includes_base(jinja_env, sample_template, slot_fill):
+    """When ``use_base_extract`` is set, base template is included."""
     jinja_env.loader.mapping["chunk_mentions.j2"] = "{% include template_body %}"
     template = sample_template.model_copy()
-    template.use_base = True
+    template.use_base_extract = True
     renderer = TemplateRenderer(jinja_env)
     meta = {"chunk_id": "c1"}
     plan = renderer.render(template, slot_fill, meta)
@@ -71,8 +75,8 @@ def test_render_includes_details(jinja_env):
         title="t",
         description="d",
         slots={"character": SlotDefinition(name="character", type="STRING")},
-        cypher="with_meta.j2",
-        use_base=False,
+        extract_cypher="with_meta.j2",
+        use_base_extract=False,
         graph_relation=GraphRelationDescriptor(
             predicate="REL",
             subject="$character",

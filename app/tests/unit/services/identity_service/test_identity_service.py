@@ -11,6 +11,7 @@ from services.identity_service import (
     LLMDecision,
     _render_alias_cypher,
 )
+from schemas.cypher import SlotDefinition
 from langchain_core.language_models.fake import FakeListLLM
 
 
@@ -66,6 +67,7 @@ class DummyService(IdentityService):
 
 @pytest.mark.asyncio
 async def test_commit_aliases_filters_add_alias():
+    """Only tasks with a known template ID are executed."""
     svc = DummyService()
     tasks = [
         AliasTask(
@@ -97,6 +99,7 @@ async def test_commit_aliases_filters_add_alias():
 
 
 def test_render_alias_cypher_includes_details():
+    """_render_alias_cypher must include the details text."""
     task = AliasTask(
         cypher_template_id="create_entity_with_alias",
         render_slots={},
@@ -148,6 +151,7 @@ class StartupService(IdentityService):
 
 @pytest.mark.asyncio
 async def test_startup_skips_if_exists():
+    """Collection creation is skipped when it already exists."""
     client = DummyClient(exists=True)
     svc = StartupService(client)
     await svc.startup()
@@ -155,6 +159,7 @@ async def test_startup_skips_if_exists():
 
 
 def test_llm_disambiguate_calls_llm():
+    """_llm_disambiguate_sync should parse LLM JSON response."""
     fake_llm = MyFakeLLM(
         [
             '{"action": "use", "entity_id": "e1", "alias_text": "n", "canonical": false, "details": "ok"}'
@@ -177,6 +182,7 @@ def test_llm_disambiguate_calls_llm():
 
 @pytest.mark.asyncio
 async def test_startup_creates_collection():
+    """Startup should create the alias collection and required properties."""
     client = DummyClient()
     svc = StartupService(client)
     await svc.startup()
@@ -186,6 +192,8 @@ async def test_startup_creates_collection():
 
 
 def test_llm_disambiguate_accepts_model():
+    """LLM can be provided as a callable object returning LLMDecision."""
+
     class LLMObj:
         def __call__(self, *a, **kw):
             return LLMDecision(action="use", entity_id="e2", alias_text="n")
@@ -201,6 +209,7 @@ def test_llm_disambiguate_accepts_model():
 
 
 def test_llm_disambiguate_invalid_type():
+    """Non LLMDecision result should raise ValueError."""
     svc = IdentityService(
         weaviate_sync_client=type("C", (), {"collections": None})(),
         embedder=lambda x: [0.0],
@@ -212,6 +221,7 @@ def test_llm_disambiguate_invalid_type():
 
 @pytest.mark.asyncio
 async def test_llm_disambiguate_async():
+    """Asynchronous disambiguation uses the async LLM API."""
     fake_llm = MyFakeLLM(
         [
             '{"action": "use", "entity_id": "e1", "alias_text": "A", "canonical": false, "details": "ok"}'
@@ -236,6 +246,7 @@ async def test_llm_disambiguate_async():
 
 @pytest.mark.asyncio
 async def test_commit_aliases_empty():
+    """No tasks means no cypher and no alias updates."""
     svc = DummyService()
     result = await svc.commit_aliases([])
     assert result == []
@@ -244,6 +255,7 @@ async def test_commit_aliases_empty():
 
 @pytest.mark.asyncio
 async def test_run_sync_executes_function():
+    """_run_sync should offload function execution to a thread."""
     svc = DummyService()
 
     def add(a, b):
@@ -251,3 +263,29 @@ async def test_run_sync_executes_function():
 
     result = await svc._run_sync(add, 2, 3)
     assert result == 5
+
+
+def test_resolve_bulk_uses_slot_defs():
+    """Only entity-ref slots produce alias tasks during bulk resolve."""
+
+    class LocalService(DummyService):
+        def _nearest_alias_sync(self, *a, **k):
+            return []
+
+    svc = LocalService()
+    slot_defs = {
+        "character": SlotDefinition(
+            name="character", type="STRING", is_entity_ref=True
+        ),
+        "summary": SlotDefinition(name="summary", type="STRING", is_entity_ref=False),
+    }
+    res = svc._resolve_bulk_sync(
+        {"character": "John", "summary": "test"},
+        slot_defs,
+        chapter=1,
+        chunk_id="c1",
+        snippet="t",
+    )
+    assert "summary" in res.mapped_slots
+    assert any(t.alias_text == "John" for t in res.alias_tasks)
+    assert not any(t.alias_text == "test" for t in res.alias_tasks)

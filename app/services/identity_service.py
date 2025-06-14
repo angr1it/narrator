@@ -12,6 +12,7 @@ from weaviate.classes.query import Filter, MetadataQuery
 from weaviate.classes.config import Configure, Property, DataType
 
 from pydantic import BaseModel
+from schemas.cypher import SlotDefinition
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 
@@ -74,6 +75,7 @@ class IdentityService:
         self,
         slots: Dict[str, Any],
         *,
+        slot_defs: Optional[Dict[str, SlotDefinition]] = None,
         chapter: int,
         chunk_id: str,
         snippet: str,
@@ -81,6 +83,7 @@ class IdentityService:
         return await self._run_sync(
             self._resolve_bulk_sync,
             slots,
+            slot_defs,
             chapter,
             chunk_id,
             snippet,
@@ -134,6 +137,7 @@ class IdentityService:
     def _resolve_bulk_sync(
         self,
         slots: Dict[str, Any],
+        slot_defs: Optional[Dict[str, SlotDefinition]],
         chapter: int,
         chunk_id: str,
         snippet: str,
@@ -142,6 +146,11 @@ class IdentityService:
         alias_tasks: List[AliasTask] = []
 
         for field, raw_val in slots.items():
+            if slot_defs is not None:
+                slot_def = slot_defs.get(field)
+                if not slot_def or not slot_def.is_entity_ref:
+                    continue
+
             etype = _FIELD_TO_ENTITY.get(field)
             if not etype:
                 continue

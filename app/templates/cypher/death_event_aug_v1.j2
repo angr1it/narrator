@@ -1,0 +1,10 @@
+MATCH (c:Character {id: "{{ character }}"})
+WHERE c.deceased_chapter <= {{ chapter }}
+RETURN "IS_ALIVE" AS relation,
+       "false" AS value,
+       c.deceased_chapter AS meta_fact_chapter,
+       NULL AS meta_template_id,
+       NULL AS meta_chunk_id,
+       c.raptor_node_id AS meta_raptor_id,
+       1.0 AS meta_confidence,
+       "final" AS meta_draft_stage

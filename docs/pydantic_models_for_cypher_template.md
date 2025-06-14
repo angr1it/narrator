@@ -46,7 +46,12 @@ class GraphRelationDescriptor(BaseModel):
 Главная модель, описывающая шаблон доменной связи:
 
 ```python
+from enum import Enum
 from templates import env
+
+class TemplateRenderMode(str, Enum):
+    EXTRACT = "extract"
+    AUGMENT = "augment"
 
 class CypherTemplateBase(BaseModel):
     name: str                             # slug шаблона
@@ -61,8 +66,14 @@ class CypherTemplateBase(BaseModel):
     fact_policy: Literal["none", "always"] = "always"
     attachment_policy: Literal["chunk", "raptor", "both"] = "chunk"
 
-    cypher: str                           # путь к Jinja-файлу шаблона
-    use_base: bool = True                # нужно ли оборачивать через chunk_mentions.j2
+    extract_cypher: Optional[str] = None       # Jinja-файл вставки
+    use_base_extract: bool = True              # оборачивать через chunk_mentions.j2
+
+    augment_cypher: Optional[str] = None       # Jinja-файл выборки
+    use_base_augment: bool = True
+
+    supports_extract: Optional[bool] = None    # вычисляется автоматически
+    supports_augment: Optional[bool] = None
 
     author: Optional[str] = None
     created_at: Optional[datetime] = None
@@ -73,7 +84,13 @@ class CypherTemplateBase(BaseModel):
 
     return_map: dict[str, str]           # имена переменных → ноды/идентификаторы в графе
 
-    def render(self, slots: dict, chunk_id: str) -> str:
+    def render(
+        self,
+        slots: dict,
+        chunk_id: str,
+        *,
+        mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
+    ) -> str:
         required = [slot.name for slot in self.slots.values() if slot.required]
         missing = [name for name in required if name not in slots]
         if missing:
@@ -97,11 +114,19 @@ class CypherTemplateBase(BaseModel):
         # fallback if template_id missing
         context["template_id"] = self.name
 
-        # optional wrapping via chunk_mentions
-        cypher_name = self.cypher
-        if self.use_base and not self.cypher.startswith("base_"):
-            cypher_name = "chunk_mentions.j2"
-            context["template_body"] = self.cypher  # used for {% include %}
+        cypher_name = (
+            self.extract_cypher if mode is TemplateRenderMode.EXTRACT else self.augment_cypher
+        )
+        if mode is TemplateRenderMode.AUGMENT:
+            self.validate_augment()
+            if self.use_base_augment and not cypher_name.startswith("chunk_"):
+                context["template_body"] = cypher_name
+                cypher_name = "chunk_mentions.j2"
+        else:
+            self.validate_extract()
+            if self.use_base_extract and not cypher_name.startswith("chunk_"):
+                cypher_name = "chunk_mentions.j2"
+                context["template_body"] = self.extract_cypher
 
         template = env.get_template(cypher_name)
         return template.render(**context)

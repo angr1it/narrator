@@ -1,0 +1,5 @@
+MATCH (c:Character {id: "{{ character }}"})-[r:BELIEVES_IN]->(d:Ideology {id: "{{ ideology }}"})
+{% include "_augment_filters.j2" %}
+{% set return_relation = '"BELIEVES_IN"' %}
+{% set return_value = 'd.name AS value' %}
+{% include "_augment_meta.j2" %}

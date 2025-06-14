@@ -58,13 +58,14 @@ class TestService(TemplateService):
 
 
 def test_get_includes_return_map():
+    """``TemplateService.get`` should populate the ``return_map`` field."""
     obj = DummyObj(
         {
             "name": "t",
             "title": "T",
             "description": "D",
             "slots": {},
-            "cypher": "c.j2",
+            "extract_cypher": "c.j2",
             "return_map": {"a": "b"},
         }
     )

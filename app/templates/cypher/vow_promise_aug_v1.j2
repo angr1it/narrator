@@ -1,0 +1,5 @@
+MATCH (c:Character {id: "{{ character }}"})-[r:VOWS]->(g:Goal {id: "{{ goal }}"})
+{% include "_augment_filters.j2" %}
+{% set return_relation = '"VOWS"' %}
+{% set return_value = 'g.name AS value' %}
+{% include "_augment_meta.j2" %}

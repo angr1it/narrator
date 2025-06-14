@@ -1,3 +1,5 @@
+"""Verify that base templates are imported on service creation."""
+
 import uuid
 from services.templates import TemplateService, CypherTemplate, CypherTemplateBase
 from templates.base import base_templates
@@ -17,6 +19,7 @@ class DummyService(TemplateService):
 
 
 def test_init_imports_base_templates():
+    """Service initialization should import all ``base_templates``."""
     svc = DummyService()
     names = [t.name for t in svc.imported]
     assert names == [d["name"] for d in base_templates]

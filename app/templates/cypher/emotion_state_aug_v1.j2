@@ -1,0 +1,5 @@
+MATCH (c:Character {id: "{{ character }}"})-[r:`{{ emotion|upper }}_OF`]->(t:Character {id: "{{ target }}"})
+{% include "_augment_filters.j2" %}
+{% set return_relation = 'type(r)' %}
+{% set return_value = 't.id AS target' %}
+{% include "_augment_meta.j2" %}

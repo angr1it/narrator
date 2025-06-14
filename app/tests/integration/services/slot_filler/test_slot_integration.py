@@ -36,7 +36,7 @@ def trait_template() -> CypherTemplate:
         category=template_dict["category"],
         slots=slots,
         graph_relation=relation,
-        cypher=template_dict["cypher"],
+        extract_cypher=template_dict["extract_cypher"],
         return_map=template_dict.get("return_map", {}),
     )
 

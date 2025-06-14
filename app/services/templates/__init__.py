@@ -14,6 +14,7 @@ used by the extraction pipeline.
 """
 
 from typing import Callable, List, Optional, Dict, Any
+from schemas.cypher import TemplateRenderMode
 import asyncio
 
 import weaviate
@@ -66,6 +67,9 @@ class TemplateService:
         new object is inserted.  Embeddings are generated automatically when an
         embedder is configured.
         """
+        tpl.validate_extract()
+        tpl.validate_augment()
+
         # Формируем payload без uuid
         payload: Dict[str, Any] = tpl.model_dump(
             mode="json", exclude_none=True, exclude={"uuid"}
@@ -134,6 +138,8 @@ class TemplateService:
         category: Optional[str] = None,
         k: int = 3,
         distance_threshold: float = 0.5,
+        *,
+        mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
     ) -> List[CypherTemplate]:
         """Semantic search for the *k* best‑matching templates.
 
@@ -149,6 +155,11 @@ class TemplateService:
 
         # Определяем фильтры, если указана категория
         filters = Filter.by_property("category").equal(category) if category else None
+        if mode is TemplateRenderMode.AUGMENT:
+            aug_filter = Filter.by_property("supports_augment").equal(True)
+            filters = (
+                aug_filter if filters is None else Filter.all_of([filters, aug_filter])
+            )
 
         # Выполняем поиск по вектору или по тексту
         if self.embedder:
@@ -184,10 +195,12 @@ class TemplateService:
         category: Optional[str] = None,
         k: int = 3,
         distance_threshold: float = 0.5,
+        *,
+        mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
     ) -> List[CypherTemplate]:
         """Async wrapper around :meth:`top_k`."""
         return await asyncio.to_thread(
-            self.top_k, query, category, k, distance_threshold
+            self.top_k, query, category, k, distance_threshold, mode=mode
         )
 
     def ensure_base_templates(self) -> None:
@@ -230,7 +243,12 @@ class TemplateService:
                         Property(name="default", data_type=DataType.TEXT),
                     ],
                 ),
-                Property(name="cypher", data_type=DataType.TEXT),
+                Property(name="extract_cypher", data_type=DataType.TEXT),
+                Property(name="use_base_extract", data_type=DataType.BOOL),
+                Property(name="augment_cypher", data_type=DataType.TEXT),
+                Property(name="use_base_augment", data_type=DataType.BOOL),
+                Property(name="supports_extract", data_type=DataType.BOOL),
+                Property(name="supports_augment", data_type=DataType.BOOL),
                 Property(
                     name="graph_relation",
                     data_type=DataType.OBJECT,
@@ -281,7 +299,12 @@ class TemplateService:
             "details",
             "category",
             "slots",
-            "cypher",
+            "extract_cypher",
+            "use_base_extract",
+            "augment_cypher",
+            "use_base_augment",
+            "supports_extract",
+            "supports_augment",
             "graph_relation",
             "attachment_policy",
             "default_confidence",
@@ -292,6 +315,10 @@ class TemplateService:
             "return_map",
         }
         clean = {k: v for k, v in props.items() if k in allowed}
+        if "supports_extract" not in clean:
+            clean["supports_extract"] = bool(clean.get("extract_cypher"))
+        if "supports_augment" not in clean:
+            clean["supports_augment"] = bool(clean.get("augment_cypher"))
         clean["id"] = str(raw.uuid)
         return CypherTemplate(**clean)
 

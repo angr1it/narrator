@@ -55,6 +55,7 @@ class DummyTemplate(CypherTemplate):
 
 
 def test_run_phase_retries(monkeypatch):
+    """The slot filler should retry when the LLM output is invalid JSON."""
     handler = DummyHandler()
     llm = MyFakeLLM(
         [
@@ -71,7 +72,7 @@ def test_run_phase_retries(monkeypatch):
         title="t",
         description="d",
         slots={"character": SlotDefinition(name="character", type="STRING")},
-        cypher="simple.j2",
+        extract_cypher="simple.j2",
         return_map={"a": "b"},
     )
     res = filler._run_phase("extract", "extract_slots.j2", tpl, "txt")

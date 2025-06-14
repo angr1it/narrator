@@ -7,7 +7,7 @@ async method delegates correctly to its synchronous counterpart.
 import pytest
 from uuid import uuid4
 from services.templates import TemplateService, CypherTemplate
-from schemas.cypher import CypherTemplateBase
+from schemas.cypher import CypherTemplateBase, TemplateRenderMode
 
 
 class DummyService(TemplateService):
@@ -29,7 +29,7 @@ class DummyService(TemplateService):
             title="t",
             description="d",
             slots={},
-            cypher="c.j2",
+            extract_cypher="c.j2",
             return_map={},
         )
 
@@ -41,11 +41,19 @@ class DummyService(TemplateService):
             title="t",
             description="d",
             slots={},
-            cypher="c.j2",
+            extract_cypher="c.j2",
             return_map={},
         )
 
-    def top_k(self, query: str, category=None, k: int = 3, distance_threshold: float = 0.5):  # type: ignore[override]
+    def top_k(
+        self,
+        query: str,
+        category=None,
+        k: int = 3,
+        distance_threshold: float = 0.5,
+        *,
+        mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
+    ):  # type: ignore[override]
         self.called["top_k"] = (query, k)
         if k <= 0:
             return []
@@ -56,7 +64,7 @@ class DummyService(TemplateService):
                 title="t",
                 description="d",
                 slots={},
-                cypher="c.j2",
+                extract_cypher="c.j2",
                 return_map={},
             )
         ]
@@ -64,13 +72,14 @@ class DummyService(TemplateService):
 
 @pytest.mark.asyncio
 async def test_async_wrappers_call_sync_methods():
+    """Ensure async helpers delegate to the synchronous methods."""
     svc = DummyService()
     tpl = CypherTemplateBase(
         name="n",
         title="t",
         description="d",
         slots={},
-        cypher="c.j2",
+        extract_cypher="c.j2",
         return_map={},
     )
 
@@ -88,6 +97,7 @@ async def test_async_wrappers_call_sync_methods():
 
 
 def test_top_k_handles_nonpositive_k():
+    """An empty list is returned when ``k`` is non-positive."""
     svc = DummyService()
     results = svc.top_k("q", k=0)
     assert results == []

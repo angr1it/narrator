@@ -13,6 +13,11 @@ pytestmark = pytest.mark.integration
 
 from weaviate.collections.classes.data import DataObject
 from services.identity_service import IdentityService, get_identity_service_sync
+from schemas.cypher import SlotDefinition
+
+SLOT_DEFS = {
+    "character": SlotDefinition(name="character", type="STRING", is_entity_ref=True)
+}
 
 
 # ─────────────────── Prepare test data ────────────────────────────────────────
@@ -84,9 +89,11 @@ async def identity_service_factory(prepare_alias_data, wclient, openai_embedder)
 # ─────────────────── Tests ────────────────────────────────────────────────────
 @pytest.mark.asyncio
 async def test_exact_canonical_match(identity_service_factory):
+    """Alias resolution returns existing canonical ID without LLM use."""
     service = await identity_service_factory()
     result = await service.resolve_bulk(
         {"character": "Zorian"},
+        slot_defs=SLOT_DEFS,
         chapter=1,
         chunk_id="frag-1",
         snippet="Zorian walked into the room.",
@@ -97,9 +104,11 @@ async def test_exact_canonical_match(identity_service_factory):
 
 @pytest.mark.asyncio
 async def test_exact_almost_canonical_match(identity_service_factory):
+    """Slightly different alias should trigger add_alias task."""
     service = await identity_service_factory()
     result = await service.resolve_bulk(
         {"character": "Zorian's"},
+        slot_defs=SLOT_DEFS,
         chapter=1,
         chunk_id="frag-1",
         snippet="Zorian's sword gleamed in the light.",
@@ -115,6 +124,7 @@ async def test_exact_almost_canonical_match(identity_service_factory):
 
 @pytest.mark.asyncio
 async def test_llm_add_alias(identity_service_factory):
+    """LLM suggests adding a new alias to an existing entity."""
     service = await identity_service_factory(
         make_dummy_llm({"action": "use", "entity_id": eid_a, "alias_text": "Zориан"})
     )
@@ -133,9 +143,11 @@ async def test_llm_add_alias(identity_service_factory):
 
 @pytest.mark.asyncio
 async def test_llm_creates_new_entity(identity_service_factory):
+    """LLM selects creating a brand new entity when no match exists."""
     service = await identity_service_factory(make_dummy_llm({"action": "new"}))
     result = await service.resolve_bulk(
         {"character": "Valerius"},
+        slot_defs=SLOT_DEFS,
         chapter=3,
         chunk_id="frag-3",
         snippet="Valerius впервые появился на горизонте.",
@@ -146,9 +158,11 @@ async def test_llm_creates_new_entity(identity_service_factory):
 
 @pytest.mark.asyncio
 async def test_exact_create_new_entity(identity_service_factory):
+    """Exact name with LLM new action creates entity."""
     service = await identity_service_factory(make_dummy_llm({"action": "new"}))
     result = await service.resolve_bulk(
         {"character": "Commodus"},
+        slot_defs=SLOT_DEFS,
         chapter=4,
         chunk_id="frag-4",
         snippet="Император Commodus пришёл.",
@@ -159,11 +173,13 @@ async def test_exact_create_new_entity(identity_service_factory):
 
 @pytest.mark.asyncio
 async def test_llm_selects_existing_alias_different(identity_service_factory):
+    """LLM chooses an existing alias different from input."""
     service = await identity_service_factory(
         make_dummy_llm({"action": "use", "entity_id": eid_b, "alias_text": "Миранда"})
     )
     result = await service.resolve_bulk(
         {"character": "Миранда"},
+        slot_defs=SLOT_DEFS,
         chapter=5,
         chunk_id="frag-5",
         snippet="Она представилась как Миранда.",
