@@ -3,7 +3,7 @@ import logging
 import asyncio
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Callable, cast, Union
+from typing import Any, Dict, List, Literal, Optional, cast, Callable
 
 from weaviate import WeaviateClient, connect_to_weaviate_cloud
 from weaviate.classes.init import Auth
@@ -12,10 +12,13 @@ from weaviate.classes.query import Filter, MetadataQuery
 from weaviate.classes.config import Configure, Property, DataType
 
 from pydantic import BaseModel
+from langchain.prompts import PromptTemplate
+from langchain.output_parsers import PydanticOutputParser
 
 from config.embeddings import openai_embedder, EmbedderFn  # type: ignore
 from config.langfuse import provide_callback_handler_with_tags  # type: ignore
 from config import app_settings  # type: ignore
+from core.identity.prompts import PROMPTS_ENV
 
 _logger = logging.getLogger("identity_sync_wrapper")
 
@@ -45,6 +48,8 @@ class LLMDecision(BaseModel):
     action: Literal["use", "new"]
     entity_id: Optional[str] = None
     alias_text: Optional[str] = None
+    canonical: Optional[bool] = None
+    rationale: Optional[str] = None
 
 
 class IdentityService:
@@ -53,7 +58,7 @@ class IdentityService:
         weaviate_sync_client: WeaviateClient,
         embedder: Optional[EmbedderFn],
         *,
-        llm: Callable[[str, List[Dict[str, Any]], int, str], Union[LLMDecision, dict]],
+        llm: Any,
         callback_handler=None,
     ) -> None:
         self._w = weaviate_sync_client
@@ -259,6 +264,44 @@ class IdentityService:
         hits.sort(key=lambda x: -float(cast(float, x["score"])))
         return hits
 
+    async def _llm_disambiguate(
+        self,
+        raw_name: str,
+        aliases: List[Dict[str, Any]],
+        chapter: int,
+        snippet: str,
+    ) -> LLMDecision:
+        parser = PydanticOutputParser(pydantic_object=LLMDecision)
+        format_instructions = parser.get_format_instructions()
+
+        prompt_tmpl = PROMPTS_ENV.get_template("verify_alias_llm.j2")
+        prompt_body = prompt_tmpl.render(
+            raw_name=raw_name,
+            chapter=chapter,
+            snippet=snippet,
+            candidates=[
+                {
+                    "alias_text": a["alias_text"],
+                    "canonical": a.get("canonical", False),
+                    "entity_id": a["entity_id"],
+                    "score": round(a["score"], 3),
+                }
+                for a in aliases
+            ],
+        )
+
+        chain = (
+            PromptTemplate(
+                template=prompt_body + "\n\n{format_instructions}",
+                input_variables=["format_instructions"],
+                partial_variables={"format_instructions": format_instructions},
+            )
+            | self._llm
+            | parser
+        )
+
+        return await chain.ainvoke({})
+
     def _llm_disambiguate_sync(
         self,
         raw_name: str,
@@ -266,12 +309,19 @@ class IdentityService:
         chapter: int,
         snippet: str,
     ) -> LLMDecision:
-        result = self._llm(raw_name, aliases, chapter, snippet)
-        if isinstance(result, dict):
-            return LLMDecision(**result)
-        if isinstance(result, LLMDecision):
-            return result
-        raise ValueError(f"_llm must return LLMDecision or dict, got {type(result)}")
+        try:
+            return asyncio.run(
+                self._llm_disambiguate(raw_name, aliases, chapter, snippet)
+            )
+        except Exception:
+            result = self._llm(raw_name, aliases, chapter, snippet)
+            if isinstance(result, dict):
+                return LLMDecision(**result)
+            if isinstance(result, LLMDecision):
+                return result
+            raise ValueError(
+                f"_llm must return LLMDecision or dict, got {type(result)}"
+            )
 
     def _upsert_alias_sync(self, task: AliasTask) -> None:
         col = self._w.collections.get(ALIAS_CLASS)
@@ -308,9 +358,7 @@ def _render_alias_cypher(task: AliasTask) -> str:
 
 @lru_cache(maxsize=1)
 def get_identity_service_sync(
-    llm: Optional[
-        Callable[[str, List[Dict[str, Any]], int, str], Union[LLMDecision, dict]]
-    ] = None,
+    llm: Optional[Any] = None,
     embedder: Optional[EmbedderFn] = None,
     wclient: Optional[WeaviateClient] = None,
 ) -> IdentityService:

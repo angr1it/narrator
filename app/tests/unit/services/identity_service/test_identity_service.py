@@ -6,6 +6,41 @@ commit handling without relying on external services.
 
 import pytest
 from services.identity_service import IdentityService, AliasTask, LLMDecision
+from langchain_core.language_models.fake import FakeListLLM
+
+
+class MyFakeLLM(FakeListLLM):
+    model_config = {"extra": "allow"}
+
+    def __init__(self, responses):
+        super().__init__(responses=responses)
+        self._last_prompt = None
+        self._calls = 0
+        self._last_run_manager = None
+
+    def _call(self, prompt, stop=None, run_manager=None, **kwargs):
+        self._last_prompt = prompt
+        self._last_run_manager = run_manager
+        self._calls += 1
+        return super()._call(prompt, stop=stop, run_manager=run_manager, **kwargs)
+
+    async def _acall(self, prompt, stop=None, run_manager=None, **kwargs):
+        self._last_prompt = prompt
+        self._last_run_manager = run_manager
+        self._calls += 1
+        return await super()._acall(
+            prompt, stop=stop, run_manager=run_manager, **kwargs
+        )
+
+    def get_prompt(self):
+        return self._last_prompt
+
+    def get_run_manager(self):
+        return self._last_run_manager
+
+    @property
+    def calls(self):
+        return self._calls
 
 
 class DummyService(IdentityService):
@@ -97,22 +132,24 @@ async def test_startup_skips_if_exists():
 
 
 def test_llm_disambiguate_calls_llm():
-    called = {}
-
-    def llm(raw_name, aliases, chapter, snippet):
-        called["args"] = (raw_name, aliases, chapter, snippet)
-        return {"action": "use", "entity_id": "e1"}
+    fake_llm = MyFakeLLM(
+        [
+            '{"action": "use", "entity_id": "e1", "alias_text": "n", "canonical": false, "rationale": "ok"}'
+        ]
+    )
 
     svc = IdentityService(
         weaviate_sync_client=type("C", (), {"collections": None})(),
         embedder=lambda x: [0.0],
-        llm=llm,
+        llm=fake_llm,
         callback_handler=object(),
     )
 
     decision = svc._llm_disambiguate_sync("n", [], 1, "t")
     assert decision.entity_id == "e1"
-    assert called["args"] == ("n", [], 1, "t")
+    assert decision.canonical is False
+    assert decision.rationale == "ok"
+    assert "n" in fake_llm.get_prompt()
 
 
 @pytest.mark.asyncio
@@ -128,7 +165,7 @@ async def test_startup_creates_collection():
 def test_llm_disambiguate_accepts_model():
     class LLMObj:
         def __call__(self, *a, **kw):
-            return LLMDecision(action="use", entity_id="e2")
+            return LLMDecision(action="use", entity_id="e2", alias_text="n")
 
     svc = IdentityService(
         weaviate_sync_client=type("C", (), {"collections": None})(),
@@ -148,6 +185,30 @@ def test_llm_disambiguate_invalid_type():
     )
     with pytest.raises(ValueError):
         svc._llm_disambiguate_sync("n", [], 1, "t")
+
+
+@pytest.mark.asyncio
+async def test_llm_disambiguate_async():
+    fake_llm = MyFakeLLM(
+        [
+            '{"action": "use", "entity_id": "e1", "alias_text": "A", "canonical": false, "rationale": "ok"}'
+        ]
+    )
+    svc = IdentityService(
+        weaviate_sync_client=type("C", (), {"collections": None})(),
+        embedder=lambda x: [0.0],
+        llm=fake_llm,
+    )
+    res = await svc._llm_disambiguate(
+        raw_name="A",
+        aliases=[{"alias_text": "A", "entity_id": "e1", "score": 0.8}],
+        chapter=2,
+        snippet="txt",
+    )
+    assert res.action == "use"
+    assert res.entity_id == "e1"
+    assert res.rationale == "ok"
+    assert "A" in fake_llm.get_prompt()
 
 
 @pytest.mark.asyncio
