@@ -1,41 +1,38 @@
 # AGENTS.md
 
-Основные правила работы с репозиторием. Глубже расположенные `AGENTS.md` переопределяют эти инструкции.
+Общие правила работы с репозиторием. Вложенные файлы могут дополнять эти инструкции.
 
-## Структура проекта
-- `app/api` — FastAPI роуты
+## Структура
+- `app/api` — FastAPI маршруты
 - `app/services` — бизнес-логика
-- `app/schemas` — Pydantic-модели
+- `app/schemas` — Pydantic модели
 - `app/config` — клиенты внешних сервисов
-- `app/core` — авторизация и общие компоненты
-- `app/utils` — логгер и хелперы
+- `app/core` — общая инфраструктура
+- `app/utils` — логирование и helpers
 - `app/templates` — Jinja2-шаблоны
 - `app/tests` — тесты
 - `docs/` — документация
 - `app/main.py` — точка входа
 
 ## Код-стайл
-- PEP8 и аннотации типов
-- Форматирование — `black`
-- Линтер — `flake8`
+- PEP8 + типы, форматирование `black`, линтер `flake8`
 - Используйте f-строки
 - В `Field()` указывайте `description`
-- Для логирования применяйте `get_logger` из `app.utils.logger`
+- Логер — `get_logger` из `app.utils.logger`
 
-## Локальная разработка
-- Создайте `.env` на основе примера
-- Запустите API: `docker compose up -d`
-- Для интеграционных тестов дополнительно запустите зависимости:
-  `docker compose --profile integration up -d`
-- Проверьте Weaviate: `curl http://localhost:8080/v1/meta`
+## Локальный запуск
+1. Создайте `.env` по примеру
+2. `docker compose up -d`
+3. Для интеграционных тестов: `docker compose --profile integration up -d`
+4. Проверьте Weaviate: `curl http://localhost:8080/v1/meta`
 
-## Тестирование
-- Запуск тестов: `pytest -q`
-- Запуск с покрытием: `pytest --cov=app --cov-report=xml:coverage.xml --cov-report=html --cov-fail-under=85 -q`
-- Подробности — в `app/tests/AGENTS.md`
+## Тесты
+- `pytest -q` (интеграция: `--runintegration`)
+- Покрытие: `pytest --cov=app --cov-report=xml:coverage.xml --cov-report=html --cov-fail-under=85 -q`
+- Подробнее — `app/tests/AGENTS.md`
 
 ## Pull request
-- Заголовок — короткий глагол
+- Краткий глагол в заголовке
 - Описание содержит `## Summary` и `## Testing`
 
 ## Обязательные проверки
@@ -45,6 +42,6 @@
 - `pytest --cov=app --cov-report=xml:coverage.xml --cov-report=html --cov-fail-under=85 -q`
 
 ### Pre-commit
-- После установки зависимостей выполните `pre-commit install`
-- Хуки запускают все проверки
-- Типы только в изменённых файлах: `pre-commit run mypy --from-ref origin/master --to-ref HEAD`
+- Выполните `pre-commit install`
+- Хуки запустят проверки
+- Проверка типов для изменённых файлов: `pre-commit run mypy --from-ref origin/master --to-ref HEAD`
