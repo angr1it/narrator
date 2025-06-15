@@ -105,12 +105,12 @@ class SlotFiller:
             slots=template.slots.values(),
             slot_names=slot_names,
             previous=previous,
+            format_instructions=format_instructions,
         )
 
         prompt = PromptTemplate(
-            template=rendered + "\n\n{format_instructions}",
-            input_variables=["format_instructions"],
-            partial_variables={"format_instructions": format_instructions},
+            template=rendered,
+            input_variables=[],
         )
 
         trace_name = f"{self.__class__.__name__.lower()}.{phase}"
