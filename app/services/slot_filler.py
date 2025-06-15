@@ -99,6 +99,7 @@ class SlotFiller:
         format_instructions = parser.get_format_instructions()
 
         tpl = PROMPTS_ENV.get_template(prompt_file)
+
         rendered = tpl.render(
             template=template,
             text=text,
@@ -111,7 +112,7 @@ class SlotFiller:
         prompt = PromptTemplate(
             template=rendered,
             input_variables=[],
-            template_format="f-string",
+            template_format="jinja2",  # Не использовать "f-string" форматирование
         )
 
         trace_name = f"{self.__class__.__name__.lower()}.{phase}"

@@ -40,6 +40,7 @@ async def call_llm_with_json_list(
     class ResponseList(RootModel[List[item_model]]):  # type: ignore[misc, valid-type]
         pass
 
+
     parser = PydanticOutputParser(pydantic_object=ResponseList)
     fix_parser = OutputFixingParser.from_llm(llm, parser)
     chain = prompt | llm
@@ -70,7 +71,7 @@ async def call_llm_with_json_list(
                         data = [data]
                     result = ResponseList.model_validate(data)
             return list(result.root)
-        except Exception as e:  # pragma: no cover - network / llm errors
+        except Exception as e:
             attempts += 1
             logger.error("LLM call failed: %s", e)
             if attempts >= max_attempts:
