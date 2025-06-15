@@ -125,6 +125,7 @@ MATCH (chunk:Chunk {id: "{{ chunk_id }}"})
 ### Шаг 2: `chunk_mentions.j2` добавляет обвязку
 
 ```jinja2
+WITH *
 MATCH (chunk:Chunk {id: "{{ chunk_id }}"})
 {% for node_id in related_node_ids %}
   MATCH (x{{ loop.index }} {id: "{{ node_id }}"})

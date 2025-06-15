@@ -37,6 +37,7 @@
    MERGE (a:Character {id: "UUID-123"})
    MERGE (b:Faction {id: "UUID-456"})
    MERGE (a)-[:MEMBER_OF {chapter: 15, chunk_id: $chunk_id}]->(b)
+   WITH *
    MATCH (chunk:Chunk {id: $chunk_id})
    MERGE (chunk)-[:MENTIONS]->(a)
    MERGE (chunk)-[:MENTIONS]->(b)

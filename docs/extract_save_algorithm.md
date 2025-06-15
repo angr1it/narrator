@@ -157,6 +157,7 @@ resolved_slots = {
 MERGE (a:Character {id: "UUID-123"})
 MERGE (b:Faction {id: "UUID-456"})
 MERGE (a)-[:MEMBER_OF {from_chapter: 5}]->(b)
+WITH *
 ```
 
 Дополнительно:
