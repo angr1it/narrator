@@ -17,6 +17,9 @@ class DummyService(TemplateService):
         self.imported.append(tpl)
         return CypherTemplate(id=str(uuid.uuid4()), **tpl.model_dump())
 
+    def get_by_name(self, name: str) -> CypherTemplate:  # type: ignore[override]
+        raise ValueError("not found")
+
 
 def test_init_imports_base_templates():
     """Service initialization should import all ``base_templates``."""
