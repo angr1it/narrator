@@ -27,10 +27,11 @@ refactor that removed `FactNode`.
 5. **Cypher rendering & execution**
    - `TemplateRenderer.render` merges the slot dictionary with meta
      information (`chunk_id`, `chapter`, etc.).
-   - The domain template is rendered through `chunk_mentions.j2` which adds a
-     `MATCH (chunk)` statement and `MENTIONS` edges.
-   - Alias Cypher and template Cypher are sent to `GraphProxy` as a
-     single batch.
+  - The domain template is rendered through `chunk_mentions.j2` which adds a
+    `MATCH (chunk)` statement and `MENTIONS` edges.
+  - If the resulting Cypher contains ``WITH *``, the pipeline splits it into two
+    statements so that `MERGE` operations run before reads. Both statements and
+    any alias Cypher are executed in one transaction.
 
 6. **Raptor index update**
    - All generated `triple_text` strings are concatenated and passed to

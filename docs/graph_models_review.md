@@ -129,9 +129,14 @@ WITH *
 MATCH (chunk:Chunk {id: "{{ chunk_id }}"})
 {% for node_id in related_node_ids %}
   MATCH (x{{ loop.index }} {id: "{{ node_id }}"})
+{% endfor %}
+{% for node_id in related_node_ids %}
   MERGE (chunk)-[:MENTIONS]->(x{{ loop.index }})
 {% endfor %}
 ```
+
+`MATCH`-часть выполняется перед `MERGE`. Пайплайн разделяет запрос по ``WITH *``
+и исполняет его двумя последовательными командами, избегая ошибки Neo4j.
 
 Это формирует привязку всех связанных сущностей к `ChunkNode`.
 
