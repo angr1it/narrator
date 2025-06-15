@@ -305,17 +305,13 @@ class AugmentPipeline:
         summary = None
         if self.summariser:
             if inspect.iscoroutinefunction(self.summariser):
-                async_summariser = cast(
-                    Callable[[List[Dict[str, Any]]], Awaitable[str]],
-                    self.summariser,
+                coro = cast(
+                    Callable[[List[Dict[str, Any]]], Awaitable[str]], self.summariser
                 )
-                summary = await async_summariser(rows)
+                summary = await coro(rows)
             else:
-                sync_summariser = cast(
-                    Callable[[List[Dict[str, Any]]], str],
-                    self.summariser,
-                )
-                summary = sync_summariser(rows)
+                fn = cast(Callable[[List[Dict[str, Any]]], str], self.summariser)
+                summary = fn(rows)
 
         return {"context": {"rows": rows, "summary": summary}, "trace_id": ""}
 
