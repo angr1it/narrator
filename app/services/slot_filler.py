@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+import json
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers import PydanticOutputParser
+from langchain_core.exceptions import OutputParserException
 from pydantic import BaseModel, create_model, RootModel, Field
 
 
@@ -112,7 +114,7 @@ class SlotFiller:
             partial_variables={"format_instructions": format_instructions},
         )
 
-        chain = prompt | self.llm | parser
+        chain = prompt | self.llm
 
         attempts = 0
         trace_name = f"{self.__class__.__name__.lower()}.{phase}"
@@ -126,7 +128,19 @@ class SlotFiller:
 
         while True:
             try:
-                result = chain.invoke({}, config=config)
+                raw = chain.invoke({}, config=config)
+                if hasattr(raw, "content"):
+                    raw = raw.content
+                try:
+                    result = parser.invoke(raw)
+                except OutputParserException:
+                    try:
+                        data = json.loads(raw)
+                    except json.JSONDecodeError as err:
+                        raise err
+                    if isinstance(data, dict):
+                        data = [data]
+                    result = ResponseList.model_validate(data)
                 break
             except Exception as e:
                 attempts += 1
