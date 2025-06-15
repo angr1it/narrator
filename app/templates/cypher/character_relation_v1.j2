@@ -3,6 +3,5 @@ MERGE (b:Character {id: "{{ character_b }}"})
 WITH a, b
 CALL apoc.create.relationship(a, '{{ relation_type|upper }}_OF', {
     {% include "_relation_meta.j2" %}
-}, b) YIELD rel
-
+}, b)
 {% set related_node_ids = [character_a, character_b] %}
