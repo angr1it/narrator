@@ -2,7 +2,9 @@ from functools import lru_cache
 import logging
 import asyncio
 import uuid
-from dataclasses import dataclass
+
+from typing import dataclass_transform
+from dataclasses import dataclass as std_dataclass, Field
 from typing import Any, Dict, List, Literal, Optional, cast, Callable
 
 from weaviate import WeaviateClient, connect_to_weaviate_cloud
@@ -30,7 +32,12 @@ LO_SIM = 0.40
 ALIAS_CLASS = "Alias"
 
 
-@dataclass
+@dataclass_transform(field_specifiers=(Field,))
+def my_dataclass(cls):
+    return std_dataclass(cls)
+
+
+@my_dataclass
 class AliasTask:
     cypher_template_id: str
     render_slots: Dict[str, Any]

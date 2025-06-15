@@ -1,7 +1,7 @@
-docker-up:
-docker compose up -d
+up:
+docker compose up -d --build
 
-docker-down:
+down:
 docker compose down
 
 test:

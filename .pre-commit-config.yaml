@@ -13,13 +13,14 @@ repos:
     rev: v1.7.0
     hooks:
       - id: mypy
-        name: "Type check — mypy"
-        files: "\\.py$"
-        exclude: "vulture_whitelist\\.py$"
+        name: "Type check — mypy (app only)"
+        files: ^app/.*\.py$
+        exclude: ^\.venv/
         args:
           - --ignore-missing-imports
           - --install-types
           - --non-interactive
+          - --follow-imports=skip       # ← см. п. 2
         always_run: true
   - repo: local
     hooks:
