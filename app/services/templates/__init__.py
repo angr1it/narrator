@@ -246,7 +246,6 @@ class TemplateService:
                 Property(name="extract_cypher", data_type=DataType.TEXT),
                 Property(name="use_base_extract", data_type=DataType.BOOL),
                 Property(name="augment_cypher", data_type=DataType.TEXT),
-                Property(name="use_base_augment", data_type=DataType.BOOL),
                 Property(name="supports_extract", data_type=DataType.BOOL),
                 Property(name="supports_augment", data_type=DataType.BOOL),
                 Property(
@@ -302,7 +301,6 @@ class TemplateService:
             "extract_cypher",
             "use_base_extract",
             "augment_cypher",
-            "use_base_augment",
             "supports_extract",
             "supports_augment",
             "graph_relation",

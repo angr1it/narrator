@@ -116,7 +116,6 @@ def make_template(name, cypher_file, *, augment=False):
         extract_cypher=None if augment else cypher_file,
         augment_cypher=cypher_file if augment else None,
         use_base_extract=False,
-        use_base_augment=False,
         graph_relation=GraphRelationDescriptor(
             predicate="REL", subject="$character", object="true"
         ),

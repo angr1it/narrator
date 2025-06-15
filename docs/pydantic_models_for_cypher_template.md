@@ -70,7 +70,6 @@ class CypherTemplateBase(BaseModel):
     use_base_extract: bool = True              # оборачивать через chunk_mentions.j2
 
     augment_cypher: Optional[str] = None       # Jinja-файл выборки
-    use_base_augment: bool = True
 
     supports_extract: Optional[bool] = None    # вычисляется автоматически
     supports_augment: Optional[bool] = None
@@ -119,9 +118,6 @@ class CypherTemplateBase(BaseModel):
         )
         if mode is TemplateRenderMode.AUGMENT:
             self.validate_augment()
-            if self.use_base_augment and not cypher_name.startswith("chunk_"):
-                context["template_body"] = cypher_name
-                cypher_name = "chunk_mentions.j2"
         else:
             self.validate_extract()
             if self.use_base_extract and not cypher_name.startswith("chunk_"):

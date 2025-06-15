@@ -12,7 +12,7 @@ model. Two endpoints are available:
 
 The extraction flow is fully implemented. Work on augmentation has begun:
 
-- `CypherTemplateBase` now defines `augment_cypher`, `use_base_augment` and
+- `CypherTemplateBase` now defines `augment_cypher` and
   `supports_augment` fields.
 - `TemplateService.top_k` accepts a `mode` flag to filter templates for
   augmentation.
@@ -140,15 +140,15 @@ The following components were updated during the recent refactor:
 
 ### TemplateService
 - Loads built‑in templates at startup using `ensure_base_templates`.
-- Weaviate schema now includes `augment_cypher`, `use_base_augment` and
+- Weaviate schema now includes `augment_cypher` and
   `supports_augment`.
 - `top_k` and `top_k_async` accept :class:`TemplateRenderMode` to filter
   augmentation templates.
 
 ### CypherTemplate
 - `render` accepts :class:`TemplateRenderMode` and validates augment fields.
-- Base wrapper `chunk_mentions.j2` can be disabled per mode via
-  `use_base_extract` and `use_base_augment`.
+- Base wrapper `chunk_mentions.j2` can be disabled in extract mode via
+  `use_base_extract`.
 
 ### IdentityService
 - `resolve_bulk` now takes slot definitions and skips slots where

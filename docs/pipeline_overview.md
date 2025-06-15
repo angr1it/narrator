@@ -15,7 +15,7 @@
   - `slots` — описание входных данных.
   - `graph_relation` — описание семантики (`subject`, `predicate`, `object`).
   - `extract_cypher` / `augment_cypher` — Jinja2-файлы для вставки и выборки.
-  - `use_base_extract` / `use_base_augment` — подключают обёртку `chunk_mentions.j2`.
+  - `use_base_extract` — подключает обёртку `chunk_mentions.j2`.
 
 ### 3. `AliasRecord` (в Weaviate)
 - Отражает конкретное текстовое упоминание сущности.
