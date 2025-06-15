@@ -11,6 +11,7 @@ from schemas.cypher import CypherTemplate
 from schemas.slots import SlotFill
 from utils.logger import get_logger
 from utils.helpers.llm import call_llm_with_json_list
+from utils.helpers.sanitize import escape_braces, escape_braces_json
 
 
 logger = get_logger(__name__)
@@ -100,14 +101,26 @@ class SlotFiller:
 
         tpl = PROMPTS_ENV.get_template(prompt_file)
 
+        safe_template = template.model_copy(
+            update={"description": escape_braces(template.description)}
+        )
+        safe_slots = [
+            s.model_copy(update={"description": escape_braces(s.description or "")})
+            for s in template.slots.values()
+        ]
+
         rendered = tpl.render(
-            template=template,
-            text=text,
-            slots=template.slots.values(),
+            template=safe_template,
+            text=escape_braces(text),
+            slots=safe_slots,
             slot_names=slot_names,
-            previous=previous,
+            previous=escape_braces_json(previous) if previous else None,
             format_instructions=format_instructions,
         )
+
+        if "{{" in rendered or "{%" in rendered:
+            logger.warning("Unsafe Jinja delimiters left in prompt \u2013 escaping")
+            rendered = escape_braces(rendered)
 
         prompt = PromptTemplate(
             template=rendered,
