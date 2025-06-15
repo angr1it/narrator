@@ -17,7 +17,6 @@ class AppSettings(BaseSettings):
 
     WEAVIATE_URL: str  # Weaviate (TemplateService)
     WEAVIATE_API_KEY: str
-    WEAVIATE_INDEX: str
     WEAVIATE_CLASS_NAME: str
 
     MONGO_URI: str | None = None

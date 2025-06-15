@@ -13,7 +13,6 @@ def unit_test_env():
         "NEO4J_DB": "neo4j",
         "WEAVIATE_URL": "http://localhost",
         "WEAVIATE_API_KEY": "x",
-        "WEAVIATE_INDEX": "idx",
         "WEAVIATE_CLASS_NAME": "cls",
         "AUTH_TOKEN": "x",
     }
