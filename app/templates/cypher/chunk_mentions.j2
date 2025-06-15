@@ -1,5 +1,6 @@
 {% include template_body %}
 
+WITH *
 MATCH (chunk:Chunk {id: "{{ chunk_id }}"})
 {% for node_id in related_node_ids %}
   MATCH (x{{ loop.index }} {id: "{{ node_id }}"})

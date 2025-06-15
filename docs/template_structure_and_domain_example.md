@@ -29,6 +29,7 @@
 
 {% include "templates/{{ template_id }}.j2" %}
 
+WITH *
 // --- связи с Chunk ---
 MATCH (chunk:Chunk {id: "{{ chunk_id }}"})
 
