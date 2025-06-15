@@ -39,10 +39,14 @@
    MERGE (a)-[:MEMBER_OF {chapter: 15, chunk_id: $chunk_id}]->(b)
    WITH *
    MATCH (chunk:Chunk {id: $chunk_id})
+   MATCH (a {id: "UUID-123"})
+   MATCH (b {id: "UUID-456"})
    MERGE (chunk)-[:MENTIONS]->(a)
    MERGE (chunk)-[:MENTIONS]->(b)
    ```
-7. **GraphProxy.** Выполняет весь Cypher в одной транзакции.
+   Запрос разбивается на две части по ``WITH *``. Это гарантирует, что записи
+   создаются до чтения и Neo4j не выдаёт ошибку порядка команд.
+7. **GraphProxy.** Выполняет оба получившихся запроса в одной транзакции.
 
 Итогом является `chunk_id` с привязанными сущностями и `raptor_node_id` для дальнейшего версионирования.
 

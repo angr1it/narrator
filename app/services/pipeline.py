@@ -120,11 +120,17 @@ class ExtractionPipeline:
         chunk_id: str,
         triple_texts: List[str],
     ) -> Tuple[List[Dict[str, str | None]], List[Dict[str, str]]]:
-        """Fill slots for a template and commit its Cypher.
+        """Fill slots for a template and persist its relationships.
 
-        The method handles alias resolution, template rendering and
-        Cypher execution. It appends the template's ``triple_text`` to the
-        provided ``triple_texts`` list for later Raptor processing.
+        The method resolves entity aliases, renders the template and executes
+        the resulting Cypher.  ``chunk_mentions.j2`` injects a ``WITH *``
+        separator so that the domain MERGE statements run before ``MENTIONS``
+        edges are attached to the ``Chunk``.  Neo4j still reports a
+        ``MATCH after MERGE`` error when all commands are issued in a single
+        statement.  To avoid this the statement is split around ``WITH *`` and
+        executed as two sequential queries within one transaction.  The
+        template's ``triple_text`` is collected for later insertion into the
+        Raptor index.
         """
         fills = await self.slot_filler.fill_slots(template, text)
         if not fills:
@@ -159,7 +165,17 @@ class ExtractionPipeline:
         }
         render = self.template_renderer.render(template, slot_fill, meta)
 
-        batch = alias_cyphers + [render.content_cypher]
+        cypher = render.content_cypher
+        # Neo4j may reject queries that mix MERGE with MATCH even when
+        # separated by ``WITH *`` inside a single statement. ``chunk_mentions.j2``
+        # inserts such a separator, therefore we split the statement into two
+        # parts to execute them sequentially.
+        query_parts = [cypher]
+        if "WITH *" in cypher:
+            head, tail = cypher.split("WITH *", 1)
+            query_parts = [head.strip(), tail.strip()]
+
+        batch = alias_cyphers + query_parts
         await self.graph_proxy.run_queries(batch)
         triple_texts.append(render.triple_text)
 

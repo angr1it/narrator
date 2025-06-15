@@ -94,7 +94,9 @@ class CypherTemplateBase(BaseModel):
 1. \`\` добавляет в `context`:
    - `chunk_id` (передаётся ExtractionPipeline),
    - авто‑сформированный `related_node_ids`.
-2. \`\` использует оба поля: делает `MATCH (chunk:Chunk {id: chunk_id})` и для каждого `node_id` — `MERGE (chunk)-[:MENTIONS]->(xᵢ)`.
+2. \`\` использует оба поля: делает `MATCH (chunk:Chunk {id: chunk_id})` и для
+   каждого `node_id` сначала `MATCH`, затем `MERGE (chunk)-[:MENTIONS]->(xᵢ)`.
+   Пайплайн разбивает запрос по ``WITH *`` и исполняет его в два шага.
 3. **Доменный шаблон** отвечает только за *семантическую связь* (`MERGE (a)-[:MEMBER_OF]->(b)`), не заботясь о привязке к чанку.
 4. **Связь с RaptorNode** осуществляется позже сервисным кодом: после коммита фактов в Neo4j пайплайн вызывает `flat_raptor.insert_chunk()` и обновляет поле `raptor_node_id` у `:Chunk`.
 
