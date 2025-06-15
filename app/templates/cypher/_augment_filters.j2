@@ -1,1 +1,1 @@
-WHERE r.chapter <= {{ chapter }}{% if chapter_from is defined %} AND r.chapter >= {{ chapter_from }}{% endif %} AND r.draft_stage >= "outline" AND r.confidence >= 0.2
+WHERE r.chapter <= {{ chapter }}{% if chapter_from is defined %} AND r.chapter >= {{ chapter_from }}{% endif %} AND r.draft_stage >= "outline"
