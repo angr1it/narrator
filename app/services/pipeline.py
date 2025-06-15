@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Dict, Any, Tuple, Callable, Awaitable
+from typing import List, Dict, Any, Tuple, Callable, Awaitable, cast
 from uuid import uuid4
 import inspect
 
@@ -305,9 +305,17 @@ class AugmentPipeline:
         summary = None
         if self.summariser:
             if inspect.iscoroutinefunction(self.summariser):
-                summary = await self.summariser(rows)  # type: ignore[arg-type]
+                async_summariser = cast(
+                    Callable[[List[Dict[str, Any]]], Awaitable[str]],
+                    self.summariser,
+                )
+                summary = await async_summariser(rows)
             else:
-                summary = self.summariser(rows)  # type: ignore[arg-type]
+                sync_summariser = cast(
+                    Callable[[List[Dict[str, Any]]], str],
+                    self.summariser,
+                )
+                summary = sync_summariser(rows)
 
         return {"context": {"rows": rows, "summary": summary}, "trace_id": ""}
 

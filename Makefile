@@ -1,13 +1,15 @@
 up:
-docker compose up -d --build
+	docker compose up -d --build
 
 down:
-docker compose down
+	docker compose down
 
 test:
-pytest .
+	pytest .
 
-integration-test: docker-up
-sleep 5
-pytest --runintegration .
-docker compose down
+integration-test: up
+	sleep 5
+	pytest --runintegration .
+	docker compose down
+
+.PHONY: up down test integration-test
