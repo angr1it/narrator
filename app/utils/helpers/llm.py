@@ -40,7 +40,6 @@ async def call_llm_with_json_list(
     class ResponseList(RootModel[List[item_model]]):  # type: ignore[misc, valid-type]
         pass
 
-
     parser = PydanticOutputParser(pydantic_object=ResponseList)
     fix_parser = OutputFixingParser.from_llm(llm, parser)
     chain = prompt | llm
