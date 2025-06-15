@@ -10,6 +10,7 @@ from core.slots.prompts import PROMPTS_ENV
 from schemas.cypher import CypherTemplate
 from schemas.slots import SlotFill
 from utils.logger import get_logger
+from utils.helpers.llm import call_llm_with_json_list
 
 
 logger = get_logger(__name__)
@@ -112,29 +113,16 @@ class SlotFiller:
             partial_variables={"format_instructions": format_instructions},
         )
 
-        chain = prompt | self.llm | parser
-
-        attempts = 0
         trace_name = f"{self.__class__.__name__.lower()}.{phase}"
-        config = None
-        if self.callback_handler:
-            config = {
-                "callbacks": [self.callback_handler],
-                "run_name": trace_name,
-                "tags": [self.__class__.__name__],
-            }
-
-        while True:
-            try:
-                result = chain.invoke({}, config=config)
-                break
-            except Exception as e:
-                attempts += 1
-                logger.error(f"Error in phase {phase}: {str(e)}")
-                if attempts > 1:
-                    raise
-
-        return result.model_dump()
+        models = call_llm_with_json_list(
+            ItemModel,
+            self.llm,
+            prompt,
+            callback_handler=self.callback_handler,
+            run_name=trace_name,
+            tags=[self.__class__.__name__],
+        )
+        return [m.model_dump() for m in models]
 
     @staticmethod
     def _needs_fallback(
