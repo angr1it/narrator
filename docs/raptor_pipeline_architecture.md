@@ -31,7 +31,7 @@ sequenceDiagram
     Pipeline->>TemplateService: find templates
     TemplateService-->>Pipeline: templates
     loop per template
-        Pipeline->>SlotFiller: fill_slots
+        Pipeline->>SlotFiller: await fill_slots
         SlotFiller-->>Pipeline: slots
         Pipeline->>IdentityService: resolve aliases
         IdentityService-->>Pipeline: entity_ids, alias_cypher

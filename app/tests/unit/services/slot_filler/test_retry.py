@@ -10,6 +10,7 @@ from schemas.cypher import CypherTemplate, SlotDefinition
 from langchain_core.language_models.fake import FakeListLLM
 from langchain_core.callbacks.base import BaseCallbackHandler
 import uuid
+import pytest
 
 
 class MyFakeLLM(FakeListLLM):
@@ -54,7 +55,8 @@ class DummyTemplate(CypherTemplate):
     pass
 
 
-def test_run_phase_retries(monkeypatch):
+@pytest.mark.asyncio
+async def test_run_phase_retries(monkeypatch):
     """The slot filler should retry when the LLM output is invalid JSON."""
     handler = DummyHandler()
     llm = MyFakeLLM(
@@ -75,7 +77,7 @@ def test_run_phase_retries(monkeypatch):
         extract_cypher="simple.j2",
         return_map={"a": "b"},
     )
-    res = filler._run_phase("extract", "extract_slots.j2", tpl, "txt")
+    res = await filler._run_phase("extract", "extract_slots.j2", tpl, "txt")
     assert llm.calls == 2
     assert res == [{"character": "A", "details": "d"}]
     rm = llm.get_run_manager()

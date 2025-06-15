@@ -5,6 +5,7 @@ validation without hitting external services.
 """
 
 from uuid import uuid4
+import pytest
 from services.slot_filler import SlotFiller
 from schemas.cypher import CypherTemplate, SlotDefinition
 
@@ -60,7 +61,8 @@ def make_template(required=True, with_summary=False):
     )
 
 
-def test_fill_slots_simple(monkeypatch):
+@pytest.mark.asyncio
+async def test_fill_slots_simple(monkeypatch):
     """Basic extraction should populate mandatory slots."""
     tpl = make_template()
     llm = DummyLLM(
@@ -70,16 +72,17 @@ def test_fill_slots_simple(monkeypatch):
         }
     )
     filler = SlotFiller(llm)
-    monkeypatch.setattr(
-        filler,
-        "_run_phase",
-        lambda *a, **k: [{"character": "A"}],
-    )
-    result = filler.fill_slots(tpl, "txt")
+
+    async def _mock(*_a, **_k):
+        return [{"character": "A"}]
+
+    monkeypatch.setattr(filler, "_run_phase", _mock)
+    result = await filler.fill_slots(tpl, "txt")
     assert result[0].slots["character"] == "A"
 
 
-def test_fallback_triggered(monkeypatch):
+@pytest.mark.asyncio
+async def test_fallback_triggered(monkeypatch):
     """Fallback phase should run when extract returns empty."""
     tpl = make_template()
     calls = {
@@ -89,16 +92,17 @@ def test_fallback_triggered(monkeypatch):
     }
     llm = DummyLLM(calls)
     filler = SlotFiller(llm)
-    monkeypatch.setattr(
-        filler,
-        "_run_phase",
-        lambda phase, *_args, **_kw: [calls[phase].pop(0)],
-    )
-    result = filler.fill_slots(tpl, "txt")
+
+    async def _mock(phase, *_args, **_kw):
+        return [calls[phase].pop(0)]
+
+    monkeypatch.setattr(filler, "_run_phase", _mock)
+    result = await filler.fill_slots(tpl, "txt")
     assert result[0].slots["character"] == "B"
 
 
-def test_generate_additional_field(monkeypatch):
+@pytest.mark.asyncio
+async def test_generate_additional_field(monkeypatch):
     """Generation phase may return optional fields such as summary."""
     tpl = make_template(with_summary=True)
     responses = {
@@ -106,12 +110,12 @@ def test_generate_additional_field(monkeypatch):
         "generate": [{"character": "A", "summary": "S"}],
     }
     filler = SlotFiller(DummyLLM(responses))
-    monkeypatch.setattr(
-        filler,
-        "_run_phase",
-        lambda phase, *_a, **_k: [responses[phase].pop(0)],
-    )
-    result = filler.fill_slots(tpl, "txt")
+
+    async def _mock(phase, *_a, **_k):
+        return [responses[phase].pop(0)]
+
+    monkeypatch.setattr(filler, "_run_phase", _mock)
+    result = await filler.fill_slots(tpl, "txt")
     assert result[0].slots.get("summary") == "S"
 
 

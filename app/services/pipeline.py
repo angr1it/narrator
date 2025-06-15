@@ -126,7 +126,7 @@ class ExtractionPipeline:
         Cypher execution. It appends the template's ``triple_text`` to the
         provided ``triple_texts`` list for later Raptor processing.
         """
-        fills = self.slot_filler.fill_slots(template, text)
+        fills = await self.slot_filler.fill_slots(template, text)
         if not fills:
             return [], []
         fill = fills[0]
@@ -274,7 +274,7 @@ class AugmentPipeline:
 
         rows: List[Dict[str, Any]] = []
         for tpl in templates:
-            fills = self.slot_filler.fill_slots(tpl, text)
+            fills = await self.slot_filler.fill_slots(tpl, text)
             for fill in fills:
                 resolve = await self.identity_service.resolve_bulk(
                     fill.slots,

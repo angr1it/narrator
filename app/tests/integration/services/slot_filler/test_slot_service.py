@@ -58,10 +58,13 @@ def filler(openai_key) -> SlotFiller:
 # --- TEST CASES -------------------------------------------------------------
 
 
-def test_extract_multiple_results(filler: SlotFiller, base_template: CypherTemplate):
+@pytest.mark.asyncio
+async def test_extract_multiple_results(
+    filler: SlotFiller, base_template: CypherTemplate
+):
     """Multiple events in the text should yield multiple slot fills."""
     text = "Арен покинул Дом Зари и примкнул к Северному фронту."
-    results = filler.fill_slots(base_template, text)
+    results = await filler.fill_slots(base_template, text)
 
     assert isinstance(results, list)
     assert len(results) >= 2
@@ -73,7 +76,8 @@ def test_extract_multiple_results(filler: SlotFiller, base_template: CypherTempl
         assert isinstance(r.details, str)
 
 
-def test_extract_missing_then_generate(filler: SlotFiller):
+@pytest.mark.asyncio
+async def test_extract_missing_then_generate(filler: SlotFiller):
     """Missing slots trigger generation phase to fill them in."""
     template = CypherTemplate(
         id=FIXED_UUID,
@@ -107,7 +111,7 @@ def test_extract_missing_then_generate(filler: SlotFiller):
         return_map={},
     )
     text = "Мира посмотрела на Эрика с презрением."
-    results = filler.fill_slots(template, text)
+    results = await filler.fill_slots(template, text)
 
     assert results
     for r in results:
@@ -120,7 +124,8 @@ def test_extract_missing_then_generate(filler: SlotFiller):
             assert isinstance(slots["summary"], str)
 
 
-def test_extract_single_object(filler: SlotFiller):
+@pytest.mark.asyncio
+async def test_extract_single_object(filler: SlotFiller):
     """Single match should return exactly one slot fill."""
     template = CypherTemplate(
         id=FIXED_UUID,
@@ -139,7 +144,7 @@ def test_extract_single_object(filler: SlotFiller):
         return_map={},
     )
     text = "Мира раскрыла, что Арен с рождения был одноруким."
-    results = filler.fill_slots(template, text)
+    results = await filler.fill_slots(template, text)
 
     assert len(results) == 1
     r = results[0]

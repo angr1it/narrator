@@ -16,6 +16,8 @@ from schemas.cypher import SlotDefinition
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 
+from utils.helpers.llm import call_llm_with_model, call_llm_with_model_sync
+
 from config.embeddings import openai_embedder, EmbedderFn  # type: ignore
 from config.langfuse import provide_callback_handler_with_tags  # type: ignore
 from config import app_settings  # type: ignore
@@ -279,16 +281,15 @@ class IdentityService:
         hits.sort(key=lambda x: -float(cast(float, x["score"])))
         return hits
 
-    async def _llm_disambiguate(
+    def _build_disambiguate_prompt(
         self,
         raw_name: str,
         aliases: List[Dict[str, Any]],
         chapter: int,
         snippet: str,
-    ) -> LLMDecision:
+    ) -> PromptTemplate:
         parser = PydanticOutputParser(pydantic_object=LLMDecision)
         format_instructions = parser.get_format_instructions()
-
         prompt_tmpl = PROMPTS_ENV.get_template("verify_alias_llm.j2")
         prompt_body = prompt_tmpl.render(
             raw_name=raw_name,
@@ -304,18 +305,28 @@ class IdentityService:
                 for a in aliases
             ],
         )
-
-        chain = (
-            PromptTemplate(
-                template=prompt_body + "\n\n{format_instructions}",
-                input_variables=["format_instructions"],
-                partial_variables={"format_instructions": format_instructions},
-            )
-            | self._llm
-            | parser
+        return PromptTemplate(
+            template=prompt_body + "\n\n{format_instructions}",
+            input_variables=["format_instructions"],
+            partial_variables={"format_instructions": format_instructions},
         )
 
-        return await chain.ainvoke({})
+    async def _llm_disambiguate(
+        self,
+        raw_name: str,
+        aliases: List[Dict[str, Any]],
+        chapter: int,
+        snippet: str,
+    ) -> LLMDecision:
+        prompt = self._build_disambiguate_prompt(raw_name, aliases, chapter, snippet)
+        return await call_llm_with_model(
+            LLMDecision,
+            self._llm,
+            prompt,
+            callback_handler=self._callback_handler,
+            run_name=f"{self.__class__.__name__.lower()}.disambiguate",
+            tags=[self.__class__.__name__],
+        )
 
     def _llm_disambiguate_sync(
         self,
@@ -324,9 +335,15 @@ class IdentityService:
         chapter: int,
         snippet: str,
     ) -> LLMDecision:
+        prompt = self._build_disambiguate_prompt(raw_name, aliases, chapter, snippet)
         try:
-            return asyncio.run(
-                self._llm_disambiguate(raw_name, aliases, chapter, snippet)
+            return call_llm_with_model_sync(
+                LLMDecision,
+                self._llm,
+                prompt,
+                callback_handler=self._callback_handler,
+                run_name=f"{self.__class__.__name__.lower()}.disambiguate",
+                tags=[self.__class__.__name__],
             )
         except Exception:
             result = self._llm(raw_name, aliases, chapter, snippet)

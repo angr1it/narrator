@@ -26,7 +26,7 @@ async def test_pipeline_simple(
             return [sample_template]
 
     class FakeSlotFiller:
-        def fill_slots(self, template, text):
+        async def fill_slots(self, template, text):
             return [slot_fill]
 
     pipeline = ExtractionPipeline(
@@ -67,7 +67,7 @@ async def test_pipeline_returns_details(
             return [sample_template]
 
     class FakeSlotFiller:
-        def fill_slots(self, template, text):
+        async def fill_slots(self, template, text):
             return [
                 SlotFill(
                     template_id=str(template.id),
