@@ -166,14 +166,8 @@ async def test_augment_pipeline_splits_cypher_at_with_star(
     graph_proxy, identity_service, jinja_env
 ):
     """Augment queries containing ``WITH *`` should run as two statements."""
-    jinja_env.loader.mapping["chunk_mentions.j2"] = (
-        "{% include template_body %}\nWITH *\n"
-        "MATCH (chunk:Chunk {id: '{{ chunk_id }}'})\n"
-        "  MATCH (x1 {id: '{{ related_node_ids[0] }}'})\n"
-        "  MERGE (chunk)-[:MENTIONS]->(x1)"
-    )
     jinja_env.loader.mapping["aug.j2"] = (
-        "MATCH (c:Character {id: '{{ character }}'}) RETURN c"
+        "MATCH (c:Character {id: '{{ character }}'}) WITH * MATCH (c) RETURN c"
     )
 
     template = CypherTemplate(
@@ -183,7 +177,6 @@ async def test_augment_pipeline_splits_cypher_at_with_star(
         description="d",
         slots={"character": SlotDefinition(name="character", type="STRING")},
         augment_cypher="aug.j2",
-        use_base_augment=True,
         graph_relation=GraphRelationDescriptor(
             predicate="REL", subject="$character", object="true"
         ),

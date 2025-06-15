@@ -49,7 +49,7 @@ class GraphRelationDescriptor(BaseModel):
 
 #### Рекомендуемые расширения:
 
-- `use_base_extract` / `use_base_augment` — уже введены 👍
+- `use_base_extract` — уже введён 👍
 - `graph_relation: Optional[FactDescriptor]` — можно переименовать поле `fact_descriptor`
 - `attachment_policy: Literal["chunk", "raptor", "both"] = "chunk"` — чтобы шаблон знал, к какому узлу (ChunkNode/RaptorNode) должен крепиться результат
 - `default_confidence: float = 0.2` — чтобы убрать жёстко зашитое значение из шаблонов
@@ -107,7 +107,7 @@ class CypherTemplateBase(BaseModel):
   ```python
   attachment_policy: Literal["chunk", "raptor", "both"] = "chunk"
   ```
-  но логика уже покрыта флагами `use_base_extract` и `use_base_augment`.
+  но логика уже покрыта флагом `use_base_extract`.
 
 ---
 

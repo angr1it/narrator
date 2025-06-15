@@ -13,12 +13,12 @@
 
 ### TemplateService
 - Loads built‑in templates at startup using `ensure_base_templates`.
-- Weaviate schema now includes `augment_cypher`, `use_base_augment` and `supports_augment`.
+- Weaviate schema now includes `augment_cypher` and `supports_augment`.
 - `top_k` and `top_k_async` accept `TemplateRenderMode` to filter augmentation templates.
 
 ### CypherTemplate
 - `render` принимает `TemplateRenderMode` и валидирует поля для augment.
-- Обёртка `chunk_mentions.j2` может быть отключена через `use_base_extract` или `use_base_augment`.
+- Обёртка `chunk_mentions.j2` может быть отключена через `use_base_extract`.
 
 ### IdentityService
 - `resolve_bulk` теперь получает определения слотов и пропускает те, где `is_entity_ref=False`.

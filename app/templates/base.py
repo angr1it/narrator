@@ -32,7 +32,6 @@ base_templates = [
         },
         "extract_cypher": "trait_attribution_v1.j2",
         "augment_cypher": "trait_attribution_aug_v1.j2",
-        "use_base_augment": True,
         "graph_relation": {
             "predicate": "HAS_TRAIT",
             "subject": "$character",
@@ -69,7 +68,6 @@ base_templates = [
         },
         "extract_cypher": "membership_change_v1.j2",
         "augment_cypher": "membership_change_aug_v1.j2",
-        "use_base_augment": True,
         "graph_relation": {
             "predicate": "MEMBER_OF",
             "subject": "$character",
@@ -107,7 +105,6 @@ base_templates = [
         },
         "extract_cypher": "character_relation_v1.j2",
         "augment_cypher": "character_relation_aug_v1.j2",
-        "use_base_augment": True,
         "graph_relation": {
             "predicate": "RELATION_WITH",
             "subject": "$character_a",
@@ -130,7 +127,6 @@ base_templates = [
         },
         "extract_cypher": "ownership_v1.j2",
         "augment_cypher": "ownership_aug_v1.j2",
-        "use_base_augment": True,
         "graph_relation": {
             "predicate": "OWNS_ITEM",
             "subject": "$character",
@@ -153,7 +149,6 @@ base_templates = [
         },
         "extract_cypher": "relocation_v1.j2",
         "augment_cypher": "relocation_aug_v1.j2",
-        "use_base_augment": True,
         "graph_relation": {
             "predicate": "AT_LOCATION",
             "subject": "$character",
@@ -201,7 +196,6 @@ base_templates = [
         },
         "extract_cypher": "emotion_state_v1.j2",
         "augment_cypher": "emotion_state_aug_v1.j2",
-        "use_base_augment": True,
         "graph_relation": {
             "predicate": "FEELS",
             "subject": "$character",
@@ -229,7 +223,6 @@ base_templates = [
         },
         "extract_cypher": "vow_promise_v1.j2",
         "augment_cypher": "vow_promise_aug_v1.j2",
-        "use_base_augment": True,
         "graph_relation": {
             "predicate": "VOWS",
             "subject": "$character",
@@ -251,7 +244,6 @@ base_templates = [
         },
         "extract_cypher": "death_event_v1.j2",
         "augment_cypher": "death_event_aug_v1.j2",
-        "use_base_augment": True,
         "graph_relation": {
             "predicate": "IS_ALIVE",
             "subject": "$character",
@@ -278,7 +270,6 @@ base_templates = [
         },
         "extract_cypher": "belief_ideology_v1.j2",
         "augment_cypher": "belief_ideology_aug_v1.j2",
-        "use_base_augment": True,
         "graph_relation": {
             "predicate": "BELIEVES_IN",
             "subject": "$character",
@@ -306,7 +297,6 @@ base_templates = [
         },
         "extract_cypher": "title_acquisition_v1.j2",
         "augment_cypher": "title_acquisition_aug_v1.j2",
-        "use_base_augment": True,
         "graph_relation": {
             "predicate": "HAS_TITLE",
             "subject": "$character",

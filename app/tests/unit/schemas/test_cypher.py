@@ -18,9 +18,8 @@ def jinja_env():
     return env
 
 
-def test_render_augment_with_base(jinja_env):
-    """Augment mode should include the base wrapper when enabled."""
-    jinja_env.loader.mapping["chunk_mentions.j2"] = "BASE {% include template_body %}"
+def test_render_augment_simple(jinja_env):
+    """Augment mode should render the provided template."""
     jinja_env.loader.mapping["aug.j2"] = (
         "MATCH (c:Character {id: '{{ character }}'}) RETURN c"
     )
@@ -30,29 +29,23 @@ def test_render_augment_with_base(jinja_env):
         description="d",
         slots={"character": SlotDefinition(name="character", type="STRING")},
         augment_cypher="aug.j2",
-        use_base_augment=True,
         return_map={"c": "Character"},
     )
     cypher = tpl.render(
         {"character": "char1"}, chunk_id="cid", mode=TemplateRenderMode.AUGMENT
     )
-    assert "BASE" in cypher
-    assert "char1" in cypher
+    assert "MATCH" in cypher and "char1" in cypher
 
 
-def test_validate_augment_flags():
-    """Validation should fail if ``use_base_augment`` is True without template."""
+def test_validate_augment_requires_template():
+    """Validation should fail if augment_cypher is missing when supported."""
     tpl = CypherTemplateBase(
         name="t",
         title="t",
         description="d",
         slots={},
-        use_base_augment=True,
+        supports_augment=True,
         return_map={},
     )
-    try:
+    with pytest.raises(ValueError):
         tpl.validate_augment()
-    except ValueError as exc:
-        assert "use_base_augment" in str(exc)
-    else:
-        assert False, "expected ValueError"

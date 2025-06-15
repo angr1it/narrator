@@ -64,7 +64,6 @@ class CypherTemplateBase(BaseModel):
     use_base_extract: bool = True  # оборачивать ли через chunk_mentions.j2
 
     augment_cypher: Optional[str] = None
-    use_base_augment: bool = True
     supports_extract: Optional[bool] = None
     supports_augment: Optional[bool] = None
 
@@ -90,10 +89,6 @@ class CypherTemplateBase(BaseModel):
         if self.supports_augment and not self.augment_cypher:
             raise ValueError(
                 f"Template {self.name} supports augment but has no augment_cypher"
-            )
-        if self.use_base_augment and not self.supports_augment:
-            raise ValueError(
-                f"Template {self.name} sets use_base_augment without augment support"
             )
 
     def validate_extract(self) -> None:
@@ -151,9 +146,6 @@ class CypherTemplateBase(BaseModel):
                 raise ValueError(f"Template {self.name} does not support augment")
             if cypher_name is None:
                 raise ValueError(f"Template {self.name} missing augment_cypher")
-            if self.use_base_augment and not cypher_name.startswith("chunk_"):
-                context["template_body"] = cypher_name
-                cypher_name = "chunk_mentions.j2"
         else:
             self.validate_extract()
             if not self.supports_extract:
