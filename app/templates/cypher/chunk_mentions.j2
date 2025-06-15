@@ -1,6 +1,7 @@
 {% include template_body %}
 
-MATCH (chunk:Chunk {id: "{{ chunk_id }}"})
+WITH "{{ chunk_id }}" AS chunk_id
+MATCH (chunk:Chunk {id: chunk_id})
 {% for node_id in related_node_ids %}
   MATCH (x{{ loop.index }} {id: "{{ node_id }}"})
   MERGE (chunk)-[:MENTIONS]->(x{{ loop.index }})
