@@ -313,9 +313,16 @@ class AugmentPipeline:
                 plan = self.template_renderer.render(
                     tpl, slot_fill, meta, mode=TemplateRenderMode.AUGMENT
                 )
-                result = await self.graph_proxy.run_query(
-                    plan.content_cypher, write=False
-                )
+                cypher = plan.content_cypher
+                query_parts = [cypher]
+                if "WITH *" in cypher:
+                    head, tail = cypher.split("WITH *", 1)
+                    query_parts = [head.strip(), tail.strip()]
+                    result = await self.graph_proxy.run_queries(
+                        query_parts, write=False
+                    )
+                else:
+                    result = await self.graph_proxy.run_query(cypher, write=False)
                 rows.extend(result)
 
         summary = None
