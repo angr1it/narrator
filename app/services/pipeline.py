@@ -159,7 +159,17 @@ class ExtractionPipeline:
         }
         render = self.template_renderer.render(template, slot_fill, meta)
 
-        batch = alias_cyphers + [render.content_cypher]
+        cypher = render.content_cypher
+        # Neo4j may reject queries that mix MERGE with MATCH even when
+        # separated by ``WITH *`` inside a single statement. ``chunk_mentions.j2``
+        # inserts such a separator, therefore we split the statement into two
+        # parts to execute them sequentially.
+        query_parts = [cypher]
+        if "WITH *" in cypher:
+            head, tail = cypher.split("WITH *", 1)
+            query_parts = [head.strip(), tail.strip()]
+
+        batch = alias_cyphers + query_parts
         await self.graph_proxy.run_queries(batch)
         triple_texts.append(render.triple_text)
 

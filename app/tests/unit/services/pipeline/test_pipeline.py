@@ -9,6 +9,9 @@ from schemas.stage import StageEnum
 from schemas.slots import SlotFill
 
 from services.pipeline import ExtractionPipeline
+from services.template_renderer import TemplateRenderer
+from schemas.cypher import CypherTemplate, SlotDefinition, GraphRelationDescriptor
+from uuid import uuid4
 
 
 @pytest.mark.asyncio
@@ -87,3 +90,67 @@ async def test_pipeline_returns_details(
 
     result = await pipeline.extract_and_save("txt", chapter=1)
     assert result["relationships"][0]["details"] == "why"
+
+
+@pytest.mark.asyncio
+async def test_pipeline_splits_cypher_at_with_star(
+    graph_proxy, identity_service, raptor_index, jinja_env
+):
+    """Queries containing ``WITH *`` should run as two statements."""
+    jinja_env.loader.mapping["chunk_mentions.j2"] = (
+        "{% include template_body %}\nWITH *\n"
+        "MATCH (chunk:Chunk {id: '{{ chunk_id }}'})\n"
+        "  MATCH (x1 {id: '{{ related_node_ids[0] }}'})\n"
+        "  MERGE (chunk)-[:MENTIONS]->(x1)"
+    )
+    jinja_env.loader.mapping["full.j2"] = (
+        "MERGE (c:Character {id: '{{ character }}'})\n"
+        "MERGE (t:Trait {id: '{{ trait }}'})\n"
+        "MERGE (c)-[:HAS_TRAIT]->(t)\n"
+        "{% set related_node_ids=[character, trait] %}"
+    )
+    template = CypherTemplate(
+        id=uuid4(),
+        name="full",
+        title="t",
+        description="d",
+        slots={
+            "character": SlotDefinition(name="character", type="STRING"),
+            "trait": SlotDefinition(name="trait", type="STRING"),
+        },
+        extract_cypher="full.j2",
+        use_base_extract=True,
+        graph_relation=GraphRelationDescriptor(
+            predicate="HAS", subject="$character", object="$trait"
+        ),
+        return_map={"c": "Character"},
+    )
+    slot_fill = SlotFill(
+        template_id=str(template.id),
+        slots={"character": "c", "trait": "t"},
+        details="",
+    )
+
+    class FakeTemplateService:
+        async def top_k_async(self, text, k=3):
+            return [template]
+
+    class FakeSlotFiller:
+        async def fill_slots(self, template, text):
+            return [slot_fill]
+
+    pipeline = ExtractionPipeline(
+        template_service=FakeTemplateService(),
+        slot_filler=FakeSlotFiller(),
+        graph_proxy=graph_proxy,
+        identity_service=identity_service,
+        template_renderer=TemplateRenderer(jinja_env),
+        raptor_index=raptor_index,
+    )
+
+    await pipeline.extract_and_save("txt", chapter=1)
+
+    batch = [c for c in graph_proxy.calls if isinstance(c[0], list)][0][0]
+    assert len(batch) == 2
+    assert batch[0].startswith("MERGE")
+    assert batch[1].startswith("MATCH")

@@ -30,6 +30,6 @@ async def test_run_phase_escapes_user_text(monkeypatch):
         return_map={"a": "b"},
     )
 
-    unsafe_text = 'He said: {{oops}} and {% bad %}'
+    unsafe_text = "He said: {{oops}} and {% bad %}"
     res = await filler._run_phase("extract", "extract_slots.j2", tpl, unsafe_text)
     assert res == []
