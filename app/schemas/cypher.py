@@ -112,7 +112,7 @@ class CypherTemplateBase(BaseModel):
         slots: dict,
         chunk_id: str,
         *,
-        mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
+        mode: TemplateRenderMode = TemplateRenderMode("extract"),
     ) -> str:
         required = [slot.name for slot in self.slots.values() if slot.required]
         missing = [name for name in required if name not in slots]
