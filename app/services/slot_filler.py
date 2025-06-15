@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+import json
+import re
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers import PydanticOutputParser
+from langchain_core.exceptions import OutputParserException
 from pydantic import BaseModel, create_model, RootModel, Field
 
 
@@ -45,6 +48,17 @@ class SlotFiller:
     def __init__(self, llm, callback_handler=None):
         self.llm = llm
         self.callback_handler = callback_handler
+
+    @staticmethod
+    def _safe_load_json(text: str) -> Any:
+        """Parse JSON even if surrounded by extra text or fences."""
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
+            if match:
+                return json.loads(match.group(1))
+            raise
 
     def fill_slots(self, template: CypherTemplate, text: str) -> List[SlotFill]:
         fillings = self._extract_slots(template, text)
@@ -112,7 +126,7 @@ class SlotFiller:
             partial_variables={"format_instructions": format_instructions},
         )
 
-        chain = prompt | self.llm | parser
+        chain = prompt | self.llm
 
         attempts = 0
         trace_name = f"{self.__class__.__name__.lower()}.{phase}"
@@ -126,7 +140,16 @@ class SlotFiller:
 
         while True:
             try:
-                result = chain.invoke({}, config=config)
+                raw = chain.invoke({}, config=config)
+                if hasattr(raw, "content"):
+                    raw = raw.content
+                try:
+                    result = parser.invoke(raw)
+                except OutputParserException:
+                    data = self._safe_load_json(raw)
+                    if isinstance(data, dict):
+                        data = [data]
+                    result = ResponseList.model_validate(data)
                 break
             except Exception as e:
                 attempts += 1

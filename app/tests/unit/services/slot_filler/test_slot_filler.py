@@ -122,3 +122,11 @@ def test_validate_and_cast():
     obj = {"character": "c"}
     casted = filler._validate_and_cast(obj, tpl)
     assert casted["character"] == "c"
+
+
+def test_safe_load_json_fenced():
+    """_safe_load_json should parse JSON inside code fences."""
+    raw = 'Here is the result:\n```json\n[{"character": "A", "details": "d"}]\n```'
+    data = SlotFiller._safe_load_json(raw)
+    assert isinstance(data, list)
+    assert data[0]["character"] == "A"
