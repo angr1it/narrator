@@ -12,6 +12,7 @@
 - `app/templates` — Jinja2-шаблоны
 - `app/tests` — тесты
 - `docs/` — документация
+- индекс документов: `docs/README.md`, быстрый старт: `docs/agent_quick_start.md`
 - `app/main.py` — точка входа
 
 ## Код-стайл
@@ -21,14 +22,10 @@
 - Логер — `get_logger` из `app.utils.logger`
 
 ## Локальный запуск
-1. Создайте `.env` по примеру
-2. `docker compose up -d`
-3. Для интеграционных тестов: `docker compose --profile integration up -d`
-4. Проверьте Weaviate: `curl http://localhost:8080/v1/meta`
+Подробности в `docs/agent_quick_start.md`.
 
 ## Тесты
-- `pytest -q` (интеграция: `--runintegration`)
-- Покрытие: `pytest --cov=app --cov-report=xml:coverage.xml --cov-report=html --cov-fail-under=85 -q`
+- `pytest -q` (интеграционные тесты только по запросу: `--runintegration`)
 - Подробнее — `app/tests/AGENTS.md`
 - Каждый тест должен содержать докстринг с описанием проверяемого поведения.
 
@@ -36,13 +33,10 @@
 - Краткий глагол в заголовке
 - Описание содержит `## Summary` и `## Testing`
 
-## Обязательные проверки
-- `black --check .`
-- `flake8`
-- `mypy .`
-- `pytest --cov=app --cov-report=xml:coverage.xml --cov-report=html --cov-fail-under=85 -q`
+## Проверки перед коммитом
+- Перед каждым коммитом выполняйте `pre-commit run --all-files`.
 
-### Pre-commit
-- Выполните `pre-commit install`
-- Хуки запустят проверки
-- Проверка типов для изменённых файлов: `pre-commit run mypy --from-ref origin/master --to-ref HEAD`
+### Неиспользуемый код
+- `vulture app vulture_whitelist.py` запускается в прекоммите. Если в выводе есть
+  функции или переменные, прочитайте отчёт, подтвердите каждую строку и опишите
+  результат в PR.

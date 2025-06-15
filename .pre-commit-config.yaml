@@ -3,20 +3,24 @@ repos:
     rev: 24.4.2
     hooks:
       - id: black
+        always_run: true
   - repo: https://github.com/pycqa/flake8
     rev: 7.2.0
     hooks:
       - id: flake8
+        always_run: true
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.7.0
     hooks:
       - id: mypy
         name: "Type check — mypy"
         files: "\\.py$"
+        exclude: "vulture_whitelist\\.py$"
         args:
           - --ignore-missing-imports
           - --install-types
           - --non-interactive
+        always_run: true
   - repo: local
     hooks:
       - id: pytest
@@ -25,3 +29,10 @@ repos:
           bash -c "pip install -r requirements.txt && pytest --cov=app --cov-report=xml:coverage.xml --cov-report=html --cov-fail-under=85 -q"
         language: python
         pass_filenames: false
+        always_run: true
+      - id: vulture
+        name: Vulture unused code check
+        entry: bash -c "vulture app vulture_whitelist.py || true"
+        language: system
+        pass_filenames: false
+        always_run: true
