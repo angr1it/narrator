@@ -111,7 +111,7 @@ class SlotFiller:
         prompt = PromptTemplate(
             template=rendered,
             input_variables=[],
-            template_format="jinja2",
+            template_format="f-string",
         )
 
         trace_name = f"{self.__class__.__name__.lower()}.{phase}"
