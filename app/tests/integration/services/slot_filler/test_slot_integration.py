@@ -48,7 +48,8 @@ def filler(openai_key: str) -> SlotFiller:
     return SlotFiller(llm)
 
 
-def test_trait_attribution_end_to_end(
+@pytest.mark.asyncio
+async def test_trait_attribution_end_to_end(
     filler: SlotFiller, trait_template: CypherTemplate
 ):
     """
@@ -60,7 +61,7 @@ def test_trait_attribution_end_to_end(
         "бросившись спасать товарища из горящего здания."
     )
 
-    results = filler.fill_slots(trait_template, text)
+    results = await filler.fill_slots(trait_template, text)
 
     # Ожидаем хотя бы один результат
     assert results, "LLM не вернул ни одного заполнения"

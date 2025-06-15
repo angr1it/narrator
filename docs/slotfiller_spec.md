@@ -27,7 +27,7 @@ sequenceDiagram
     API->>Pipeline: extract-save(text, chapter, tags)
     Pipeline->>TemplateService: find_templates(text)
     loop For each template
-        Pipeline->>SlotFiller: fill_slots(template, text)
+        Pipeline->>SlotFiller: await fill_slots(template, text)
         SlotFiller-->>Pipeline: List[slots]
         loop For each slots
             Pipeline->>GraphProxy: render + run Cypher
@@ -48,9 +48,14 @@ sequenceDiagram
 ## 🧾 Интерфейс
 
 ```python
-def fill_slots(self, template: CypherTemplate, text: str) -> List[Dict[str, Any]]:
+async def fill_slots(
+    self, template: CypherTemplate, text: str
+) -> List[Dict[str, Any]]:
     ...
 ```
+
+Для обратной совместимости доступна синхронная обёртка
+``call_llm_with_json_list_sync``.
 
 ### Аргументы:
 - `template` — экземпляр `CypherTemplate` с описанием `slots`

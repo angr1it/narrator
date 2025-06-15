@@ -135,7 +135,11 @@ async def test_extraction_pipeline_multiple_templates(monkeypatch, env_extract):
     svc.ensure_base_templates = lambda: None
     renderer = TemplateRenderer(env_extract)
     filler = SlotFiller(llm=None)
-    monkeypatch.setattr(filler, "_run_phase", lambda *a, **k: [{"character": "A"}])
+
+    async def _mock(*a, **k):
+        return [{"character": "A"}]
+
+    monkeypatch.setattr(filler, "_run_phase", _mock)
     identity = IdentityService(
         weaviate_sync_client=DummyClient([]),
         embedder=lambda _: [0.0],
@@ -174,7 +178,11 @@ async def test_augment_pipeline_multiple_templates(monkeypatch, env_augment):
     svc.ensure_base_templates = lambda: None
     renderer = TemplateRenderer(env_augment)
     filler = SlotFiller(llm=None)
-    monkeypatch.setattr(filler, "_run_phase", lambda *a, **k: [{"character": "A"}])
+
+    async def _mock(*a, **k):
+        return [{"character": "A"}]
+
+    monkeypatch.setattr(filler, "_run_phase", _mock)
     identity = IdentityService(
         weaviate_sync_client=DummyClient([]),
         embedder=lambda _: [0.0],

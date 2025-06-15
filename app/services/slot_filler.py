@@ -47,8 +47,8 @@ class SlotFiller:
         self.llm = llm
         self.callback_handler = callback_handler
 
-    def fill_slots(self, template: CypherTemplate, text: str) -> List[SlotFill]:
-        fillings = self._extract_slots(template, text)
+    async def fill_slots(self, template: CypherTemplate, text: str) -> List[SlotFill]:
+        fillings = await self._extract_slots(template, text)
 
         results: List[SlotFill] = []
         for s in fillings:
@@ -62,23 +62,23 @@ class SlotFiller:
             )
         return results
 
-    def _extract_slots(
+    async def _extract_slots(
         self, template: CypherTemplate, text: str
     ) -> List[Dict[str, Any]]:
-        fillings = self._run_phase("extract", "extract_slots.j2", template, text)
+        fillings = await self._run_phase("extract", "extract_slots.j2", template, text)
 
         if self._needs_fallback(fillings, template):
-            fillings = self._run_phase(
+            fillings = await self._run_phase(
                 "fallback", "fallback_slots.j2", template, text, previous=fillings
             )
 
-        fillings = self._run_phase(
+        fillings = await self._run_phase(
             "generate", "generate_slots.j2", template, text, previous=fillings
         )
 
         return fillings
 
-    def _run_phase(
+    async def _run_phase(
         self,
         phase: str,
         prompt_file: str,
@@ -114,7 +114,7 @@ class SlotFiller:
         )
 
         trace_name = f"{self.__class__.__name__.lower()}.{phase}"
-        models = call_llm_with_json_list(
+        models = await call_llm_with_json_list(
             ItemModel,
             self.llm,
             prompt,

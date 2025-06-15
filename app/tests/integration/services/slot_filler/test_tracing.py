@@ -17,7 +17,8 @@ from schemas.cypher import CypherTemplate, SlotDefinition, GraphRelationDescript
 from config.langfuse import get_client
 
 
-def test_fill_slots_tracing(openai_key: str):
+@pytest.mark.asyncio
+async def test_fill_slots_tracing(openai_key: str):
     """Traces should be recorded and retrievable via Langfuse API."""
     client = get_client()
     trace = client.trace()
@@ -42,7 +43,7 @@ def test_fill_slots_tracing(openai_key: str):
         extract_cypher="member_of.j2",
         return_map={"c": "Character", "f": "Faction"},
     )
-    fills = filler.fill_slots(template, "Арам вступил в Братство Стали.")
+    fills = await filler.fill_slots(template, "Арам вступил в Братство Стали.")
     assert fills, "Slots not filled"
 
     # --- wait until the trace has been ingested -----------------------------

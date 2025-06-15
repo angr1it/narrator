@@ -13,6 +13,7 @@ from services.identity_service import (
 )
 from schemas.cypher import SlotDefinition
 from langchain_core.language_models.fake import FakeListLLM
+from langchain_core.callbacks.base import BaseCallbackHandler
 
 
 class MyFakeLLM(FakeListLLM):
@@ -47,6 +48,10 @@ class MyFakeLLM(FakeListLLM):
     @property
     def calls(self):
         return self._calls
+
+
+class DummyHandler(BaseCallbackHandler):
+    pass
 
 
 class DummyService(IdentityService):
@@ -170,7 +175,7 @@ def test_llm_disambiguate_calls_llm():
         weaviate_sync_client=type("C", (), {"collections": None})(),
         embedder=lambda x: [0.0],
         llm=fake_llm,
-        callback_handler=object(),
+        callback_handler=DummyHandler(),
     )
 
     decision = svc._llm_disambiguate_sync("n", [], 1, "t")
