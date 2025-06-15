@@ -20,7 +20,7 @@ repos:
           - --ignore-missing-imports
           - --install-types
           - --non-interactive
-          - --follow-imports=skip       # ← см. п. 2
+          - --follow-imports=skip
         always_run: true
   - repo: local
     hooks:
