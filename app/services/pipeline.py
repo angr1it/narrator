@@ -159,7 +159,7 @@ class ExtractionPipeline:
         meta = {
             "chunk_id": chunk_id,
             "chapter": chapter,
-            "draft_stage": stage.name,
+            "draft_stage": stage.value,
             "description": template.description,
             "confidence": template.default_confidence,
         }
@@ -219,7 +219,7 @@ class ExtractionPipeline:
                 "cid": chunk_id,
                 "text": text,
                 "ch": chapter,
-                "st": stage.name,
+                "st": stage.value,
                 "tags": tags,
             },
         )
