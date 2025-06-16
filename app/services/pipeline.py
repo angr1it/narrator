@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from typing import List, Dict, Any, Tuple, Callable, Awaitable, cast
+
+from pydantic import ValidationError
+from utils.logger import get_logger
 from uuid import uuid4
 import inspect
 
@@ -14,6 +17,8 @@ from services.templates import TemplateService
 from services.identity_service import IdentityService
 from services.raptor_index import FlatRaptorIndex
 from functools import lru_cache
+
+logger = get_logger(__name__)
 
 
 class ExtractionPipeline:
@@ -291,7 +296,25 @@ class AugmentPipeline:
         rows: List[Dict[str, Any]] = []
         alias_map: Dict[str, str] = {}
         for tpl in templates:
-            fills = await self.slot_filler.fill_slots(tpl, text)
+            try:
+                fills = await self.slot_filler.fill_slots(tpl, text)
+            except ValidationError as exc:  # pragma: no cover - network/LLM errors
+                logger.error(
+                    "Slot filling failed for template %s: %s. Text: %s",
+                    tpl.id,
+                    exc,
+                    text,
+                    exc_info=True,
+                )
+                continue
+            except Exception as exc:  # pragma: no cover - unexpected errors
+                logger.error(
+                    "Unexpected error in slot filling for template %s: %s",
+                    tpl.id,
+                    exc,
+                    exc_info=True,
+                )
+                continue
             for fill in fills:
                 resolve = await self.identity_service.resolve_bulk(
                     fill.slots,

@@ -17,6 +17,7 @@ from schemas.cypher import (
     TemplateRenderMode,
 )
 from uuid import uuid4
+from pydantic import BaseModel, ValidationError
 
 
 @pytest.mark.asyncio
@@ -253,3 +254,75 @@ async def test_augment_pipeline_splits_cypher_at_with_star(
     assert len(batch) == 2
     assert batch[0].startswith("MATCH")
     assert batch[1].startswith("MATCH")
+
+
+@pytest.mark.asyncio
+async def test_augment_pipeline_skips_failed_template(
+    graph_proxy, identity_service, jinja_env
+):
+    """Pipeline should continue if one template fails to fill slots."""
+    jinja_env.loader.mapping.update(
+        {
+            "bad.j2": "MATCH (c:Character {id: '{{ character }}'}) RETURN c",
+            "ok.j2": "MATCH (c:Character {id: '{{ character }}'}) RETURN c",
+        }
+    )
+    bad_tpl = CypherTemplate(
+        id=uuid4(),
+        name="bad",
+        title="t",
+        description="d",
+        slots={"character": SlotDefinition(name="character", type="STRING")},
+        augment_cypher="bad.j2",
+        graph_relation=GraphRelationDescriptor(
+            predicate="REL", subject="$character", object="true"
+        ),
+        return_map={"c": "Character"},
+    )
+    ok_tpl = CypherTemplate(
+        id=uuid4(),
+        name="ok",
+        title="t",
+        description="d",
+        slots={"character": SlotDefinition(name="character", type="STRING")},
+        augment_cypher="ok.j2",
+        graph_relation=GraphRelationDescriptor(
+            predicate="REL", subject="$character", object="true"
+        ),
+        return_map={"c": "Character"},
+    )
+    slot_fill = SlotFill(
+        template_id=str(ok_tpl.id),
+        slots={"character": "c"},
+        details="",
+    )
+
+    class FakeTemplateService:
+        async def top_k_async(self, text, k=3, mode=TemplateRenderMode.AUGMENT):
+            return [bad_tpl, ok_tpl]
+
+    class FakeSlotFiller:
+        async def fill_slots(self, template, text):
+            if template is bad_tpl:
+
+                class M(BaseModel):
+                    a: str
+
+                try:
+                    M()
+                except ValidationError as e:
+                    raise e
+            return [slot_fill]
+
+    pipeline = AugmentPipeline(
+        template_service=FakeTemplateService(),
+        slot_filler=FakeSlotFiller(),
+        identity_service=identity_service,
+        template_renderer=TemplateRenderer(jinja_env),
+        graph_proxy=graph_proxy,
+    )
+
+    await pipeline.augment_context("txt", chapter=1)
+
+    assert len(graph_proxy.calls) == 1
+    assert graph_proxy.calls[0][0].startswith("MATCH")
