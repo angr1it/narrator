@@ -79,7 +79,7 @@ async def test_commit_aliases_filters_add_alias():
             cypher_template_id="add_alias",
             render_slots={},
             entity_id="e1",
-            alias_text="A",
+            alias_text="Alex",
             entity_type="CHARACTER",
             chapter=1,
             chunk_id="c1",
@@ -90,7 +90,7 @@ async def test_commit_aliases_filters_add_alias():
             cypher_template_id="create_entity_with_alias",
             render_slots={},
             entity_id="e2",
-            alias_text="B",
+            alias_text="Boris",
             entity_type="CHARACTER",
             chapter=1,
             chunk_id="c1",
@@ -100,7 +100,7 @@ async def test_commit_aliases_filters_add_alias():
     ]
     cyphers = await svc.commit_aliases(tasks)
     assert len(svc.logged) == 2
-    assert cyphers == ["CREATE (e:CHARACTER {id:'e2', name:'B', details:'None'})"]
+    assert cyphers == ["CREATE (e:CHARACTER {id:'e2', name:'Boris', details:'None'})"]
 
 
 def test_render_alias_cypher_includes_details():
@@ -141,17 +141,6 @@ class StartupService(IdentityService):
             embedder=lambda x: [0.0],
             llm=lambda *a, **k: {},
         )
-
-
-# TODO: FIX IT
-# @pytest.mark.asyncio
-# async def test_startup_creates_collection():
-#     client = DummyClient()
-#     svc = StartupService(client)
-#     await svc.startup()
-#     assert client.created is not None
-#     props = client.created["properties"]
-#     assert any(p.name == "alias_text" for p in props)
 
 
 @pytest.mark.asyncio
@@ -268,6 +257,40 @@ async def test_run_sync_executes_function():
 
     result = await svc._run_sync(add, 2, 3)
     assert result == 5
+
+
+@pytest.mark.asyncio
+async def test_commit_aliases_skips_invalid_values():
+    """Invalid alias texts should not be inserted."""
+    svc = DummyService()
+    tasks = [
+        AliasTask(
+            cypher_template_id="create_entity_with_alias",
+            render_slots={},
+            entity_id="e5",
+            alias_text="he",
+            entity_type="CHARACTER",
+            chapter=1,
+            chunk_id="c1",
+            snippet="he moved",
+            details=None,
+        ),
+        AliasTask(
+            cypher_template_id="create_entity_with_alias",
+            render_slots={},
+            entity_id="e6",
+            alias_text="to go with her",
+            entity_type="GOAL",
+            chapter=1,
+            chunk_id="c2",
+            snippet="agrees to go with her",
+            details=None,
+        ),
+    ]
+
+    cyphers = await svc.commit_aliases(tasks)
+    assert cyphers == []
+    assert not svc.logged
 
 
 def test_resolve_bulk_uses_slot_defs():

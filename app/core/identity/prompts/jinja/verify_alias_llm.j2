@@ -11,7 +11,8 @@ candidates — a list of similar entries from the database with id, text variant
 
 Your task:
 - if raw_name clearly refers to one of the existing candidates → choose `use` with its entity_id;
-- if raw_name is a completely new entity unrelated to the candidates → choose `new`.
+- if raw_name is a completely new entity unrelated to the candidates → choose `new`;
+- if raw_name is a pronoun or a meaningless phrase → choose `skip`.
 
 Input data:
 
@@ -33,6 +34,9 @@ If using an existing entity:
 
 If creating a new one:
 {{ "{{" }}"action": "new", "details": "<why>"{{ "}}" }}
+
+If the text is not a real name:
+{{ "{{" }}"action": "skip", "details": "<why>"{{ "}}" }}
 
 Important:
 * Do not add comments, explanations or text around the JSON.

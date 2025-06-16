@@ -9,3 +9,9 @@ For example, from the phrase "Masha looked at Maksim" you should return `Maksim`
 Always answer in the language of the input text.
 If the text lacks information for a slot, return `null` for that field and do not guess.
 
+Important rules:
+- Return exactly `null` when there is no explicit **name**, **title**, **goal**, **character**, **faction**, etc. in the text.
+- Do **not** invent or infer values.
+- Do **not** return pronouns (e.g. "he", "she", "they") or vague phrases as valid entities.
+- Do **not** return the snippet verbatim.
+

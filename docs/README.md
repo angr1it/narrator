@@ -22,6 +22,7 @@ Use this index to navigate the design docs.
 - `pydantic_models_for_cypher_template.md` – template models
 - `template_structure_and_domain_example.md` – Jinja structure
 - `graph_models_review.md` – graph model discussion
+- `prompts_index.md` – list of all Jinja prompt templates
 
 ## Examples and Tests
 - `fact_examples.md` – pipeline examples
