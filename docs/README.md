@@ -32,5 +32,6 @@ Use this index to navigate the design docs.
 - `legacy_fact_docs_overview.md`
 - `models_refactoring_pipeline.md`
 - `llm_cot_review.md`
+- `prompt_language_guidelines.md`
 
 Other `*.md` files contain assorted notes.

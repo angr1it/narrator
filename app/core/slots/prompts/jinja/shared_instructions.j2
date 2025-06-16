@@ -1,8 +1,9 @@
-📤 **Формат ответа**:
-- Ответ — **JSON-массив** объектов. Всегда массив, даже если найден только один объект.
-- Никакого текста или объяснений вне JSON.
-- Строго следуй схеме:
+Response format:
+- The answer is a **JSON array** of objects. Always return an array even if only one object is found.
+- No text or explanations outside of JSON.
+- Follow this schema strictly:
 {{ format_instructions }}
 
-🔎 **Важно**: при заполнении любых слотов извлекай имена собственные, объекты и другие сущности **в начальной (лемматизированной, именительной) форме**.
-Например, из фразы «Маша посмотрела на Максима» нужно вернуть значение `Максим`, а не `Максима`, независимо от падежей в исходном тексте.
+Important: when filling any slots, extract names, objects and other entities in their **base (lemmatized, nominative) form**.
+For example, from the phrase "Masha looked at Maksim" you should return `Maksim` and not `Maksima`, regardless of the case used in the text.
+Always answer in the language of the input text.

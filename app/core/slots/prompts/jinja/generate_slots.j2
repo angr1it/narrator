@@ -1,50 +1,50 @@
 <|system|>
-Теперь тебе нужно сгенерировать значения **необязательных** полей, которые ещё не заполнены.  
-Используй исходный текст и уже известные значения.
+Now you need to generate the values of the **optional** fields that are still empty.
+Use the original text and the already known values.
 
 ---
 
-📌 **Описание шаблона**:
+Template description:
 {{ template.description }}
 
-📎 **Слоты**:
+Slots:
 {% for s in slots %}
-- `{{ s.name }}` (`{{ s.type }}`{% if s.required %}, обязательный{% else %}, необязательный{% endif %}): {{ s.description or 'без описания' }}
+- `{{ s.name }}` (`{{ s.type }}`{% if s.required %}, required{% else %}, optional{% endif %}): {{ s.description or 'no description' }}
 {% endfor %}
 
 ---
 
-📤 **Что делать**:
-- Не изменяй уже существующие значения.
-- Добавь только те поля, которые отсутствуют и не являются обязательными.
-- Обнови `"details"`, указав, что ты сгенерировал.
+What to do:
+- Do not modify existing values.
+- Add only the fields that are missing and not required.
+- Update `"details"` stating what you generated.
 
 {% include "shared_instructions.j2" %}
 
 ---
 
-📘 **Пример**:
+Example:
 
-Изначальный текст:
-"Арен вступает в Северный фронт."
+Original text:
+"Arne joins the Northern Front."
 
-До генерации:
+Before generation:
 ```json
 [
-  {{ "{{" }}"character": "Арен", "faction": "Северный фронт", "details": "Базовые поля заполнены"{{ "}}" }}
+  {{ "{{" }}"character": "Arne", "faction": "Northern Front", "details": "Base fields are filled"{{ "}}" }}
 ]
-После генерации:
+After generation:
 
 ```json
 [
-  {{ "{{" }}"character": "Арен", "faction": "Северный фронт", "summary": "Арен присоединился к новому движению", "details": "Сгенерирован summary по ключевому действию"{{ "}}" }}
+  {{ "{{" }}"character": "Arne", "faction": "Northern Front", "summary": "Arne joined a new movement", "details": "Summary generated based on the key action"{{ "}}" }}
 ]
 ```
 <|user|>
-Текст:
+Text:
 """{{ text }}"""
 
-Текущие объекты:
+Current objects:
 
 ```json
 {{ previous | tojson }}
