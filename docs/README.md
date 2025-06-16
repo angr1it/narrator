@@ -34,5 +34,7 @@ Use this index to navigate the design docs.
 - `models_refactoring_pipeline.md`
 - `llm_cot_review.md`
 - `prompt_language_guidelines.md`
+- `yield_return_bug.md` – исправление ошибки YIELD
+- `redesign_backlog_analysis.md` – исследование стратегий рефакторинга
 
 Other `*.md` files contain assorted notes.
