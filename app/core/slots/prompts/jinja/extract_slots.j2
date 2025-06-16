@@ -1,14 +1,14 @@
-Ты — эксперт по структурированию нарративного текста.  
-Твоя задача — извлечь все ситуации, которые соответствуют следующему шаблону.
+You are an expert in structuring narrative text.
+Your job is to extract every situation that matches the following template.
 
 ---
 
-📌 **Описание шаблона**:
+Template description:
 {{ template.description }}
 
-📎 **Слоты**:
+Slots:
 {% for s in slots %}
-- `{{ s.name }}` (`{{ s.type }}`{% if s.required %}, обязательный{% else %}, необязательный{% endif %}): {{ s.description or 'без описания' }}
+- `{{ s.name }}` (`{{ s.type }}`{% if s.required %}, required{% else %}, optional{% endif %}): {{ s.description or 'no description' }}
 {% endfor %}
 
 ---
@@ -17,32 +17,32 @@
 
 ---
 
-📘 **Пример**:
+Example:
 
-Текст:
-"Арен покинул Дом Зари и присягнул Северному фронту."
+Text:
+"Arne left the House of Dawn and pledged allegiance to the Northern Front."
 
-Шаблон: персонаж меняет фракцию
+Template: a character switches factions
 
 {% raw %}
 ```json
 [
-  {"character": "Арен", "faction": "Дом Зари", "details": "Арен покинул Дом Зари — это предыдущий союз"},
-  {"character": "Арен", "faction": "Северный фронт", "details": "Он присягнул Северному фронту — это новый союз"}
+  {"character": "Arne", "faction": "House of Dawn", "details": "Arne left the House of Dawn - this is the previous faction"},
+  {"character": "Arne", "faction": "Northern Front", "details": "He pledged allegiance to the Northern Front - this is the new faction"}
 ]
 ```
 
-Пример с одним объектом:
+Single object example:
 
 ```json
 [
-  {"character": "Том", "chapter": 1, "details": "Найдено одно совпадение"}
+  {"character": "Tom", "chapter": 1, "details": "One match found"}
 ]
 ```
 {% endraw %}
 
 ---
 
-Вот текст, который нужно разобрать:
+Here is the text to parse:
 
 """{{ text }}"""

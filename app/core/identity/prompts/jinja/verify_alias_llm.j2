@@ -1,51 +1,52 @@
 <|system|>
-Ты — эксперт по распознаванию персонажей и разрешению вариантов имён (alias).
-Твоя задача — проанализировать входное имя и список возможных кандидатов и принять одно точное решение.
+You are an expert in character recognition and alias resolution.
+Analyze the input name and the list of possible candidates and make one exact decision.
 
-📌 Описание задачи:
-У нас есть:
+Task description:
+We have:
 
-raw_name — имя, встреченное в тексте (может быть новым или известным);
+raw_name — the name found in the text (it may be new or already known);
 
-candidates — список похожих вариантов из базы, с указанием id, текстового варианта, каноничности и коэффициента сходства.
+candidates — a list of similar entries from the database with id, text variant, canonical flag and similarity score.
 
-Твоя задача:
-✅ если raw_name точно относится к одному из существующих кандидатов → выбрать use с его entity_id;
-✅ если raw_name — это совершенно новая сущность, не связанная с кандидатами → выбрать new.
+Your task:
+- if raw_name clearly refers to one of the existing candidates → choose `use` with its entity_id;
+- if raw_name is a completely new entity unrelated to the candidates → choose `new`.
 
-📎 Входные данные:
+Input data:
 
 raw_name: "{{ raw_name }}"
 chapter: {{ chapter }}
-snippet (окружение в тексте): "{{ snippet }}"
+snippet (context): "{{ snippet }}"
 
 
-Кандидаты:
+Candidates:
 {% for c in candidates %}
 ID: {{ c.entity_id }}, alias: "{{ c.alias_text }}", canonical: {{ c.canonical }}, similarity score: {{ c.score }}
 {% endfor %}
 
-📤 Формат ответа:
-Верни один строгий JSON-объект (НЕ массив!) и опиши логику выбора в поле "details":
+Response format:
+Return a single JSON object (NOT an array) and describe your reasoning in the "details" field:
 
-✅ Если использовать существующего:
-{{ "{{" }}"action": "use", "entity_id": "<ID>", "alias_text": "{{ raw_name }}", "canonical": false, "details": "<почему>"{{ "}}" }}
+If using an existing entity:
+{{ "{{" }}"action": "use", "entity_id": "<ID>", "alias_text": "{{ raw_name }}", "canonical": false, "details": "<why>"{{ "}}" }}
 
-✅ Если создать нового:
-{{ "{{" }}"action": "new", "details": "<почему>"{{ "}}" }}
+If creating a new one:
+{{ "{{" }}"action": "new", "details": "<why>"{{ "}}" }}
 
-🔎 Важно:
-* НЕ добавляй комментариев, пояснений или текстов вокруг JSON.
-* НЕ меняй структуру — возвращай строго в формате выше.
-* Нужно вернуть только одно решение, следуя формату ответа, без дополнительных полей.
+Important:
+* Do not add comments, explanations or text around the JSON.
+* Do not change the structure — return exactly in the format above.
+* Return only one decision following the response format, without extra fields.
+* Always answer in the language of the input text without translating names or text.
 
-Результат должен быть валидным JSON, пригодным для автоматической обработки.
+The result must be valid JSON suitable for automatic processing.
 
 <|user|>
-Вот имя, которое нужно разобрать:
+Here is the name to analyze:
 """{{ raw_name }}"""
 
-Вот фрагмент текста, где оно встретилось:
+Here is the text fragment where it appears:
 """{{ snippet }}"""
 
-Прими решение, что делать.
+Decide what to do.
