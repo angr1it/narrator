@@ -211,3 +211,32 @@ def test_membership_filters_newline(jinja_env):
     meta = {"chunk_id": "c", "chapter": 1}
     plan = renderer.render(template, fill, meta, mode=TemplateRenderMode.AUGMENT)
     assert "\nWITH r, f" in plan.content_cypher
+
+
+def test_augment_meta_optional_space(jinja_env):
+    """`OPTIONAL MATCH` starts with a space when `_augment_meta.j2` is included."""
+    base = Path("app/templates/cypher")
+    jinja_env.loader.mapping.update(
+        {
+            "membership_change_aug_v1.j2": (
+                base / "membership_change_aug_v1.j2"
+            ).read_text(),
+            "_augment_filters.j2": (base / "_augment_filters.j2").read_text(),
+            "_augment_meta.j2": (base / "_augment_meta.j2").read_text(),
+        }
+    )
+    template = CypherTemplate(
+        id=uuid4(),
+        name="membership-aug",
+        title="t",
+        description="d",
+        slots={"character": SlotDefinition(name="character", type="STRING")},
+        augment_cypher="membership_change_aug_v1.j2",
+        use_base_extract=False,
+        return_map={"f": "Faction"},
+    )
+    renderer = TemplateRenderer(jinja_env)
+    fill = SlotFill(template_id=str(template.id), slots={"character": "c"}, details="")
+    meta = {"chunk_id": "c", "chapter": 1}
+    plan = renderer.render(template, fill, meta, mode=TemplateRenderMode.AUGMENT)
+    assert " OPTIONAL MATCH" in plan.content_cypher
