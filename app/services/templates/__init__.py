@@ -137,6 +137,7 @@ class TemplateService:
         query: str,
         category: Optional[str] = None,
         k: int = 3,
+        top_distance_threshold_warn: float = 0.5,
         distance_threshold: float = 0.5,
         *,
         mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
@@ -184,10 +185,16 @@ class TemplateService:
         objects = results.objects
         distances = [obj.metadata.distance for obj in objects]
 
-        if distances and distances[0] > distance_threshold:
-            log_low_score_warning(query, objects, distances, distance_threshold)
+        if distances and distances[0] > top_distance_threshold_warn:
+            log_low_score_warning(
+                query, objects, distances, top_distance_threshold_warn
+            )
 
-        return [self._from_weaviate(obj) for obj in objects]
+        return [
+            self._from_weaviate(obj)
+            for obj in objects
+            if obj.metadata.distance > distance_threshold
+        ]
 
     async def top_k_async(
         self,

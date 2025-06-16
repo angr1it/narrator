@@ -43,7 +43,7 @@ class ExtractionPipeline:
         identity_service: IdentityService,
         template_renderer: TemplateRenderer,
         raptor_index: FlatRaptorIndex,
-        top_k: int = 3,
+        top_k: int = 5,
     ) -> None:
         self.template_service = template_service
         self.slot_filler = slot_filler
@@ -271,7 +271,7 @@ class AugmentPipeline:
         summariser: (
             Callable[[List[Dict[str, Any]]], Awaitable[str] | str] | None
         ) = None,
-        top_k: int = 3,
+        top_k: int = 5,
     ) -> None:
         self.template_service = template_service
         self.slot_filler = slot_filler
