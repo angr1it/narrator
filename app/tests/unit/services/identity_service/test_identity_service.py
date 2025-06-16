@@ -294,3 +294,68 @@ def test_resolve_bulk_uses_slot_defs():
     assert "summary" in res.mapped_slots
     assert any(t.alias_text == "John" for t in res.alias_tasks)
     assert not any(t.alias_text == "test" for t in res.alias_tasks)
+    assert res.alias_map[res.mapped_slots["character"]] == "John"
+
+
+@pytest.mark.asyncio
+async def test_resolve_bulk_maps_character_slots():
+    """Slots 'character_a' and 'character_b' should map to new IDs."""
+
+    class LocalService(DummyService):
+        def _nearest_alias_sync(self, *a, **k):
+            return []
+
+    svc = LocalService()
+    slot_defs = {
+        "character_a": SlotDefinition(
+            name="character_a",
+            type="STRING",
+            is_entity_ref=True,
+            entity_type="CHARACTER",
+        ),
+        "character_b": SlotDefinition(
+            name="character_b",
+            type="STRING",
+            is_entity_ref=True,
+            entity_type="CHARACTER",
+        ),
+    }
+    res = svc._resolve_bulk_sync(
+        {"character_a": "Lyra", "character_b": "Luthar"},
+        slot_defs,
+        chapter=1,
+        chunk_id="c1",
+        snippet="t",
+    )
+    assert res.mapped_slots["character_a"].startswith("character-")
+    assert res.mapped_slots["character_b"].startswith("character-")
+    assert len(res.alias_tasks) == 2
+    assert res.alias_map[res.mapped_slots["character_a"]] == "Lyra"
+    assert res.alias_map[res.mapped_slots["character_b"]] == "Luthar"
+
+
+def test_resolve_bulk_respects_entity_type():
+    """Slot definitions may set entity_type explicitly."""
+
+    class LocalService(DummyService):
+        def _nearest_alias_sync(self, *a, **k):
+            return []
+
+    svc = LocalService()
+    slot_defs = {
+        "place": SlotDefinition(
+            name="place",
+            type="STRING",
+            is_entity_ref=True,
+            entity_type="LOCATION",
+        )
+    }
+    res = svc._resolve_bulk_sync(
+        {"place": "Paris"},
+        slot_defs,
+        chapter=1,
+        chunk_id="c1",
+        snippet="t",
+    )
+    assert res.mapped_slots["place"].startswith("location-")
+    assert res.alias_map[res.mapped_slots["place"]] == "Paris"

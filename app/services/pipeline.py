@@ -289,6 +289,7 @@ class AugmentPipeline:
         )
 
         rows: List[Dict[str, Any]] = []
+        alias_map: Dict[str, str] = {}
         for tpl in templates:
             fills = await self.slot_filler.fill_slots(tpl, text)
             for fill in fills:
@@ -299,6 +300,7 @@ class AugmentPipeline:
                     chunk_id="aug",
                     snippet=text,
                 )
+                alias_map.update(resolve.alias_map)
 
                 slot_fill = SlotFill(
                     template_id=str(tpl.id),
@@ -323,6 +325,11 @@ class AugmentPipeline:
                     )
                 else:
                     result = await self.graph_proxy.run_query(cypher, write=False)
+
+                for row in result:
+                    for key, val in list(row.items()):
+                        if isinstance(val, str) and val in alias_map:
+                            row[key] = alias_map[val]
                 rows.extend(result)
 
         summary = None

@@ -4,7 +4,7 @@ import asyncio
 import uuid
 
 from typing import dataclass_transform
-from dataclasses import dataclass as std_dataclass, Field
+from dataclasses import dataclass as std_dataclass, Field as DCField
 from typing import Any, Dict, List, Literal, Optional, cast, Callable
 
 from weaviate import WeaviateClient, connect_to_weaviate_cloud
@@ -13,7 +13,7 @@ from weaviate.exceptions import WeaviateQueryError, WeaviateBaseError
 from weaviate.classes.query import Filter, MetadataQuery
 from weaviate.classes.config import Configure, Property, DataType
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from schemas.cypher import SlotDefinition
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers import PydanticOutputParser
@@ -32,7 +32,7 @@ LO_SIM = 0.40
 ALIAS_CLASS = "Alias"
 
 
-@dataclass_transform(field_specifiers=(Field,))
+@dataclass_transform(field_specifiers=(DCField,))
 def my_dataclass(cls):
     return std_dataclass(cls)
 
@@ -53,6 +53,7 @@ class AliasTask:
 class BulkResolveResult(BaseModel):
     mapped_slots: Dict[str, Any]
     alias_tasks: List[AliasTask]
+    alias_map: Dict[str, str] = Field(default_factory=dict)
 
 
 class LLMDecision(BaseModel):
@@ -112,6 +113,11 @@ class IdentityService:
                 cyphers.append(snippet)
         return cyphers
 
+    @staticmethod
+    def alias_map_from_tasks(alias_tasks: List[AliasTask]) -> Dict[str, str]:
+        """Return mapping of entity_id to alias text."""
+        return {t.entity_id: t.alias_text for t in alias_tasks}
+
     async def _run_sync(self, fn: Callable, *args, **kwargs):
         loop = asyncio.get_running_loop()
         return await asyncio.to_thread(fn, *args, **kwargs)
@@ -153,14 +159,17 @@ class IdentityService:
     ) -> BulkResolveResult:
         mapped_slots: Dict[str, Any] = dict(slots)
         alias_tasks: List[AliasTask] = []
+        alias_map: Dict[str, str] = {}
 
         for field, raw_val in slots.items():
+            etype = None
             if slot_defs is not None:
                 slot_def = slot_defs.get(field)
                 if not slot_def or not slot_def.is_entity_ref:
                     continue
-
-            etype = _FIELD_TO_ENTITY.get(field)
+                etype = slot_def.entity_type or _FIELD_TO_ENTITY.get(field)
+            else:
+                etype = _FIELD_TO_ENTITY.get(field)
             if not etype:
                 continue
 
@@ -173,6 +182,7 @@ class IdentityService:
             )
 
             mapped_slots[field] = decision["entity_id"]
+            alias_map[decision["entity_id"]] = decision["alias_text"]
 
             if decision["need_task"]:
                 alias_tasks.append(
@@ -188,7 +198,11 @@ class IdentityService:
                         details=decision.get("details"),
                     )
                 )
-        return BulkResolveResult(mapped_slots=mapped_slots, alias_tasks=alias_tasks)
+        return BulkResolveResult(
+            mapped_slots=mapped_slots,
+            alias_tasks=alias_tasks,
+            alias_map=alias_map,
+        )
 
     def _commit_aliases_sync(self, alias_tasks: List[AliasTask]) -> List[str]:
         cypher_snippets: List[str] = []
@@ -385,8 +399,6 @@ _FIELD_TO_ENTITY = {
     "character": "CHARACTER",
     "source": "CHARACTER",
     "target": "CHARACTER",
-    "faction": "FACTION",
-    "location": "LOCATION",
 }
 
 
