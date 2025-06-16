@@ -4,8 +4,8 @@ This short guide describes the minimal steps for Codex and local agents to start
 
 ## 1. Read project overview
 - `README.md` – main architecture and pipeline description
-- `docs/service_structure.md` – directory layout and file purpose
-- `docs/pipeline_overview.md` – high level pipeline
+- `docs/components/service_structure.md` – directory layout and file purpose
+- `docs/pipelines/pipeline_overview.md` – high level pipeline
 
 ## 2. Prepare environment
 1. Copy `.env.example` to `.env` and fill in credentials

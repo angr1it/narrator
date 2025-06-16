@@ -1,6 +1,6 @@
 # Redesign Backlog Analysis
 
-The document `yield_return_bug.md` describes three possible strategies for refactoring the Cypher templates and the pipeline. This note evaluates how each option fits the current implementation.
+The document `docs/bugs/06.16_yield_return_bug.md` describes three possible strategies for refactoring the Cypher templates and the pipeline. This note evaluates how each option fits the current implementation.
 
 ## Current state
 
@@ -21,7 +21,7 @@ This logic avoids the `MATCH after MERGE` error in Neo4j but introduces complexi
 
 ## Options from the backlog
 
-The backlog section in `yield_return_bug.md` outlines three alternatives:
+The backlog section in `docs/bugs/06.16_yield_return_bug.md` outlines three alternatives:
 
 1. **Subqueries (`CALL { ... }`)** – wrap the domain part and the `apoc.create.relationship` call in a subquery. [Lines 32–34]
 2. **Separate procedure call** – split the template into a MERGE statement and a dedicated procedure invocation. [Line 35]

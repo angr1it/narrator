@@ -98,7 +98,7 @@ app/services/pipeline.py
   - `/v1/augment-context`: сбор релевантного контекста (см. `AugmentPipeline`, TODO)
 
 ## 🧩 Примеры полезных ссылок
-- Структура репозитория: `#file:docs/service_structure.md`
-- Обзор пайплайна: `#file:docs/pipeline_overview.md`
-- Pydantic модели шаблонов: `#file:docs/pydantic_models_for_cypher_template.md`
-- Архитектура Raptor: `#file:docs/raptor_pipeline_architecture.md`
+- Структура репозитория: `#file:docs/components/service_structure.md`
+- Обзор пайплайна: `#file:docs/pipelines/pipeline_overview.md`
+- Pydantic модели шаблонов: `#file:docs/models/pydantic_models_for_cypher_template.md`
+- Архитектура Raptor: `#file:docs/pipelines/raptor_pipeline_architecture.md`

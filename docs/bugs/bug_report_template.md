@@ -1,5 +1,7 @@
 # Bug Report Template
 
+Файл назовите `mm.dd_short_description.md` (пример: `06.16_login_fail.md`).
+
 ## Проблема
 Описание, что работает неправильно.
 
