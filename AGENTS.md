@@ -44,3 +44,7 @@
 ## Баг репорты
 - Шаблон: `docs/bugs/bug_report_template.md`
 - Все баг репорты размещаются в каталоге `docs/bugs`.
+
+## Доработки
+- Шаблон: `docs/improvements/improvement_template.md`
+- Доработки размещаются в каталоге `docs/improvements`.
