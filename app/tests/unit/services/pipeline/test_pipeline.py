@@ -99,6 +99,39 @@ async def test_pipeline_returns_details(
 
 
 @pytest.mark.asyncio
+async def test_pipeline_deterministic_chunk_id(
+    sample_template,
+    template_renderer,
+    slot_fill,
+    graph_proxy,
+    identity_service,
+    raptor_index,
+):
+    """Chunk ID should be stable for identical text."""
+
+    class FakeTemplateService:
+        async def top_k_async(self, text, k=3):
+            return [sample_template]
+
+    class FakeSlotFiller:
+        async def fill_slots(self, template, text):
+            return [slot_fill]
+
+    pipeline = ExtractionPipeline(
+        template_service=FakeTemplateService(),
+        slot_filler=FakeSlotFiller(),
+        graph_proxy=graph_proxy,
+        identity_service=identity_service,
+        template_renderer=template_renderer,
+        raptor_index=raptor_index,
+    )
+
+    res1 = await pipeline.extract_and_save("hello", chapter=1)
+    res2 = await pipeline.extract_and_save("hello", chapter=1)
+    assert res1["chunk_id"] == res2["chunk_id"]
+
+
+@pytest.mark.asyncio
 async def test_pipeline_converts_raptor_id_to_str(
     sample_template,
     template_renderer,

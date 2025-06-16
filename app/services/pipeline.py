@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Tuple, Callable, Awaitable, cast
 
 from pydantic import ValidationError
 from utils.logger import get_logger
-from uuid import uuid4
+import hashlib
 import inspect
 
 from schemas.stage import StageEnum
@@ -83,7 +83,8 @@ class ExtractionPipeline:
         Dict[str, Any]
             ``{"chunk_id": ..., "raptor_node_id": ...}``
         """
-        chunk_id = f"chunk-{uuid4().hex[:8]}"
+        chunk_hash = hashlib.sha1(text.encode("utf-8")).hexdigest()[:16]
+        chunk_id = f"chunk-{chunk_hash}"
         await self._create_chunk(chunk_id, text, chapter, stage, tags or [])
 
         templates = await self.template_service.top_k_async(text, k=self.top_k)
