@@ -178,3 +178,36 @@ def test_shared_instructions_mentions_null_rule():
     """Prompt instructions should tell the model not to guess missing slots."""
     text = Path("app/core/slots/prompts/jinja/shared_instructions.j2").read_text()
     assert "null" in text.lower()
+
+
+def test_membership_filters_newline(jinja_env):
+    """`WITH` should start on a new line after `_augment_filters.j2`."""
+    base = Path("app/templates/cypher")
+    jinja_env.loader.mapping.update(
+        {
+            "membership_change_aug_v1.j2": (
+                base / "membership_change_aug_v1.j2"
+            ).read_text(),
+            "_augment_filters.j2": (base / "_augment_filters.j2").read_text(),
+            "_augment_meta.j2": (base / "_augment_meta.j2").read_text(),
+        }
+    )
+    template = CypherTemplate(
+        id=uuid4(),
+        name="membership-aug",
+        title="t",
+        description="d",
+        slots={"character": SlotDefinition(name="character", type="STRING")},
+        augment_cypher="membership_change_aug_v1.j2",
+        use_base_extract=False,
+        return_map={"f": "Faction"},
+    )
+    renderer = TemplateRenderer(jinja_env)
+    fill = SlotFill(
+        template_id=str(template.id),
+        slots={"character": "c"},
+        details="",
+    )
+    meta = {"chunk_id": "c", "chapter": 1}
+    plan = renderer.render(template, fill, meta, mode=TemplateRenderMode.AUGMENT)
+    assert "\nWITH r, f" in plan.content_cypher
