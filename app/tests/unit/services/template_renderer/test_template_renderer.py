@@ -20,7 +20,7 @@ def test_render_returns_triple_and_nodes(sample_template, slot_fill, template_re
     meta = {
         "chunk_id": "c1",
         "chapter": 1,
-        "draft_stage": "draft",
+        "draft_stage": 1,
         "description": "d",
         "confidence": 0.2,
     }
@@ -96,7 +96,7 @@ def test_render_includes_details(jinja_env):
     meta = {
         "chunk_id": "c1",
         "chapter": 1,
-        "draft_stage": "draft",
+        "draft_stage": 1,
         "description": "d",
         "confidence": 0.1,
     }
