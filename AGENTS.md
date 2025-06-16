@@ -12,7 +12,7 @@
 - `app/templates` — Jinja2-шаблоны
 - `app/tests` — тесты
 - `docs/` — документация
-- индекс документов: `docs/README.md`, быстрый старт: `docs/agent_quick_start.md`
+- индекс: `docs/README.md`, быстрый старт: `docs/quickstart/agent_quick_start.md`
 - `app/main.py` — точка входа
 
 ## Код-стайл
@@ -22,7 +22,7 @@
 - Логер — `get_logger` из `app.utils.logger`
 
 ## Локальный запуск
-Подробности в `docs/agent_quick_start.md`.
+Подробности в `docs/quickstart/agent_quick_start.md`.
 
 ## Тесты
 - `pytest -q` (интеграционные тесты только по запросу: `--runintegration`)
@@ -43,8 +43,10 @@
 
 ## Баг репорты
 - Шаблон: `docs/bugs/bug_report_template.md`
-- Все баг репорты размещаются в каталоге `docs/bugs`.
+- Файл начинается с даты `mm.dd_`
+- Размещайте баг репорты в каталоге `docs/bugs`.
 
 ## Доработки
 - Шаблон: `docs/improvements/improvement_template.md`
+- Файл начинается с даты `mm.dd_`
 - Доработки размещаются в каталоге `docs/improvements`.

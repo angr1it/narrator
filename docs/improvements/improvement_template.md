@@ -1,5 +1,7 @@
 # Improvement Template
 
+Файл назовите `mm.dd_short_description.md` (пример: `06.16_add_logging.md`).
+
 ## Цель
 Краткое описание требуемого улучшения или новой функциональности.
 

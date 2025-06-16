@@ -34,16 +34,16 @@ contains text, chapter and optional tags. The service saves a `ChunkNode` and us
 `TemplateService` to find relevant `CypherTemplate` objects, then `SlotFiller` to
 obtain values for each slot. Alias records are stored in Weaviate, Cypher statements
 are executed via `GraphProxy`, and the resulting triple text is embedded to update
-`RaptorNode`【F:docs/extract_save_algorithm.md†L20-L148】.
+`RaptorNode`【F:docs/pipelines/extract_save_algorithm.md†L20-L148】.
 
 The response returns the created `chunk_id`, the computed `raptor_node_id`,
-created relationships and aliases【F:docs/extract_save_algorithm.md†L223-L236】.
+created relationships and aliases【F:docs/pipelines/extract_save_algorithm.md†L223-L236】.
 
 ## Brainstorm: implementing `augment-context`
 
-Existing docs show only a stub for this pipeline, but `fact_examples.md` gives a
+Existing docs show only a stub for this pipeline, but `docs/examples/fact_examples.md` gives a
 hint. It suggests using SELECT-style templates to query traits or relations from
-the graph and feed the results back to the writer【F:docs/fact_examples.md†L50-L70】.
+the graph and feed the results back to the writer【F:docs/examples/fact_examples.md†L50-L70】.
 
 A possible design is:
 
