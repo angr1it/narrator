@@ -103,8 +103,10 @@ def test_render_includes_details(jinja_env):
     assert plan.details == "why"
 
 
+
 def test_no_auto_return(jinja_env):
     """Renderer does not append RETURN if template omits it."""
+
     jinja_env.loader.mapping["yield_end.j2"] = (
         "MERGE (a:Character {id: '{{ a }}'})\n"
         "MERGE (b:Character {id: '{{ b }}'})\n"
@@ -137,4 +139,6 @@ def test_no_auto_return(jinja_env):
     )
     meta = {"chunk_id": "c1"}
     plan = renderer.render(template, fill, meta)
+
     assert not plan.content_cypher.strip().endswith("RETURN rel")
+

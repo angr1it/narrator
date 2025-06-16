@@ -13,6 +13,7 @@ Use this index to navigate the design docs.
 - `pipeline_overview.md` – high level view
 - `pipeline_implementation.md` – implementation notes
 - `extract_save_algorithm.md` – detailed flow
+- `extract_graph_schema.md` – nodes and edges created by `/extract`
 - `raptor_pipeline_architecture.md` – Raptor index design
 - `augmentation_pipeline_brainstorm.md` – early notes on `/augment-context`
 - `augment_context_tz.md` – итоговое ТЗ и реализованные шаги
