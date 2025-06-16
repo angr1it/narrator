@@ -103,8 +103,8 @@ def test_render_includes_details(jinja_env):
     assert plan.details == "why"
 
 
-def test_append_return_for_yield(jinja_env):
-    """Renderer should append RETURN when a query ends with YIELD."""
+def test_no_auto_return(jinja_env):
+    """Renderer does not append RETURN if template omits it."""
     jinja_env.loader.mapping["yield_end.j2"] = (
         "MERGE (a:Character {id: '{{ a }}'})\n"
         "MERGE (b:Character {id: '{{ b }}'})\n"
@@ -137,4 +137,4 @@ def test_append_return_for_yield(jinja_env):
     )
     meta = {"chunk_id": "c1"}
     plan = renderer.render(template, fill, meta)
-    assert plan.content_cypher.strip().endswith("RETURN rel")
+    assert not plan.content_cypher.strip().endswith("RETURN rel")
