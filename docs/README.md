@@ -35,6 +35,7 @@ Use this index to navigate the design docs.
 - `llm_cot_review.md`
 - `prompt_language_guidelines.md`
 - `yield_return_bug.md` – исправление ошибки YIELD
+- `augment_object_slot_issue.md` – incorrect object IDs in augment queries
 - `redesign_backlog_analysis.md` – исследование стратегий рефакторинга
 
 Other `*.md` files contain assorted notes.

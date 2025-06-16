@@ -7,3 +7,5 @@ Response format:
 Important: when filling any slots, extract names, objects and other entities in their **base (lemmatized, nominative) form**.
 For example, from the phrase "Masha looked at Maksim" you should return `Maksim` and not `Maksima`, regardless of the case used in the text.
 Always answer in the language of the input text.
+If the text lacks information for a slot, return `null` for that field and do not guess.
+

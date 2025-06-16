@@ -6,10 +6,13 @@ return-map logic behave as expected when using Jinja.
 
 import pytest
 from uuid import uuid4
+from pathlib import Path
 
 from schemas.cypher import CypherTemplate, SlotDefinition, GraphRelationDescriptor
 from schemas.slots import SlotFill
 from services.template_renderer import TemplateRenderer
+from schemas.cypher import TemplateRenderMode
+from jinja2 import Environment, FileSystemLoader
 
 
 def test_render_returns_triple_and_nodes(sample_template, slot_fill, template_renderer):
@@ -103,7 +106,6 @@ def test_render_includes_details(jinja_env):
     assert plan.details == "why"
 
 
-
 def test_no_auto_return(jinja_env):
     """Renderer does not append RETURN if template omits it."""
 
@@ -142,3 +144,37 @@ def test_no_auto_return(jinja_env):
 
     assert not plan.content_cypher.strip().endswith("RETURN rel")
 
+
+def test_relocation_augment_ignores_place_id():
+    """The relocation augment template should not filter by place ID."""
+    env = Environment(loader=FileSystemLoader("app/templates/cypher"))
+    import schemas.cypher as cypher_mod
+
+    cypher_mod.env = env
+    renderer = TemplateRenderer(env)
+    template = CypherTemplate(
+        id=uuid4(),
+        name="reloc_test",
+        title="t",
+        description="d",
+        slots={
+            "character": SlotDefinition(name="character", type="STRING"),
+            "place": SlotDefinition(name="place", type="STRING"),
+        },
+        augment_cypher="relocation_aug_v1.j2",
+        return_map={"c": "Character", "p": "Place"},
+    )
+    fill = SlotFill(
+        template_id=str(template.id),
+        slots={"character": "c1", "place": "p1"},
+        details="",
+    )
+    meta = {"chunk_id": "c"}
+    plan = renderer.render(template, fill, meta, mode=TemplateRenderMode.AUGMENT)
+    assert "Place {id" not in plan.content_cypher
+
+
+def test_shared_instructions_mentions_null_rule():
+    """Prompt instructions should tell the model not to guess missing slots."""
+    text = Path("app/core/slots/prompts/jinja/shared_instructions.j2").read_text()
+    assert "null" in text.lower()
