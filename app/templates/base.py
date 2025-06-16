@@ -12,6 +12,7 @@ base_templates = [
                 "type": "STRING",
                 "description": "Character name",
                 "is_entity_ref": True,
+                "entity_type": "CHARACTER",
             },
             "trait": {
                 "name": "trait",
@@ -52,12 +53,14 @@ base_templates = [
                 "type": "STRING",
                 "description": "Character name",
                 "is_entity_ref": True,
+                "entity_type": "CHARACTER",
             },
             "faction": {
                 "name": "faction",
                 "type": "STRING",
                 "description": "Faction name",
                 "is_entity_ref": True,
+                "entity_type": "FACTION",
             },
             "chapter": {
                 "name": "chapter",
@@ -88,12 +91,14 @@ base_templates = [
                 "type": "STRING",
                 "description": "First character",
                 "is_entity_ref": True,
+                "entity_type": "CHARACTER",
             },
             "character_b": {
                 "name": "character_b",
                 "type": "STRING",
                 "description": "Second character",
                 "is_entity_ref": True,
+                "entity_type": "CHARACTER",
             },
             "relation_type": {
                 "name": "relation_type",
@@ -120,8 +125,18 @@ base_templates = [
         "description": "Character acquires or possesses an item. This includes a hero finding an ancient magical sword, a thief stealing a valuable artifact, a character receiving a meaningful gift or heirloom, or someone purchasing an important tool for their quest. Any narrative moment where a character gains possession of something significant to the story.",
         "category": "EventInsert",
         "slots": {
-            "character": {"name": "character", "type": "STRING", "is_entity_ref": True},
-            "item": {"name": "item", "type": "STRING", "is_entity_ref": True},
+            "character": {
+                "name": "character",
+                "type": "STRING",
+                "is_entity_ref": True,
+                "entity_type": "CHARACTER",
+            },
+            "item": {
+                "name": "item",
+                "type": "STRING",
+                "is_entity_ref": True,
+                "entity_type": "ITEM",
+            },
             "chapter": {"name": "chapter", "type": "INT"},
             "summary": {"name": "summary", "type": "STRING", "required": False},
         },
@@ -142,7 +157,12 @@ base_templates = [
         "description": "Character changes location, arrives or leaves a place. This captures a traveler reaching a mysterious new city, a refugee fleeing their homeland, an explorer discovering uncharted territory, or a prisoner escaping their cell. Any significant movement of characters between meaningful locations in the narrative landscape.",
         "category": "EventInsert",
         "slots": {
-            "character": {"name": "character", "type": "STRING", "is_entity_ref": True},
+            "character": {
+                "name": "character",
+                "type": "STRING",
+                "is_entity_ref": True,
+                "entity_type": "CHARACTER",
+            },
             "place": {"name": "place", "type": "STRING", "is_entity_ref": True},
             "chapter": {"name": "chapter", "type": "INT"},
             "summary": {"name": "summary", "type": "STRING", "required": False},
@@ -169,6 +189,7 @@ base_templates = [
                 "type": "STRING",
                 "description": "Name of the character",
                 "is_entity_ref": True,
+                "entity_type": "CHARACTER",
             },
             "emotion": {
                 "name": "emotion",
@@ -181,6 +202,7 @@ base_templates = [
                 "description": "Target of the emotion",
                 "required": False,
                 "is_entity_ref": True,
+                "entity_type": "CHARACTER",
             },
             "chapter": {
                 "name": "chapter",
@@ -211,12 +233,18 @@ base_templates = [
         "description": "Character makes a vow, promise or obligation toward a goal or target. This includes a knight swearing to avenge their fallen comrade, a character pledging to protect someone vulnerable, a villain making a threat of retribution, or someone committing to an important personal goal. Any declaration of intent or commitment that drives future narrative actions.",
         "category": "EventInsert",
         "slots": {
-            "character": {"name": "character", "type": "STRING", "is_entity_ref": True},
+            "character": {
+                "name": "character",
+                "type": "STRING",
+                "is_entity_ref": True,
+                "entity_type": "CHARACTER",
+            },
             "goal": {
                 "name": "goal",
                 "type": "STRING",
                 "description": "Promise essence / goal",
                 "is_entity_ref": True,
+                "entity_type": "GOAL",
             },
             "chapter": {"name": "chapter", "type": "INT"},
             "summary": {"name": "summary", "type": "STRING", "required": False},
@@ -238,7 +266,12 @@ base_templates = [
         "description": "Marks a character as deceased. This applies to heroic sacrifices in battle, victims of murder or assassination, natural deaths of significance to the plot, or presumed deaths later revealed to be false. Captures pivotal moments where a character's life ends or is believed to end, changing the trajectory of the narrative.",
         "category": "EventInsert",
         "slots": {
-            "character": {"name": "character", "type": "STRING", "is_entity_ref": True},
+            "character": {
+                "name": "character",
+                "type": "STRING",
+                "is_entity_ref": True,
+                "entity_type": "CHARACTER",
+            },
             "chapter": {"name": "chapter", "type": "INT"},
             "summary": {"name": "summary", "type": "STRING", "required": False},
         },
@@ -264,6 +297,7 @@ base_templates = [
                 "type": "STRING",
                 "description": "Name of ideology, deity or belief",
                 "is_entity_ref": True,
+                "entity_type": "IDEOLOGY",
             },
             "chapter": {"name": "chapter", "type": "INT"},
             "summary": {"name": "summary", "type": "STRING", "required": False},
@@ -285,12 +319,18 @@ base_templates = [
         "description": "Character receives or is granted a new title or role. This captures a soldier's promotion to general, a commoner ascending to nobility, an apprentice becoming a master of their craft, or someone being appointed to a position of authority. Any formal recognition or change in status that affects how others perceive and interact with the character within the narrative.",
         "category": "EventInsert",
         "slots": {
-            "character": {"name": "character", "type": "STRING", "is_entity_ref": True},
+            "character": {
+                "name": "character",
+                "type": "STRING",
+                "is_entity_ref": True,
+                "entity_type": "CHARACTER",
+            },
             "title_name": {
                 "name": "title_name",
                 "type": "STRING",
                 "description": "Title/role name",
                 "is_entity_ref": True,
+                "entity_type": "TITLE",
             },
             "chapter": {"name": "chapter", "type": "INT"},
             "summary": {"name": "summary", "type": "STRING", "required": False},

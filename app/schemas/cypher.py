@@ -28,6 +28,8 @@ class SlotDefinition(BaseModel):
     default: Optional[Union[str, int, float, bool]] = None
     # (опц.) признак того, что слот — это ссылка на сущность
     is_entity_ref: Optional[bool] = False
+    # тип сущности, если слот ссылается на графовый узел
+    entity_type: Optional[str] = None
 
 
 class GraphRelationDescriptor(BaseModel):
