@@ -2,9 +2,14 @@ MERGE (c:Character {id: "{{ character }}"})
 {% if target %}
   MERGE (t:Character {id: "{{ target }}"})
   WITH c, t
-  CALL apoc.create.relationship(c, '{{ emotion|upper }}_OF', {
-      {% include "_relation_meta.j2" %}
-  }, t)
+  CALL apoc.create.relationship(
+      c,
+      '{{ emotion|upper }}_OF',
+      {
+          {% include "_relation_meta.j2" %}
+      },
+      t
+  ) YIELD rel
   {% set related_node_ids = [character, target] %}
 {% else %}
   SET c.latest_emotion = '{{ emotion }}'
