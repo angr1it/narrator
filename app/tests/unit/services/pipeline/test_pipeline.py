@@ -98,6 +98,49 @@ async def test_pipeline_returns_details(
 
 
 @pytest.mark.asyncio
+async def test_pipeline_converts_raptor_id_to_str(
+    sample_template,
+    template_renderer,
+    graph_proxy,
+    identity_service,
+    jinja_env,
+):
+    class NonStrId:
+        def __str__(self) -> str:
+            return "rn-test"
+
+    class FakeRaptor:
+        def insert_chunk(self, text: str, triple_text: str) -> NonStrId:
+            return NonStrId()
+
+    class FakeTemplateService:
+        async def top_k_async(self, text, k=3):
+            return [sample_template]
+
+    class FakeSlotFiller:
+        async def fill_slots(self, template, text):
+            return [
+                SlotFill(
+                    template_id=str(template.id), slots={"character": "c"}, details=""
+                )
+            ]
+
+    raptor = FakeRaptor()
+    pipeline = ExtractionPipeline(
+        template_service=FakeTemplateService(),
+        slot_filler=FakeSlotFiller(),
+        graph_proxy=graph_proxy,
+        identity_service=identity_service,
+        template_renderer=template_renderer,
+        raptor_index=raptor,
+    )
+
+    await pipeline.extract_and_save("txt", chapter=1)
+    update = [p for c, p in graph_proxy.calls if "raptor_node_id" in c][0]
+    assert isinstance(update["rid"], str)
+
+
+@pytest.mark.asyncio
 async def test_pipeline_splits_cypher_at_with_star(
     graph_proxy, identity_service, raptor_index, jinja_env
 ):

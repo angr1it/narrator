@@ -16,7 +16,7 @@ class DummyObj:
         self.uuid = template.id
         props = template.model_dump(exclude={"id"})
         self.properties = props
-        self.metadata = type("M", (), {"distance": 0.1})()
+        self.metadata = type("M", (), {"distance": 0.6})()
 
 
 class DummyQuery:

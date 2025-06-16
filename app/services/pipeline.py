@@ -102,11 +102,11 @@ class ExtractionPipeline:
         raptor_id = self.raptor_index.insert_chunk(text, triple_str)
         await self.graph_proxy.run_query(
             "MATCH (c:Chunk {id:$cid}) SET c.raptor_node_id=$rid",
-            {"cid": chunk_id, "rid": raptor_id},
+            {"cid": chunk_id, "rid": str(raptor_id)},
         )
         return {
             "chunk_id": chunk_id,
-            "raptor_node_id": raptor_id,
+            "raptor_node_id": str(raptor_id),
             "relationships": relationships,
             "aliases": aliases,
         }
