@@ -326,3 +326,97 @@ async def test_augment_pipeline_skips_failed_template(
 
     assert len(graph_proxy.calls) == 1
     assert graph_proxy.calls[0][0].startswith("MATCH")
+
+
+@pytest.mark.asyncio
+async def test_augment_pipeline_rewrites_ids(jinja_env):
+    """Returned rows should use alias names and stage strings."""
+
+    class LocalGraphProxy:
+        def __init__(self):
+            self.calls = []
+
+        async def run_query(self, cypher, params=None, *, write=True):
+            self.calls.append((cypher, params))
+            return [{"target": "character-12345678", "meta_draft_stage": 1}]
+
+        async def run_queries(self, cyphers, params_list=None, *, write=True):
+            self.calls.append((list(cyphers), params_list))
+            return [{"target": "character-12345678", "meta_draft_stage": 1}]
+
+    jinja_env.loader.mapping.update(
+        {"name_aug.j2": "RETURN 1 AS meta_draft_stage, '{{ target }}' AS target"}
+    )
+
+    template = CypherTemplate(
+        id=uuid4(),
+        name="aug",  # pragma: no cover - simple template
+        title="t",
+        description="d",
+        slots={
+            "character": SlotDefinition(name="character", type="STRING"),
+            "target": SlotDefinition(
+                name="target",
+                type="STRING",
+                is_entity_ref=True,
+                entity_type="CHARACTER",
+            ),
+        },
+        augment_cypher="name_aug.j2",
+        graph_relation=GraphRelationDescriptor(
+            predicate="REL", subject="$character", object="$target"
+        ),
+        return_map={"target": "Character"},
+    )
+
+    slot_fill = SlotFill(
+        template_id=str(template.id),
+        slots={"character": "c", "target": "t"},
+        details="",
+    )
+
+    class FakeTemplateService:
+        async def top_k_async(self, text, k=3, mode=TemplateRenderMode.AUGMENT):
+            return [template]
+
+    class FakeSlotFiller:
+        async def fill_slots(self, template, text):
+            return [slot_fill]
+
+    class AliasService:
+        def __init__(self):
+            self.lookups = []
+
+        async def resolve_bulk(
+            self, slots, *, slot_defs=None, chapter, chunk_id, snippet
+        ):
+            from services.identity_service import BulkResolveResult
+
+            return BulkResolveResult(
+                mapped_slots={"character": "id1", "target": "character-12345678"},
+                alias_tasks=[],
+                alias_map={"id1": "Lyra"},
+            )
+
+        async def get_alias_map(self, entity_ids):
+            self.lookups.append(entity_ids)
+            return {"character-12345678": "Luthar"}
+
+        async def commit_aliases(self, alias_tasks):
+            return []
+
+    svc = AliasService()
+    pipeline = AugmentPipeline(
+        template_service=FakeTemplateService(),
+        slot_filler=FakeSlotFiller(),
+        identity_service=svc,
+        template_renderer=TemplateRenderer(jinja_env),
+        graph_proxy=LocalGraphProxy(),
+    )
+
+    result = await pipeline.augment_context("txt", chapter=1)
+
+    row = result["context"]["rows"][0]
+    assert row["target"] == "Luthar"
+    assert row["meta_draft_stage"] == "draft_1"
+    assert svc.lookups == [["character-12345678"]]
