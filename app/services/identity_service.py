@@ -116,6 +116,28 @@ class IdentityService:
                 cyphers.append(snippet)
         return cyphers
 
+    async def get_alias_map(self, entity_ids: List[str]) -> Dict[str, str]:
+        """Return aliases for given IDs."""
+        return await self._run_sync(self._get_alias_map_sync, entity_ids)
+
+    def _get_alias_map_sync(self, entity_ids: List[str]) -> Dict[str, str]:
+        if not entity_ids:
+            return {}
+        try:
+            collection = self._w.collections.get(ALIAS_CLASS)
+            res = collection.query.fetch_objects(
+                filters=Filter.by_property("entity_id").contains_any(entity_ids),
+                limit=len(entity_ids),
+            )
+        except WeaviateQueryError as exc:
+            _logger.error("Weaviate fetch aliases failed: %s", exc)
+            return {}
+
+        return {
+            obj.properties["entity_id"]: obj.properties.get("alias_text", "")
+            for obj in res.objects
+        }
+
     @staticmethod
     def alias_map_from_tasks(alias_tasks: List[AliasTask]) -> Dict[str, str]:
         """Return mapping of entity_id to alias text."""

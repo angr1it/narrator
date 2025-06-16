@@ -3,40 +3,40 @@
 Use this index to navigate the design docs.
 
 ## Quick Start
-- `agent_quick_start.md` – minimal steps for agents
-- `codex_dev_environment.md` – how to run Codex locally
-
-## Project Layout
-- `service_structure.md` – directory overview
+- `quickstart/agent_quick_start.md` – minimal steps for agents
+- `quickstart/codex_dev_environment.md` – how to run Codex locally
 
 ## Pipelines
-- `pipeline_overview.md` – high level view
-- `pipeline_implementation.md` – implementation notes
-- `extract_save_algorithm.md` – detailed flow
-- `extract_graph_schema.md` – nodes and edges created by `/extract`
-- `raptor_pipeline_architecture.md` – Raptor index design
-- `augmentation_pipeline_brainstorm.md` – early notes on `/augment-context`
-- `augment_context_tz.md` – итоговое ТЗ и реализованные шаги
+- `pipelines/pipeline_overview.md` – high level view
+- `pipelines/pipeline_implementation.md` – implementation notes
+- `pipelines/extract_save_algorithm.md` – detailed flow
+- `pipelines/extract_graph_schema.md` – nodes and edges created by `/extract`
+- `pipelines/raptor_pipeline_architecture.md` – Raptor index design
+- `pipelines/augmentation_pipeline_brainstorm.md` – early notes on `/augment-context`
+- `pipelines/augment_pipeline_status.md` – current status
+
+## Components
+- `components/service_structure.md` – directory overview
+- `components/slotfiller_spec.md` – slot filler spec
+- `components/graph_proxy.md` – Neo4j helper usage
 
 ## Models and Templates
-- `pydantic_models_for_cypher_template.md` – template models
-- `template_structure_and_domain_example.md` – Jinja structure
-- `graph_models_review.md` – graph model discussion
-- `prompts_index.md` – list of all Jinja prompt templates
+- `models/pydantic_models_for_cypher_template.md` – template models
+- `models/template_structure_and_domain_example.md` – Jinja structure
+- `models/graph_models_review.md` – graph model discussion
+- `models/models_refactoring_pipeline.md` – model refactoring notes
+
 
 ## Examples and Tests
-- `fact_examples.md` – pipeline examples
-- `slotfiller_spec.md` – slot filler spec
-- `test_cases_extract_save.md` – expected tests
-- `graph_proxy.md` – Neo4j helper usage
+- `examples/fact_examples.md` – pipeline examples
+- `examples/test_cases_extract_save.md` – expected tests
 
-## Legacy / Notes
-- `legacy_fact_docs_overview.md`
-- `models_refactoring_pipeline.md`
-- `llm_cot_review.md`
-- `prompt_language_guidelines.md`
-- `yield_return_bug.md` – исправление ошибки YIELD
-- `augment_object_slot_issue.md` – incorrect object IDs in augment queries
-- `redesign_backlog_analysis.md` – исследование стратегий рефакторинга
+## Notes
+- `notes/prompt_language_guidelines.md`
+- `notes/llm_cot_review.md`
+- `notes/legacy_fact_docs_overview.md`
+- `notes/redesign_backlog_analysis.md`
 
-Other `*.md` files contain assorted notes.
+## Bugs and Improvements
+- `bugs/` – bug reports (file name starts with `mm.dd_`)
+- `improvements/` – proposals (file name starts with `mm.dd_`)

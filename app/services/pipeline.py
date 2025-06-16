@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from typing import List, Dict, Any, Tuple, Callable, Awaitable, cast
+import re
 
 from pydantic import ValidationError
 from utils.logger import get_logger
-from uuid import uuid4
+import hashlib
 import inspect
 
 from schemas.stage import StageEnum
@@ -19,6 +20,8 @@ from services.raptor_index import FlatRaptorIndex
 from functools import lru_cache
 
 logger = get_logger(__name__)
+
+_ID_RE = re.compile(r"^[a-z_]+-[0-9a-f]{8}$")
 
 
 class ExtractionPipeline:
@@ -83,7 +86,8 @@ class ExtractionPipeline:
         Dict[str, Any]
             ``{"chunk_id": ..., "raptor_node_id": ...}``
         """
-        chunk_id = f"chunk-{uuid4().hex[:8]}"
+        chunk_hash = hashlib.sha1(text.encode("utf-8")).hexdigest()[:16]
+        chunk_id = f"chunk-{chunk_hash}"
         await self._create_chunk(chunk_id, text, chapter, stage, tags or [])
 
         templates = await self.template_service.top_k_async(text, k=self.top_k)
@@ -295,6 +299,7 @@ class AugmentPipeline:
 
         rows: List[Dict[str, Any]] = []
         alias_map: Dict[str, str] = {}
+        unresolved: set[str] = set()
         for tpl in templates:
             try:
                 fills = await self.slot_filler.fill_slots(tpl, text)
@@ -351,9 +356,28 @@ class AugmentPipeline:
 
                 for row in result:
                     for key, val in list(row.items()):
-                        if isinstance(val, str) and val in alias_map:
-                            row[key] = alias_map[val]
+                        if isinstance(val, str):
+                            if val in alias_map:
+                                row[key] = alias_map[val]
+                            elif _ID_RE.match(val):
+                                unresolved.add(val)
+                    stage_val = row.get("meta_draft_stage")
+                    if isinstance(stage_val, (int, float)):
+                        try:
+                            row["meta_draft_stage"] = StageEnum(stage_val).name
+                        except ValueError:  # pragma: no cover - unexpected values
+                            row["meta_draft_stage"] = str(stage_val)
                 rows.extend(result)
+
+        to_resolve = unresolved.difference(alias_map.keys())
+        if to_resolve:
+            extra = await self.identity_service.get_alias_map(list(to_resolve))
+            if extra:
+                alias_map.update(extra)
+                for row in rows:
+                    for key, val in list(row.items()):
+                        if isinstance(val, str) and val in extra:
+                            row[key] = extra[val]
 
         summary = None
         if self.summariser:

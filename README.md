@@ -179,8 +179,8 @@ pre-commit install
 
 
 ## Codex Dev Environment
-Для локального запуска Codex-агента и интеграционных тестов см. [docs/codex_dev_environment.md](docs/codex_dev_environment.md).
+Для локального запуска Codex-агента и интеграционных тестов см. [docs/quickstart/codex_dev_environment.md](docs/quickstart/codex_dev_environment.md).
 
 ## Agent Quick Start
-A concise checklist for any agent starting work on the project is available at [docs/agent_quick_start.md](docs/agent_quick_start.md). Check it before exploring other files.
+A concise checklist for any agent starting work on the project is available at [docs/quickstart/agent_quick_start.md](docs/quickstart/agent_quick_start.md). Check it before exploring other files.
 
