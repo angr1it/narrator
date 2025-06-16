@@ -137,8 +137,8 @@ class TemplateService:
         query: str,
         category: Optional[str] = None,
         k: int = 3,
-        top_distance_threshold_warn: float = 0.5,
-        distance_threshold: float = 0.5,
+        top_distance_threshold_warn: float = 0.75,
+        distance_threshold: float = 0.75,
         *,
         mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
     ) -> List[CypherTemplate]:
@@ -183,17 +183,20 @@ class TemplateService:
             return []
 
         objects = results.objects
-        distances = [obj.metadata.distance for obj in objects]
+        distances = [getattr(obj.metadata, "distance", 0.0) or 0.0 for obj in objects]
+        scores = [
+            getattr(obj.metadata, "score", None) or (1.0 - d)
+            for obj, d in zip(objects, distances)
+        ]
 
         if distances and distances[0] > top_distance_threshold_warn:
-            log_low_score_warning(
-                query, objects, distances, top_distance_threshold_warn
-            )
+            score_threshold = 1.0 - top_distance_threshold_warn
+            log_low_score_warning(query, objects, scores, score_threshold)
 
         return [
             self._from_weaviate(obj)
             for obj in objects
-            if obj.metadata.distance > distance_threshold
+            if obj.metadata.distance < distance_threshold
         ]
 
     async def top_k_async(
@@ -201,13 +204,20 @@ class TemplateService:
         query: str,
         category: Optional[str] = None,
         k: int = 3,
-        distance_threshold: float = 0.5,
+        top_distance_threshold_warn: float = 0.75,
+        distance_threshold: float = 0.75,
         *,
         mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
     ) -> List[CypherTemplate]:
         """Async wrapper around :meth:`top_k`."""
         return await asyncio.to_thread(
-            self.top_k, query, category, k, distance_threshold, mode=mode
+            self.top_k,
+            query,
+            category,
+            k,
+            top_distance_threshold_warn,
+            distance_threshold,
+            mode=mode,
         )
 
     def ensure_base_templates(self) -> None:
