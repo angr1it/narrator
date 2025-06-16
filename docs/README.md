@@ -26,6 +26,7 @@ Use this index to navigate the design docs.
 - `models/graph_models_review.md` – graph model discussion
 - `models/models_refactoring_pipeline.md` – model refactoring notes
 
+
 ## Examples and Tests
 - `examples/fact_examples.md` – pipeline examples
 - `examples/test_cases_extract_save.md` – expected tests

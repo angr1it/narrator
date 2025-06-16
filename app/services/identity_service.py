@@ -103,6 +103,9 @@ class IdentityService:
         # call async or sync upsert_alias and collect cypher snippets
         cyphers: List[str] = []
         for task in alias_tasks:
+            if not self._is_valid_alias(task.alias_text, task.snippet):
+                _logger.info("[Identity] skipping invalid alias '%s'", task.alias_text)
+                continue
             upsert = getattr(self, "_upsert_alias", None)
             if callable(upsert) and asyncio.iscoroutinefunction(upsert):
                 await upsert(task)
@@ -397,6 +400,33 @@ class IdentityService:
             raise ValueError(
                 f"_llm must return LLMDecision or dict, got {type(result)}"
             )
+
+    @staticmethod
+    def _is_valid_alias(text: str, snippet: str) -> bool:
+        if text is None:
+            return False
+        clean = text.strip()
+        if not clean or clean.lower() in {"null", "none"}:
+            return False
+        if clean.lower() in {
+            "he",
+            "she",
+            "they",
+            "him",
+            "her",
+            "them",
+            "his",
+            "hers",
+            "their",
+        }:
+            return False
+        if len(clean) < 3:
+            return False
+        if len(clean.split()) >= 4:
+            return False
+        if clean == snippet.strip():
+            return False
+        return True
 
     def _upsert_alias_sync(self, task: AliasTask) -> None:
         col = self._w.collections.get(ALIAS_CLASS)
