@@ -101,3 +101,40 @@ def test_render_includes_details(jinja_env):
     assert 'details: "why"' in plan.content_cypher
     assert 'description: "d"' in plan.content_cypher
     assert plan.details == "why"
+
+
+def test_append_return_for_yield(jinja_env):
+    """Renderer should append RETURN when a query ends with YIELD."""
+    jinja_env.loader.mapping["yield_end.j2"] = (
+        "MERGE (a:Character {id: '{{ a }}'})\n"
+        "MERGE (b:Character {id: '{{ b }}'})\n"
+        "CALL apoc.create.relationship(a, 'REL', {}, b) YIELD rel\n"
+        "{% set related_node_ids=[a, b] %}"
+    )
+    template = CypherTemplate(
+        id=uuid4(),
+        name="yield_end",
+        title="t",
+        description="d",
+        slots={
+            "a": SlotDefinition(name="a", type="STRING"),
+            "b": SlotDefinition(name="b", type="STRING"),
+        },
+        extract_cypher="yield_end.j2",
+        use_base_extract=False,
+        graph_relation=GraphRelationDescriptor(
+            predicate="REL",
+            subject="$a",
+            object="$b",
+        ),
+        return_map={"r": "rel"},
+    )
+    renderer = TemplateRenderer(jinja_env)
+    fill = SlotFill(
+        template_id=str(template.id),
+        slots={"a": "c1", "b": "c2"},
+        details="",
+    )
+    meta = {"chunk_id": "c1"}
+    plan = renderer.render(template, fill, meta)
+    assert plan.content_cypher.strip().endswith("RETURN rel")
