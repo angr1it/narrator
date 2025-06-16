@@ -1,6 +1,8 @@
 # Improvement Template
 
-Файл назовите `mm.dd_short_description.md` (пример: `06.16_add_logging.md`).
+Файл назовите `mm.dd.n_short_description.md`,
+где `n` — порядковый номер доработки за день
+(пример: `06.16.1_add_logging.md`).
 
 ## Цель
 Краткое описание требуемого улучшения или новой функциональности.
