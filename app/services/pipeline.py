@@ -330,6 +330,12 @@ class AugmentPipeline:
                 )
                 alias_map.update(resolve.alias_map)
 
+                value_slot = None
+                if tpl.graph_relation and tpl.graph_relation.value:
+                    expr = tpl.graph_relation.value
+                    if isinstance(expr, str) and expr.startswith("$"):
+                        value_slot = expr[1:]
+
                 slot_fill = SlotFill(
                     template_id=str(tpl.id),
                     slots=resolve.mapped_slots,
@@ -361,6 +367,15 @@ class AugmentPipeline:
                                 row[key] = alias_map[val]
                             elif _ID_RE.match(val):
                                 unresolved.add(val)
+                    if row.get("value") is None and value_slot:
+                        slot_id = resolve.mapped_slots.get(value_slot)
+                        if slot_id:
+                            if slot_id in alias_map:
+                                row["value"] = alias_map[slot_id]
+                            else:
+                                if isinstance(slot_id, str) and _ID_RE.match(slot_id):
+                                    unresolved.add(slot_id)
+                                row["value"] = slot_id
                     stage_val = row.get("meta_draft_stage")
                     if isinstance(stage_val, (int, float)):
                         try:
