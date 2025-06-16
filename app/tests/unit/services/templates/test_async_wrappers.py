@@ -50,7 +50,8 @@ class DummyService(TemplateService):
         query: str,
         category=None,
         k: int = 3,
-        distance_threshold: float = 0.5,
+        top_distance_threshold_warn: float = 0.75,
+        distance_threshold: float = 0.75,
         *,
         mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
     ):  # type: ignore[override]
