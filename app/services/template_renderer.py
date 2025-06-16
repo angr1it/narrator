@@ -75,17 +75,6 @@ class TemplateRenderer:
             raise ValueError("chunk_id is required for rendering")
         cypher_query = template.render(context, chunk_id, mode=mode)
 
-        # Procedures like ``apoc.create.relationship`` require ``RETURN`` or
-        # another clause after ``YIELD``. Some templates end with ``YIELD``
-        # alone, so append ``RETURN`` automatically in this case.
-        stripped = cypher_query.rstrip()
-        lines = stripped.splitlines()
-        if lines:
-            last = lines[-1]
-            match = re.search(r"YIELD\s+(\w+)\s*$", last)
-            if match:
-                cypher_query = stripped + f"\nRETURN {match.group(1)}"
-
         triple_text = ""
         related_node_ids: list[str] = []
         if template.graph_relation:

@@ -9,4 +9,5 @@ CALL apoc.create.relationship(
     },
     b
 ) YIELD rel
+RETURN rel
 {% set related_node_ids = [character_a, character_b] %}

@@ -10,6 +10,7 @@ MERGE (c:Character {id: "{{ character }}"})
       },
       t
   ) YIELD rel
+  RETURN rel
   {% set related_node_ids = [character, target] %}
 {% else %}
   SET c.latest_emotion = '{{ emotion }}'
