@@ -38,5 +38,5 @@ Use this index to navigate the design docs.
 - `notes/redesign_backlog_analysis.md`
 
 ## Bugs and Improvements
-- `bugs/` – bug reports (file name starts with `mm.dd_`)
-- `improvements/` – proposals (file name starts with `mm.dd_`)
+- `bugs/` – bug reports (file name `mm.dd.n_description.md`)
+- `improvements/` – proposals (file name `mm.dd.n_description.md`)

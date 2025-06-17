@@ -371,14 +371,28 @@ async def test_augment_pipeline_rewrites_ids(jinja_env):
 
         async def run_query(self, cypher, params=None, *, write=True):
             self.calls.append((cypher, params))
-            return [{"target": "character-12345678", "meta_draft_stage": 1}]
+            return [
+                {
+                    "relation": "REL",
+                    "target": "character-12345678",
+                    "meta_draft_stage": 1,
+                }
+            ]
 
         async def run_queries(self, cyphers, params_list=None, *, write=True):
             self.calls.append((list(cyphers), params_list))
-            return [{"target": "character-12345678", "meta_draft_stage": 1}]
+            return [
+                {
+                    "relation": "REL",
+                    "target": "character-12345678",
+                    "meta_draft_stage": 1,
+                }
+            ]
 
     jinja_env.loader.mapping.update(
-        {"name_aug.j2": "RETURN 1 AS meta_draft_stage, '{{ target }}' AS target"}
+        {
+            "name_aug.j2": "RETURN 'REL' AS relation, 1 AS meta_draft_stage, '{{ target }}' AS target"
+        }
     )
 
     template = CypherTemplate(
@@ -450,6 +464,113 @@ async def test_augment_pipeline_rewrites_ids(jinja_env):
     result = await pipeline.augment_context("txt", chapter=1)
 
     row = result["context"]["rows"][0]
+    assert row["source"] == "Lyra"
     assert row["target"] == "Luthar"
     assert row["meta_draft_stage"] == "draft_1"
+    assert "triple_text" in row
     assert svc.lookups == [["character-12345678"]]
+
+
+@pytest.mark.asyncio
+async def test_augment_pipeline_fills_missing_value_with_alias(jinja_env):
+    """Pipeline should use alias map when cypher returns null value."""
+
+    class LocalGraphProxy:
+        async def run_query(self, cypher, params=None, *, write=True):
+            return [
+                {
+                    "relation": "AT_LOCATION",
+                    "value": None,
+                    "meta_draft_stage": 1,
+                }
+            ]
+
+        async def run_queries(self, cyphers, params_list=None, *, write=True):
+            return [
+                {
+                    "relation": "AT_LOCATION",
+                    "value": None,
+                    "meta_draft_stage": 1,
+                }
+            ]
+
+    jinja_env.loader.mapping.update(
+        {
+            "null_aug.j2": "RETURN 'AT_LOCATION' AS relation, null AS value, 1 AS meta_draft_stage"
+        }
+    )
+
+    template = CypherTemplate(
+        id=uuid4(),
+        name="aug",
+        title="t",
+        description="d",
+        slots={
+            "character": SlotDefinition(
+                name="character",
+                is_entity_ref=True,
+                entity_type="CHARACTER",
+                type="STRING",
+            ),
+            "place": SlotDefinition(
+                name="place", is_entity_ref=True, entity_type="PLACE", type="STRING"
+            ),
+        },
+        augment_cypher="null_aug.j2",
+        graph_relation=GraphRelationDescriptor(
+            predicate="AT_LOCATION",
+            subject="$character",
+            value="$place",
+            object="$place",
+        ),
+        return_map={"p": "Place"},
+    )
+
+    slot_fill = SlotFill(
+        template_id=str(template.id),
+        slots={"character": "c", "place": "p"},
+        details="",
+    )
+
+    class FakeTemplateService:
+        async def top_k_async(self, text, k=3, mode=TemplateRenderMode.AUGMENT):
+            return [template]
+
+    class FakeSlotFiller:
+        async def fill_slots(self, template, text):
+            return [slot_fill]
+
+    class AliasService:
+        async def resolve_bulk(
+            self, slots, *, slot_defs=None, chapter, chunk_id, snippet
+        ):
+            from services.identity_service import BulkResolveResult
+
+            return BulkResolveResult(
+                mapped_slots={"character": "id1", "place": "place-12345678"},
+                alias_tasks=[],
+                alias_map={"id1": "Lyra", "place-12345678": "Rivia"},
+            )
+
+        async def get_alias_map(self, entity_ids):
+            return {}
+
+        async def commit_aliases(self, alias_tasks):
+            return []
+
+    pipeline = AugmentPipeline(
+        template_service=FakeTemplateService(),
+        slot_filler=FakeSlotFiller(),
+        identity_service=AliasService(),
+        template_renderer=TemplateRenderer(jinja_env),
+        graph_proxy=LocalGraphProxy(),
+    )
+
+    result = await pipeline.augment_context("txt", chapter=1)
+
+    row = result["context"]["rows"][0]
+    assert row["source"] == "Lyra"
+    assert row["value"] == "Rivia"
+    assert row["target"] == "Rivia"
+    assert row["meta_draft_stage"] == "draft_1"
+    assert "triple_text" in row

@@ -43,10 +43,10 @@
 
 ## Баг репорты
 - Шаблон: `docs/bugs/bug_report_template.md`
-- Файл начинается с даты `mm.dd_`
+- Имя файла: `mm.dd.n_description.md`, где `n` — порядковый номер в этот день.
 - Размещайте баг репорты в каталоге `docs/bugs`.
 
 ## Доработки
 - Шаблон: `docs/improvements/improvement_template.md`
-- Файл начинается с даты `mm.dd_`
+- Имя файла: `mm.dd.n_description.md`, где `n` — порядковый номер в этот день.
 - Доработки размещаются в каталоге `docs/improvements`.
