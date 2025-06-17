@@ -331,6 +331,7 @@ class AugmentPipeline:
                 alias_map.update(resolve.alias_map)
 
                 value_slot = None
+
                 subject_slot = None
                 object_slot = None
                 if tpl.graph_relation:
@@ -402,6 +403,7 @@ class AugmentPipeline:
                                 if isinstance(oid, str) and _ID_RE.match(oid):
                                     unresolved.add(oid)
                                 row["target"] = oid
+
                     stage_val = row.get("meta_draft_stage")
                     if isinstance(stage_val, (int, float)):
                         try:

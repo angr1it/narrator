@@ -569,6 +569,7 @@ async def test_augment_pipeline_fills_missing_value_with_alias(jinja_env):
     result = await pipeline.augment_context("txt", chapter=1)
 
     row = result["context"]["rows"][0]
+
     assert row["source"] == "Lyra"
     assert row["value"] == "Rivia"
     assert row["target"] == "Rivia"
