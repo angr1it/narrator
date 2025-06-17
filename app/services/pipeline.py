@@ -331,10 +331,19 @@ class AugmentPipeline:
                 alias_map.update(resolve.alias_map)
 
                 value_slot = None
-                if tpl.graph_relation and tpl.graph_relation.value:
+
+                subject_slot = None
+                object_slot = None
+                if tpl.graph_relation:
                     expr = tpl.graph_relation.value
-                    if isinstance(expr, str) and expr.startswith("$"):
+                    if expr and isinstance(expr, str) and expr.startswith("$"):
                         value_slot = expr[1:]
+                    sub = tpl.graph_relation.subject
+                    if isinstance(sub, str) and sub.startswith("$"):
+                        subject_slot = sub[1:]
+                    obj = tpl.graph_relation.object
+                    if obj and isinstance(obj, str) and obj.startswith("$"):
+                        object_slot = obj[1:]
 
                 slot_fill = SlotFill(
                     template_id=str(tpl.id),
@@ -376,6 +385,25 @@ class AugmentPipeline:
                                 if isinstance(slot_id, str) and _ID_RE.match(slot_id):
                                     unresolved.add(slot_id)
                                 row["value"] = slot_id
+                    if subject_slot:
+                        sid = resolve.mapped_slots.get(subject_slot)
+                        if sid:
+                            if sid in alias_map:
+                                row["source"] = alias_map[sid]
+                            else:
+                                if isinstance(sid, str) and _ID_RE.match(sid):
+                                    unresolved.add(sid)
+                                row["source"] = sid
+                    if object_slot:
+                        oid = resolve.mapped_slots.get(object_slot)
+                        if oid:
+                            if oid in alias_map:
+                                row["target"] = alias_map[oid]
+                            else:
+                                if isinstance(oid, str) and _ID_RE.match(oid):
+                                    unresolved.add(oid)
+                                row["target"] = oid
+
                     stage_val = row.get("meta_draft_stage")
                     if isinstance(stage_val, (int, float)):
                         try:
@@ -393,6 +421,13 @@ class AugmentPipeline:
                     for key, val in list(row.items()):
                         if isinstance(val, str) and val in extra:
                             row[key] = extra[val]
+
+        for row in rows:
+            src = row.get("source")
+            tgt = row.get("target") or row.get("value")
+            rel = row.get("relation")
+            if src and rel and tgt:
+                row["triple_text"] = f"{src} -> {rel} -> {tgt}"
 
         summary = None
         if self.summariser:

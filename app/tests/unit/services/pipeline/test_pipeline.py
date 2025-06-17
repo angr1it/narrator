@@ -371,14 +371,28 @@ async def test_augment_pipeline_rewrites_ids(jinja_env):
 
         async def run_query(self, cypher, params=None, *, write=True):
             self.calls.append((cypher, params))
-            return [{"target": "character-12345678", "meta_draft_stage": 1}]
+            return [
+                {
+                    "relation": "REL",
+                    "target": "character-12345678",
+                    "meta_draft_stage": 1,
+                }
+            ]
 
         async def run_queries(self, cyphers, params_list=None, *, write=True):
             self.calls.append((list(cyphers), params_list))
-            return [{"target": "character-12345678", "meta_draft_stage": 1}]
+            return [
+                {
+                    "relation": "REL",
+                    "target": "character-12345678",
+                    "meta_draft_stage": 1,
+                }
+            ]
 
     jinja_env.loader.mapping.update(
-        {"name_aug.j2": "RETURN 1 AS meta_draft_stage, '{{ target }}' AS target"}
+        {
+            "name_aug.j2": "RETURN 'REL' AS relation, 1 AS meta_draft_stage, '{{ target }}' AS target"
+        }
     )
 
     template = CypherTemplate(
@@ -450,8 +464,10 @@ async def test_augment_pipeline_rewrites_ids(jinja_env):
     result = await pipeline.augment_context("txt", chapter=1)
 
     row = result["context"]["rows"][0]
+    assert row["source"] == "Lyra"
     assert row["target"] == "Luthar"
     assert row["meta_draft_stage"] == "draft_1"
+    assert "triple_text" in row
     assert svc.lookups == [["character-12345678"]]
 
 
@@ -461,13 +477,27 @@ async def test_augment_pipeline_fills_missing_value_with_alias(jinja_env):
 
     class LocalGraphProxy:
         async def run_query(self, cypher, params=None, *, write=True):
-            return [{"value": None, "meta_draft_stage": 1}]
+            return [
+                {
+                    "relation": "AT_LOCATION",
+                    "value": None,
+                    "meta_draft_stage": 1,
+                }
+            ]
 
         async def run_queries(self, cyphers, params_list=None, *, write=True):
-            return [{"value": None, "meta_draft_stage": 1}]
+            return [
+                {
+                    "relation": "AT_LOCATION",
+                    "value": None,
+                    "meta_draft_stage": 1,
+                }
+            ]
 
     jinja_env.loader.mapping.update(
-        {"null_aug.j2": "RETURN null AS value, 1 AS meta_draft_stage"}
+        {
+            "null_aug.j2": "RETURN 'AT_LOCATION' AS relation, null AS value, 1 AS meta_draft_stage"
+        }
     )
 
     template = CypherTemplate(
@@ -539,5 +569,9 @@ async def test_augment_pipeline_fills_missing_value_with_alias(jinja_env):
     result = await pipeline.augment_context("txt", chapter=1)
 
     row = result["context"]["rows"][0]
+
+    assert row["source"] == "Lyra"
     assert row["value"] == "Rivia"
+    assert row["target"] == "Rivia"
     assert row["meta_draft_stage"] == "draft_1"
+    assert "triple_text" in row
