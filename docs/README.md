@@ -11,6 +11,7 @@ Use this index to navigate the design docs.
 - `pipelines/pipeline_implementation.md` – implementation notes
 - `pipelines/extract_save_algorithm.md` – detailed flow
 - `pipelines/extract_graph_schema.md` – nodes and edges created by `/extract`
+- `pipelines/extraction_to_graph_theory.md` – theoretical walkthrough
 - `pipelines/raptor_pipeline_architecture.md` – Raptor index design
 - `pipelines/augmentation_pipeline_brainstorm.md` – early notes on `/augment-context`
 - `pipelines/augment_pipeline_status.md` – current status
