@@ -91,3 +91,12 @@ async def test_call_llm_with_model_invalid():
     llm = make_llm("oops")
     with pytest.raises(json.JSONDecodeError):
         await call_llm_with_model(ObjModel, llm, PROMPT)
+
+
+@pytest.mark.asyncio
+async def test_skip_invalid_items():
+    """Invalid objects from the LLM should be ignored."""
+    response = '[{"name": "A"}, {"name": null}, {"other": "x"}]'
+    llm = make_llm(response)
+    result = await call_llm_with_json_list(ItemModel, llm, PROMPT)
+    assert result == [ItemModel(name="A")]

@@ -9,7 +9,7 @@ from langchain.prompts import PromptTemplate
 from langchain.output_parsers import PydanticOutputParser, OutputFixingParser
 from langchain_core.exceptions import OutputParserException
 from langchain_core.runnables import RunnableConfig
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel, RootModel, ValidationError
 
 from utils.logger import get_logger
 
@@ -68,7 +68,23 @@ async def call_llm_with_json_list(
                     data = json.loads(raw)
                     if isinstance(data, dict):
                         data = [data]
-                    result = ResponseList.model_validate(data)
+                    try:
+                        result = ResponseList.model_validate(data)
+                    except ValidationError as exc:
+                        logger.error("Invalid items in LLM response: %s", exc)
+                        valid_items = []
+                        for idx, item in enumerate(data):
+                            try:
+                                valid_items.append(item_model.model_validate(item))
+                            except ValidationError as item_exc:
+                                logger.error(
+                                    "Skipping item %s in LLM response: %s",
+                                    idx,
+                                    item_exc,
+                                )
+                        if not valid_items:
+                            raise
+                        result = ResponseList(root=valid_items)
             return list(result.root)
         except Exception as e:
             attempts += 1
