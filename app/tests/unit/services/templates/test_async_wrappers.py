@@ -53,9 +53,10 @@ class DummyService(TemplateService):
         top_distance_threshold_warn: float = 0.75,
         distance_threshold: float = 0.75,
         *,
+        alpha: float = 0.5,
         mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
     ):  # type: ignore[override]
-        self.called["top_k"] = (query, k)
+        self.called["top_k"] = (query, k, alpha)
         if k <= 0:
             return []
         return [
@@ -94,7 +95,7 @@ async def test_async_wrappers_call_sync_methods():
     assert svc.called["get_by_name"] == "name"
 
     await svc.top_k_async("q", k=1)
-    assert svc.called["top_k"] == ("q", 1)
+    assert svc.called["top_k"] == ("q", 1, 0.5)
 
 
 def test_top_k_handles_nonpositive_k():

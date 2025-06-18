@@ -77,7 +77,7 @@ class TemplateService:
 
         # Добавляем вектор при необходимости
         if payload.get("vector") is None and self.embedder:
-            payload["vector"] = self.embedder(self._canonicalise_template(tpl))  # type: ignore[arg-type]
+            payload["vector"] = self.embedder(tpl.representation or tpl.description)  # type: ignore[arg-type]
 
         assert self.client is not None
         coll = self.client.collections.get(self.CLASS_NAME)  # type: ignore[attr-defined]
@@ -140,6 +140,7 @@ class TemplateService:
         top_distance_threshold_warn: float = 0.75,
         distance_threshold: float = 0.75,
         *,
+        alpha: float = 0.5,
         mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
     ) -> List[CypherTemplate]:
         """Semantic search for the *k* best‑matching templates.
@@ -162,22 +163,16 @@ class TemplateService:
                 aug_filter if filters is None else Filter.all_of([filters, aug_filter])
             )
 
-        # Выполняем поиск по вектору или по тексту
-        if self.embedder:
-            vector = self.embedder(query)
-            results = coll.query.near_vector(
-                near_vector=vector,
-                limit=k,
-                filters=filters,
-                return_metadata=MetadataQuery(score=True, distance=True),
-            )
-        else:
-            results = coll.query.near_text(
-                query=query,
-                limit=k,
-                filters=filters,
-                return_metadata=MetadataQuery(score=True, distance=True),
-            )
+        vector = self.embedder(query) if self.embedder else None
+        results = coll.query.hybrid(
+            query=query,
+            vector=vector,
+            alpha=alpha,
+            query_properties=["keywords"],
+            filters=filters,
+            limit=k,
+            return_metadata=MetadataQuery(score=True, distance=True),
+        )
 
         if not results.objects:
             return []
@@ -207,6 +202,7 @@ class TemplateService:
         top_distance_threshold_warn: float = 0.75,
         distance_threshold: float = 0.75,
         *,
+        alpha: float = 0.5,
         mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
     ) -> List[CypherTemplate]:
         """Async wrapper around :meth:`top_k`."""
@@ -217,6 +213,7 @@ class TemplateService:
             k,
             top_distance_threshold_warn,
             distance_threshold,
+            alpha=alpha,
             mode=mode,
         )
 
@@ -248,7 +245,11 @@ class TemplateService:
                 Property(name="version", data_type=DataType.TEXT),
                 Property(name="title", data_type=DataType.TEXT),
                 Property(name="description", data_type=DataType.TEXT),
-                Property(name="details", data_type=DataType.TEXT),
+                Property(
+                    name="keywords",
+                    data_type=DataType.TEXT_ARRAY,
+                    index_searchable=True,
+                ),
                 Property(name="category", data_type=DataType.TEXT),
                 Property(
                     name="slots",
@@ -292,19 +293,6 @@ class TemplateService:
         )
 
     @staticmethod
-    def _canonicalise_template(tpl: CypherTemplateBase) -> str:
-        """Return a **stable** string representation that feeds the embedder.
-
-        The canonical form concatenates the key semantic elements separated by
-        `‖` (U+2016) so that small field order changes do not alter the meaning.
-        """
-        representation = tpl.description
-        if tpl.details:
-            representation += " ‖ " + tpl.details
-
-        return representation
-
-    @staticmethod
     def _from_weaviate(raw: ObjectSingleReturn) -> CypherTemplate:
         props = raw.properties
         allowed = {
@@ -312,7 +300,7 @@ class TemplateService:
             "version",
             "title",
             "description",
-            "details",
+            "keywords",
             "category",
             "slots",
             "extract_cypher",

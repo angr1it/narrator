@@ -31,7 +31,7 @@ async def test_pipeline_simple(
     jinja_env,
 ):
     class FakeTemplateService:
-        async def top_k_async(self, text, k=3):
+        async def top_k_async(self, text, k=3, *, alpha=0.5):
             return [sample_template]
 
     class FakeSlotFiller:
@@ -72,7 +72,7 @@ async def test_pipeline_returns_details(
     raptor_index,
 ):
     class FakeTemplateService:
-        async def top_k_async(self, text, k=3):
+        async def top_k_async(self, text, k=3, *, alpha=0.5):
             return [sample_template]
 
     class FakeSlotFiller:
@@ -110,7 +110,7 @@ async def test_pipeline_deterministic_chunk_id(
     """Chunk ID should be stable for identical text."""
 
     class FakeTemplateService:
-        async def top_k_async(self, text, k=3):
+        async def top_k_async(self, text, k=3, *, alpha=0.5):
             return [sample_template]
 
     class FakeSlotFiller:
@@ -148,7 +148,7 @@ async def test_pipeline_converts_raptor_id_to_str(
             return NonStrId()
 
     class FakeTemplateService:
-        async def top_k_async(self, text, k=3):
+        async def top_k_async(self, text, k=3, *, alpha=0.5):
             return [sample_template]
 
     class FakeSlotFiller:
@@ -214,7 +214,7 @@ async def test_pipeline_splits_cypher_at_with_star(
     )
 
     class FakeTemplateService:
-        async def top_k_async(self, text, k=3):
+        async def top_k_async(self, text, k=3, *, alpha=0.5):
             return [template]
 
     class FakeSlotFiller:
@@ -266,7 +266,9 @@ async def test_augment_pipeline_splits_cypher_at_with_star(
     )
 
     class FakeTemplateService:
-        async def top_k_async(self, text, k=3, mode=TemplateRenderMode.AUGMENT):
+        async def top_k_async(
+            self, text, k=3, *, alpha=0.5, mode=TemplateRenderMode.AUGMENT
+        ):
             return [template]
 
     class FakeSlotFiller:
@@ -331,7 +333,9 @@ async def test_augment_pipeline_skips_failed_template(
     )
 
     class FakeTemplateService:
-        async def top_k_async(self, text, k=3, mode=TemplateRenderMode.AUGMENT):
+        async def top_k_async(
+            self, text, k=3, *, alpha=0.5, mode=TemplateRenderMode.AUGMENT
+        ):
             return [bad_tpl, ok_tpl]
 
     class FakeSlotFiller:
@@ -423,7 +427,9 @@ async def test_augment_pipeline_rewrites_ids(jinja_env):
     )
 
     class FakeTemplateService:
-        async def top_k_async(self, text, k=3, mode=TemplateRenderMode.AUGMENT):
+        async def top_k_async(
+            self, text, k=3, *, alpha=0.5, mode=TemplateRenderMode.AUGMENT
+        ):
             return [template]
 
     class FakeSlotFiller:
@@ -533,7 +539,9 @@ async def test_augment_pipeline_fills_missing_value_with_alias(jinja_env):
     )
 
     class FakeTemplateService:
-        async def top_k_async(self, text, k=3, mode=TemplateRenderMode.AUGMENT):
+        async def top_k_async(
+            self, text, k=3, *, alpha=0.5, mode=TemplateRenderMode.AUGMENT
+        ):
             return [template]
 
     class FakeSlotFiller:

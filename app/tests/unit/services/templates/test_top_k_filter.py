@@ -10,7 +10,17 @@ class DummyQuery:
     def __init__(self):
         self.captured = None
 
-    def near_vector(self, *, near_vector, limit, filters=None, return_metadata=None):
+    def hybrid(
+        self,
+        *,
+        query=None,
+        vector=None,
+        alpha=0.5,
+        query_properties=None,
+        limit=None,
+        filters=None,
+        return_metadata=None,
+    ):
         self.captured = filters
 
         class R:
