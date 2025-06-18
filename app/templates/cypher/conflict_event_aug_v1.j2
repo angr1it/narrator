@@ -1,0 +1,5 @@
+MATCH (a:Character {id: "{{ attacker }}"})-[r:HAS_ATTACKED]->()
+{% include "_augment_filters.j2" %}
+{% set return_relation = 'type(r)' %}
+{% set return_value = 'r.value AS target' %}
+{% include "_augment_meta.j2" %}

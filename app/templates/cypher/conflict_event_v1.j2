@@ -1,0 +1,13 @@
+MERGE (a:Character {id: "{{ attacker }}"})
+WITH a
+CALL apoc.create.relationship(
+    a,
+    'HAS_ATTACKED',
+    {
+        value: true,
+        {% include "_relation_meta.j2" %}
+    },
+    null
+) YIELD rel
+RETURN rel
+{% set related_node_ids = [attacker] %}
