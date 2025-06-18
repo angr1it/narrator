@@ -33,7 +33,6 @@ class GraphRelationDescriptor(BaseModel):
     subject: str                      # "$character"
     object: Optional[str] = None     # "$faction"
     value: Optional[str] = None      # используется для текста или embedding
-    details: Optional[str] = None    # chain-of-thought reasoning
 ```
 
 **Зачем:**

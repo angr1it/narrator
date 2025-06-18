@@ -4,7 +4,13 @@ base_templates = [
         "version": "1.0.1",
         "title": "Trait attribution",
         "description": "Character gains, reveals or is attributed a personal trait.",
-        "details": "The protagonist might demonstrate unexpected bravery during a crisis, a supporting character could reveal their intelligence through solving a complex puzzle, or a villain's cruelty might become evident through their actions. This captures moments where a character's nature or qualities become apparent through the narrative.",
+        "keywords": [
+            "trait",
+            "reveal",
+            "bravery",
+            "intelligence",
+            "cruelty",
+        ],
         "category": "EventInsert",
         "slots": {
             "character": {
@@ -46,6 +52,13 @@ base_templates = [
         "version": "1.0.1",
         "title": "Membership change",
         "description": "Character joins, leaves or betrays a faction. This includes scenarios where a knight pledges allegiance to a new lord, a spy infiltrates an enemy organization, a rebel abandons their cause after a crisis of conscience, or a long-standing member is expelled from their guild for breaking rules. Any narrative moment that changes a character's affiliation or group membership.",
+        "keywords": [
+            "joins",
+            "leaves",
+            "betrayal",
+            "faction",
+            "allegiance",
+        ],
         "category": "EventInsert",
         "slots": {
             "character": {
@@ -84,6 +97,13 @@ base_templates = [
         "version": "1.0.1",
         "title": "Character relation",
         "description": "Creates or updates a social relation between two characters (ally, rival, sibling, parent, etc.). This captures situations where characters discover they're long-lost siblings, former friends become bitter enemies after a betrayal, strangers form a strategic alliance against a common threat, or a mentor takes on a new apprentice. Any significant development or change in how two characters relate to each other.",
+        "keywords": [
+            "relation",
+            "ally",
+            "rival",
+            "sibling",
+            "betrayal",
+        ],
         "category": "EventInsert",
         "slots": {
             "character_a": {
@@ -123,6 +143,13 @@ base_templates = [
         "version": "1.0.1",
         "title": "Item ownership",
         "description": "Character acquires or possesses an item. This includes a hero finding an ancient magical sword, a thief stealing a valuable artifact, a character receiving a meaningful gift or heirloom, or someone purchasing an important tool for their quest. Any narrative moment where a character gains possession of something significant to the story.",
+        "keywords": [
+            "acquire",
+            "possession",
+            "item",
+            "artifact",
+            "gift",
+        ],
         "category": "EventInsert",
         "slots": {
             "character": {
@@ -155,6 +182,13 @@ base_templates = [
         "version": "1.0.1",
         "title": "Relocation / arrives at place",
         "description": "Character changes location, arrives or leaves a place. This captures a traveler reaching a mysterious new city, a refugee fleeing their homeland, an explorer discovering uncharted territory, or a prisoner escaping their cell. Any significant movement of characters between meaningful locations in the narrative landscape.",
+        "keywords": [
+            "relocation",
+            "travel",
+            "arrive",
+            "depart",
+            "location",
+        ],
         "category": "EventInsert",
         "slots": {
             "character": {
@@ -182,6 +216,13 @@ base_templates = [
         "version": "1.0.1",
         "title": "Emotional state toward target",
         "description": "Character feels an emotion toward another character or in general. This applies when a protagonist develops feelings of love for another character, a villain's hatred intensifies after defeat, a character experiences profound grief following a loss, or someone struggles with jealousy over another's success. Captures the emotional landscape and psychological developments driving character motivations.",
+        "keywords": [
+            "emotion",
+            "love",
+            "hate",
+            "grief",
+            "jealousy",
+        ],
         "category": "EventInsert",
         "slots": {
             "character": {
@@ -231,6 +272,13 @@ base_templates = [
         "version": "1.0.1",
         "title": "Vow or promise",
         "description": "Character makes a vow, promise or obligation toward a goal or target. This includes a knight swearing to avenge their fallen comrade, a character pledging to protect someone vulnerable, a villain making a threat of retribution, or someone committing to an important personal goal. Any declaration of intent or commitment that drives future narrative actions.",
+        "keywords": [
+            "vow",
+            "promise",
+            "oath",
+            "pledge",
+            "commitment",
+        ],
         "category": "EventInsert",
         "slots": {
             "character": {
@@ -264,6 +312,13 @@ base_templates = [
         "version": "1.0.1",
         "title": "Death of character",
         "description": "Marks a character as deceased. This applies to heroic sacrifices in battle, victims of murder or assassination, natural deaths of significance to the plot, or presumed deaths later revealed to be false. Captures pivotal moments where a character's life ends or is believed to end, changing the trajectory of the narrative.",
+        "keywords": [
+            "death",
+            "kill",
+            "assassination",
+            "sacrifice",
+            "demise",
+        ],
         "category": "EventInsert",
         "slots": {
             "character": {
@@ -289,6 +344,13 @@ base_templates = [
         "version": "1.0.1",
         "title": "Belief or ideology",
         "description": "Character professes belief in deity, ideology or philosophy. This includes a character's conversion to a new religion after a profound experience, a politician embracing a radical ideology, someone finding comfort in spiritual practices during hardship, or a character questioning and abandoning their long-held beliefs. Reflects the philosophical and spiritual dimensions that shape character motivations and worldviews.",
+        "keywords": [
+            "belief",
+            "ideology",
+            "religion",
+            "conversion",
+            "philosophy",
+        ],
         "category": "EventInsert",
         "slots": {
             "character": {"name": "character", "type": "STRING", "is_entity_ref": True},
@@ -317,6 +379,13 @@ base_templates = [
         "version": "1.0.1",
         "title": "Title acquisition",
         "description": "Character receives or is granted a new title or role. This captures a soldier's promotion to general, a commoner ascending to nobility, an apprentice becoming a master of their craft, or someone being appointed to a position of authority. Any formal recognition or change in status that affects how others perceive and interact with the character within the narrative.",
+        "keywords": [
+            "title",
+            "promotion",
+            "nobility",
+            "appointment",
+            "role",
+        ],
         "category": "EventInsert",
         "slots": {
             "character": {

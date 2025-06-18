@@ -42,7 +42,6 @@ class GraphRelationDescriptor(BaseModel):
     subject: str  # "$character" — имя слота
     object: Optional[str] = None  # "$faction"
     value: Optional[str] = None  # строковое значение (если не object)
-    details: Optional[str] = None  # chain-of-thought reasoning
 
 
 class CypherTemplateBase(BaseModel):
@@ -54,7 +53,7 @@ class CypherTemplateBase(BaseModel):
     version: str = "1.0.0"
     title: str
     description: str
-    details: Optional[str] = None
+    keywords: Optional[list[str]] = None
     category: Optional[str] = None
 
     slots: dict[str, SlotDefinition]
@@ -74,6 +73,9 @@ class CypherTemplateBase(BaseModel):
     updated_at: Optional[datetime] = None
     vector: Optional[List[float]] = None
 
+    # Канонический текст для генерации эмбеддинга и гибридного поиска
+    representation: Optional[str] = None
+
     default_confidence: float = 0.2
 
     return_map: dict[str, str]  # имена переменных → ноды/идентификаторы в графе
@@ -84,6 +86,14 @@ class CypherTemplateBase(BaseModel):
             self.supports_extract = self.extract_cypher is not None
         if self.supports_augment is None:
             self.supports_augment = self.augment_cypher is not None
+        return self
+
+    @model_validator(mode="after")
+    def _build_representation(self) -> "CypherTemplateBase":
+        text = self.description
+        if self.keywords:
+            text = f"{self.description}. Keywords: {' '.join(self.keywords)}"
+        self.representation = text
         return self
 
     def validate_augment(self) -> None:
@@ -172,4 +182,3 @@ class RenderedCypher(BaseModel):
     alias_cypher: Optional[str] = None  # если нужен alias
     relation_cypher: Optional[str] = None  # ранее: fact_cypher
     triple_text: str  # строка вида "Aren MEMBER_OF Night Front"
-    details: str  # отладка / chain-of-thought

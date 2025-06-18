@@ -31,7 +31,6 @@ class GraphRelationDescriptor(BaseModel):
     subject: str                     # "$character" — имя слота
     object: Optional[str] = None     # "$faction"
     value: Optional[str] = None      # строковое значение (если не object)
-    details: Optional[str] = None    # chain-of-thought reasoning
 ```
 
 Используется для:
@@ -58,7 +57,7 @@ class CypherTemplateBase(BaseModel):
     version: str = "1.0.0"
     title: str
     description: str
-    details: Optional[str] = None
+    keywords: Optional[list[str]] = None
     category: Optional[str] = None
 
     slots: dict[str, SlotDefinition]
@@ -78,6 +77,7 @@ class CypherTemplateBase(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     vector: Optional[List[float]] = None
+    representation: Optional[str] = None      # текст для векторизации
 
     default_confidence: float = 0.2
 
@@ -152,7 +152,6 @@ class RenderedCypher(BaseModel):
     alias_cypher: Optional[str] = None    # если нужен alias
     relation_cypher: Optional[str] = None # ранее: fact_cypher
     triple_text: str                      # строка вида "Aren MEMBER_OF Night Front"
-    details: str                          # отладка / chain-of-thought
 ```
 
 ---

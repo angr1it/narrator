@@ -23,10 +23,17 @@ class DummyQuery:
     def __init__(self, objects):
         self._objects = objects
 
-    def near_vector(self, *, near_vector, limit, filters=None, return_metadata=None):
-        return type("Res", (), {"objects": self._objects})
-
-    def near_text(self, *, query, limit, filters=None, return_metadata=None):
+    def hybrid(
+        self,
+        *,
+        query=None,
+        vector=None,
+        alpha=0.5,
+        query_properties=None,
+        limit=None,
+        filters=None,
+        return_metadata=None,
+    ):
         return type("Res", (), {"objects": self._objects})
 
 
