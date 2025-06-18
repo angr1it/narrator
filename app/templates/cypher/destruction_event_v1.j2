@@ -1,0 +1,4 @@
+MERGE (t {id: "{{ target }}"})
+SET t.is_intact = false
+SET t.destroyed_chapter = {{ chapter }}
+{% set related_node_ids = [target] %}
