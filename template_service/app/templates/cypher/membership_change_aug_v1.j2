@@ -1,0 +1,9 @@
+MATCH (c:Character {id: "{{ character }}"})-[r:MEMBER_OF]->(f:Faction)
+{% include "_augment_filters.j2" %}
+
+WITH r, f
+ORDER BY r.chapter DESC, r.draft_stage DESC, r.confidence DESC
+LIMIT 1
+{% set return_relation = '"MEMBER_OF"' %}
+{% set return_value = 'f.name AS value' %}
+{% include "_augment_meta.j2" %}

@@ -1,0 +1,1 @@
+WHERE true{% if chapter is defined %} AND r.chapter <= {{ chapter }}{% endif %}{% if chapter_from is defined %} AND r.chapter >= {{ chapter_from }}{% endif %}{% if draft_stage is defined %} AND r.draft_stage >= {{ draft_stage }}{% endif %}
