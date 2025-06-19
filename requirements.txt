@@ -22,3 +22,6 @@ black
 flake8
 langchain_openai
 vulture==2.14
+grpcio
+grpcio-tools
+-e ./contracts

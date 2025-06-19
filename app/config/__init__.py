@@ -19,6 +19,8 @@ class AppSettings(BaseSettings):
     WEAVIATE_API_KEY: str
     WEAVIATE_CLASS_NAME: str
 
+    TEMPLATE_SERVICE_ADDRESS: str = "localhost:50051"  # gRPC endpoint
+
     MONGO_URI: str | None = None
 
     LANGFUSE_HOST: str | None = None

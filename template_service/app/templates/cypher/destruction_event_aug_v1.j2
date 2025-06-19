@@ -1,0 +1,10 @@
+MATCH (t {id: "{{ target }}"})
+WHERE t.destroyed_chapter <= {{ chapter }}
+RETURN "IS_INTACT" AS relation,
+       "false" AS value,
+       t.destroyed_chapter AS meta_fact_chapter,
+       NULL AS meta_template_id,
+       NULL AS meta_chunk_id,
+       t.raptor_node_id AS meta_raptor_id,
+       1.0 AS meta_confidence,
+       "final" AS meta_draft_stage

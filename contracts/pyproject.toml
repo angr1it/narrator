@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "contracts"
+version = "0.1.0"
+description = "Shared protobuf contracts for microservices"
+packages = [ { include = "contracts_py" } ]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+protobuf = "*"
+grpcio = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

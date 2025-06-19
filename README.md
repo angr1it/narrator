@@ -177,6 +177,14 @@ pip install -r requirements.txt
 pre-commit install
 ```
 
+The protobuf schemas used for RPC communication live in the `contracts/` folder.
+After moving it to a dedicated repository, install the published package and
+update dependencies via Poetry:
+
+```bash
+poetry add contracts@<version>
+```
+
 
 ## Codex Dev Environment
 Для локального запуска Codex-агента и интеграционных тестов см. [docs/quickstart/codex_dev_environment.md](docs/quickstart/codex_dev_environment.md).
