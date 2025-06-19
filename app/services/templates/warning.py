@@ -21,5 +21,6 @@ def log_low_score_warning(
     print("⚠️ Warning: top result score below threshold!")
     print(f"Query: {query}")
     print("Results:")
-    for template, score in sorted(zip(templates, scores), key=lambda x: -x[1]):
-        print(f"- {template.properties['name']} (score: {score:.4f})")
+    for template, score in sorted(zip(templates, scores), key=lambda x: -(x[1] or 0.0)):
+        s = score if score is not None else 0.0
+        print(f"- {template.properties['name']} (score: {s:.4f})")

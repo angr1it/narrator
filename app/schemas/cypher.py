@@ -174,6 +174,7 @@ class CypherTemplateBase(BaseModel):
 
 class CypherTemplate(CypherTemplateBase):
     id: uuid.UUID
+    score: float | None = None
 
 
 class RenderedCypher(BaseModel):
