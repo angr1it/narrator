@@ -1,0 +1,16 @@
+{#
+  Wrapper that links all nodes mentioned in the domain template to the
+  originating ``Chunk``.  ``MATCH`` clauses are grouped before ``MERGE`` so the
+  pipeline can split the query around ``WITH *`` to satisfy Neo4j's ordering
+  rules.
+#}
+{% include template_body %}
+
+WITH *
+MATCH (chunk:Chunk {id: "{{ chunk_id }}"})
+{% for node_id in related_node_ids %}
+  MATCH (x{{ loop.index }} {id: "{{ node_id }}"})
+{% endfor %}
+{% for node_id in related_node_ids %}
+  MERGE (chunk)-[:MENTIONS]->(x{{ loop.index }})
+{% endfor %}

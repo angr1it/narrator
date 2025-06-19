@@ -14,7 +14,11 @@ from schemas.cypher import CypherTemplate, TemplateRenderMode
 from services.graph_proxy import GraphProxy
 from services.slot_filler import SlotFiller
 from services.template_renderer import TemplateRenderer
-from services.templates import TemplateService
+from services.templates import TemplateService  # noqa: F401
+from config.template_client import (
+    TemplateServiceClient,
+    get_template_service_client,
+)
 from services.identity_service import IdentityService
 from services.raptor_index import FlatRaptorIndex
 from functools import lru_cache
@@ -45,15 +49,21 @@ class ExtractionPipeline:
 
     def __init__(
         self,
-        template_service: TemplateService,
         slot_filler: SlotFiller,
         graph_proxy: GraphProxy,
         identity_service: IdentityService,
         template_renderer: TemplateRenderer,
         raptor_index: FlatRaptorIndex,
+        *,
+        template_service: TemplateService | None = None,
+        template_client: TemplateServiceClient | None = None,
         top_k: int = 10,
     ) -> None:
+        # self.template_service = template_service  # deprecated direct usage
         self.template_service = template_service
+        self.template_client = template_client
+        if self.template_client is None and self.template_service is None:
+            self.template_client = get_template_service_client()
         self.slot_filler = slot_filler
         self.graph_proxy = graph_proxy
         self.identity_service = identity_service
@@ -90,7 +100,14 @@ class ExtractionPipeline:
         chunk_id = f"chunk-{chunk_hash}"
         await self._create_chunk(chunk_id, text, chapter, stage, tags or [])
 
-        templates = await self.template_service.top_k_async(text, k=self.top_k)
+        if self.template_client:
+            templates = await self.template_client.find_templates(
+                text, top_k=self.top_k
+            )
+        elif self.template_service:
+            templates = await self.template_service.top_k_async(text, k=self.top_k)
+        else:
+            templates = []
         triple_texts: List[str] = []
         relationships: List[Dict[str, str | None]] = []
         aliases: List[Dict[str, str]] = []
@@ -248,7 +265,7 @@ def get_extraction_pipeline() -> ExtractionPipeline:
 
     from config import app_settings
     from config.langfuse import provide_callback_handler_with_tags
-    from services.templates.service import get_template_service
+    from config.template_client import get_template_service_client
     from services.template_renderer import get_template_renderer
     from services.graph_proxy import get_graph_proxy
     from services.identity_service import get_identity_service_sync
@@ -261,7 +278,7 @@ def get_extraction_pipeline() -> ExtractionPipeline:
     filler = SlotFiller(llm=llm, callback_handler=handler)
 
     return ExtractionPipeline(
-        template_service=get_template_service(),
+        template_client=get_template_service_client(),
         slot_filler=filler,
         graph_proxy=get_graph_proxy(),
         identity_service=get_identity_service_sync(),
@@ -275,18 +292,23 @@ class AugmentPipeline:
 
     def __init__(
         self,
-        template_service: TemplateService,
         slot_filler: SlotFiller,
         identity_service: IdentityService,
         template_renderer: TemplateRenderer,
         graph_proxy: GraphProxy,
         *,
+        template_service: TemplateService | None = None,
+        template_client: TemplateServiceClient | None = None,
         summariser: (
             Callable[[List[Dict[str, Any]]], Awaitable[str] | str] | None
         ) = None,
         top_k: int = 10,
     ) -> None:
+        # self.template_service = template_service  # deprecated direct usage
         self.template_service = template_service
+        self.template_client = template_client
+        if self.template_client is None and self.template_service is None:
+            self.template_client = get_template_service_client()
         self.slot_filler = slot_filler
         self.identity_service = identity_service
         self.template_renderer = template_renderer
@@ -297,9 +319,14 @@ class AugmentPipeline:
     async def augment_context(
         self, text: str, chapter: int, tags: List[str] | None = None
     ) -> Dict[str, Any]:  # pragma: no cover - integration tested separately
-        templates = await self.template_service.top_k_async(
-            text, k=self.top_k, mode=TemplateRenderMode.AUGMENT
-        )
+        if self.template_client:
+            templates = await self.template_client.find_templates(
+                text, top_k=self.top_k
+            )
+        elif self.template_service:
+            templates = await self.template_service.top_k_async(text, k=self.top_k)
+        else:
+            templates = []
 
         rows: List[Dict[str, Any]] = []
         alias_map: Dict[str, str] = {}
@@ -454,7 +481,7 @@ def get_augment_pipeline() -> AugmentPipeline:
 
     from config import app_settings
     from config.langfuse import provide_callback_handler_with_tags
-    from services.templates.service import get_template_service
+    from config.template_client import get_template_service_client
     from services.template_renderer import get_template_renderer
     from services.graph_proxy import get_graph_proxy
     from services.identity_service import get_identity_service_sync
@@ -464,7 +491,7 @@ def get_augment_pipeline() -> AugmentPipeline:
     filler = SlotFiller(llm=llm, callback_handler=handler)
 
     return AugmentPipeline(
-        template_service=get_template_service(),
+        template_client=get_template_service_client(),
         slot_filler=filler,
         identity_service=get_identity_service_sync(),
         template_renderer=get_template_renderer(),

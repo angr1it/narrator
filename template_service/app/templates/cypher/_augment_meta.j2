@@ -1,0 +1,9 @@
+ OPTIONAL MATCH (chunk:Chunk {id:r.chunk_id})
+RETURN {{ return_relation }} AS relation,
+       {{ return_value }},
+       r.chapter AS meta_fact_chapter,
+       r.template_id AS meta_template_id,
+       r.chunk_id AS meta_chunk_id,
+       chunk.raptor_node_id AS meta_raptor_id,
+       r.confidence AS meta_confidence,
+       r.draft_stage AS meta_draft_stage

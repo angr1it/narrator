@@ -1,0 +1,7 @@
+MERGE (c:Character {id: "{{ character }}"})
+MERGE (d:Ideology {id: "{{ ideology }}"})
+MERGE (c)-[r:BELIEVES_IN {
+    {% include "_relation_meta.j2" %}
+}]->(d)
+
+{% set related_node_ids = [character, ideology] %}
