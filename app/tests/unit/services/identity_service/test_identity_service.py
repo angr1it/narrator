@@ -10,6 +10,7 @@ from services.identity_service import (
     AliasTask,
     LLMDecision,
     _render_alias_cypher,
+    get_identity_service_sync,
 )
 from schemas.cypher import SlotDefinition
 from langchain_core.language_models.fake import FakeListLLM
@@ -185,8 +186,8 @@ async def test_startup_creates_collection():
     assert any(p.name == "alias_text" for p in props)
 
 
-def test_llm_disambiguate_accepts_model():
-    """LLM can be provided as a callable object returning LLMDecision."""
+def test_llm_disambiguate_callable_error():
+    """Callable without LLM interface should raise an error."""
 
     class LLMObj:
         def __call__(self, *a, **kw):
@@ -197,9 +198,8 @@ def test_llm_disambiguate_accepts_model():
         embedder=lambda x: [0.0],
         llm=LLMObj(),
     )
-    decision = svc._llm_disambiguate_sync("n", [], 1, "t")
-    assert isinstance(decision, LLMDecision)
-    assert decision.entity_id == "e2"
+    with pytest.raises(Exception):
+        svc._llm_disambiguate_sync("n", [], 1, "t")
 
 
 def test_llm_disambiguate_invalid_type():
@@ -382,3 +382,52 @@ def test_resolve_bulk_respects_entity_type():
     )
     assert res.mapped_slots["place"].startswith("location-")
     assert res.alias_map[res.mapped_slots["place"]] == "Paris"
+
+
+def test_llm_disambiguate_skip_action():
+    """_llm_disambiguate_sync should handle 'skip' responses."""
+
+    fake_llm = MyFakeLLM(['{"action": "skip", "details": "not a name"}'])
+
+    svc = IdentityService(
+        weaviate_sync_client=type("C", (), {"collections": None})(),
+        embedder=lambda x: [0.0],
+        llm=fake_llm,
+    )
+
+    decision = svc._llm_disambiguate_sync("it", [], 1, "it is here")
+    assert decision.action == "skip"
+    assert decision.details == "not a name"
+
+
+def test_resolve_single_skip_action():
+    """When LLM returns 'skip', the raw value is kept and no task is created."""
+
+    class LocalService(DummyService):
+        def _nearest_alias_sync(self, *a, **k):
+            return [{"alias_text": "he", "entity_id": "e1", "score": 0.5}]
+
+        def _llm_disambiguate_sync(self, *a, **k):
+            return LLMDecision(action="skip", details="pronoun")
+
+    svc = LocalService()
+    res = svc._resolve_single_sync(
+        raw_name="he",
+        entity_type="CHARACTER",
+        chapter=1,
+        chunk_id="c1",
+        snippet="he said",
+    )
+    assert res["entity_id"] == "he"
+    assert res["need_task"] is False
+
+
+def test_get_identity_service_sync_uses_default_llm():
+    """When llm is None, a ChatOpenAI model is created."""
+
+    svc = get_identity_service_sync(
+        wclient=type("C", (), {"collections": None})(), embedder=lambda x: [0.0]
+    )
+    from langchain_openai import ChatOpenAI
+
+    assert isinstance(svc._llm, ChatOpenAI)

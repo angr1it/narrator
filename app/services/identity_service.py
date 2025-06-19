@@ -19,6 +19,7 @@ from langchain.prompts import PromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 
 from utils.helpers.llm import call_llm_with_model, call_llm_with_model_sync
+from langchain_openai import ChatOpenAI
 
 from config.embeddings import openai_embedder, EmbedderFn  # type: ignore
 from config.langfuse import provide_callback_handler_with_tags  # type: ignore
@@ -57,7 +58,7 @@ class BulkResolveResult(BaseModel):
 
 
 class LLMDecision(BaseModel):
-    action: Literal["use", "new"]
+    action: Literal["use", "new", "skip"]
     entity_id: Optional[str] = None
     alias_text: Optional[str] = None
     canonical: Optional[bool] = None
@@ -282,6 +283,15 @@ class IdentityService:
                     },
                     "details": decision.details,
                 }
+            if decision.action == "skip":
+                return {
+                    "entity_id": raw_name,
+                    "alias_text": raw_name,
+                    "need_task": False,
+                    "template_id": None,
+                    "render_slots": {},
+                    "details": decision.details,
+                }
 
         entity_id = f"{entity_type.lower()}-{uuid.uuid4().hex[:8]}"
         return {
@@ -382,24 +392,14 @@ class IdentityService:
         snippet: str,
     ) -> LLMDecision:
         prompt = self._build_disambiguate_prompt(raw_name, aliases, chapter, snippet)
-        try:
-            return call_llm_with_model_sync(
-                LLMDecision,
-                self._llm,
-                prompt,
-                callback_handler=self._callback_handler,
-                run_name=f"{self.__class__.__name__.lower()}.disambiguate",
-                tags=[self.__class__.__name__],
-            )
-        except Exception:
-            result = self._llm(raw_name, aliases, chapter, snippet)
-            if isinstance(result, dict):
-                return LLMDecision(**result)
-            if isinstance(result, LLMDecision):
-                return result
-            raise ValueError(
-                f"_llm must return LLMDecision or dict, got {type(result)}"
-            )
+        return call_llm_with_model_sync(
+            LLMDecision,
+            self._llm,
+            prompt,
+            callback_handler=self._callback_handler,
+            run_name=f"{self.__class__.__name__.lower()}.disambiguate",
+            tags=[self.__class__.__name__],
+        )
 
     @staticmethod
     def _is_valid_alias(text: str, snippet: str) -> bool:
@@ -469,7 +469,9 @@ def get_identity_service_sync(
     embedder: Optional[EmbedderFn] = None,
     wclient: Optional[WeaviateClient] = None,
 ) -> IdentityService:
-    resolved_llm = llm or (lambda *_: {"action": "new"})
+    resolved_llm = llm or ChatOpenAI(
+        api_key=app_settings.OPENAI_API_KEY, temperature=0.0
+    )
     handler = provide_callback_handler_with_tags(tags=[IdentityService.__name__])
     embedder = embedder or openai_embedder
 
