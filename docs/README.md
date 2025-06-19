@@ -20,6 +20,7 @@ Use this index to navigate the design docs.
 - `components/service_structure.md` – directory overview
 - `components/slotfiller_spec.md` – slot filler spec
 - `components/graph_proxy.md` – Neo4j helper usage
+- `contracts/` – protobuf contracts shared by all services
 
 ## Models and Templates
 - `models/pydantic_models_for_cypher_template.md` – template models

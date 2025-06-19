@@ -3,7 +3,7 @@
 from server import TemplateServiceServicer
 from services.templates import TemplateService, CypherTemplate
 from schemas.cypher import CypherTemplateBase
-from proto import template_service_pb2
+from contracts_py import template_service_pb2
 
 
 class DummyService(TemplateService):

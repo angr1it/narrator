@@ -4,7 +4,11 @@ from typing import Iterable
 import grpc
 from google.protobuf.json_format import MessageToDict
 
-from proto import template_service_pb2_grpc, template_service_pb2, common_pb2
+from contracts_py import (
+    template_service_pb2_grpc,
+    template_service_pb2,
+    common_pb2,
+)
 from services.templates import TemplateService, get_template_service_sync
 from schemas.cypher import CypherTemplateBase, SlotDefinition
 

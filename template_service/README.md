@@ -59,11 +59,11 @@ Available RPC methods:
 * `FindTemplates` – semantic search for templates
 * `UpsertTemplate` – create or update a template
 
-Clients may use the generated modules in `app/proto/`:
+Clients should import message classes from the shared `contracts` package:
 
 ```python
 import grpc
-from app.proto import template_service_pb2, template_service_pb2_grpc
+from contracts_py import template_service_pb2, template_service_pb2_grpc
 
 async def search(text: str):
     async with grpc.aio.insecure_channel("localhost:50051") as ch:
