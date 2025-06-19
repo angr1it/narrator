@@ -1,0 +1,5 @@
+MATCH (c:Character {id: "{{ character }}"})-[r:CREATED_ITEM]->(i:Item)
+{% include "_augment_filters.j2" %}
+{% set return_relation = 'type(r)' %}
+{% set return_value   = 'i.id AS target' %}
+{% include "_augment_meta.j2" %}

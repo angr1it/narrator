@@ -1,0 +1,5 @@
+MERGE (c:Character {id: "{{ character }}"})
+SET c.is_alive = false
+SET c.deceased_chapter = {{ chapter }}
+
+{% set related_node_ids = [character] %}
