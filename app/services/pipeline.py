@@ -51,7 +51,7 @@ class ExtractionPipeline:
         identity_service: IdentityService,
         template_renderer: TemplateRenderer,
         raptor_index: FlatRaptorIndex,
-        top_k: int = 5,
+        top_k: int = 10,
     ) -> None:
         self.template_service = template_service
         self.slot_filler = slot_filler
@@ -252,7 +252,7 @@ def get_extraction_pipeline() -> ExtractionPipeline:
     from services.identity_service import get_identity_service_sync
     from services.raptor_index import get_raptor_index
 
-    llm = ChatOpenAI(api_key=app_settings.OPENAI_API_KEY, temperature=0.0)
+    llm = ChatOpenAI(api_key=app_settings.OPENAI_API_KEY, temperature=0.0, model="gpt-4o-mini")
     handler = provide_callback_handler_with_tags(tags=["SlotFiller"])
     filler = SlotFiller(llm=llm, callback_handler=handler)
 
@@ -280,7 +280,7 @@ class AugmentPipeline:
         summariser: (
             Callable[[List[Dict[str, Any]]], Awaitable[str] | str] | None
         ) = None,
-        top_k: int = 5,
+        top_k: int = 10,
     ) -> None:
         self.template_service = template_service
         self.slot_filler = slot_filler

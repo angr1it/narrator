@@ -1,13 +1,13 @@
 MERGE (c:Character {id: "{{ character }}"})
-WITH c
+MERGE (i:Item      {id: "{{ item }}"})
+WITH c, i
 CALL apoc.create.relationship(
     c,
-    'HAS_CREATED_ITEM',
+    'CREATED_ITEM',
     {
-        value: true,
         {% include "_relation_meta.j2" %}
     },
-    null
+    i
 ) YIELD rel
 RETURN rel
-{% set related_node_ids = [character] %}
+{% set related_node_ids = [character, item] %}

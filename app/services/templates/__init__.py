@@ -136,9 +136,9 @@ class TemplateService:
         self,
         query: str,
         category: Optional[str] = None,
-        k: int = 3,
-        top_distance_threshold_warn: float = 0.75,
-        distance_threshold: float = 0.75,
+        k: int = 10,
+        top_score_threshold_warn: float = 0.33,
+        score_threshold: float = 0.33,
         *,
         alpha: float = 0.5,
         mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
@@ -178,29 +178,31 @@ class TemplateService:
             return []
 
         objects = results.objects
-        distances = [getattr(obj.metadata, "distance", 0.0) or 0.0 for obj in objects]
-        scores = [
-            getattr(obj.metadata, "score", None) or (1.0 - d)
-            for obj, d in zip(objects, distances)
-        ]
+        top_score = (
+            getattr(objects[0].metadata, "score") if objects[0].metadata else 0.0
+        )
 
-        if distances and distances[0] > top_distance_threshold_warn:
-            score_threshold = 1.0 - top_distance_threshold_warn
-            log_low_score_warning(query, objects, scores, score_threshold)
+        if top_score < top_score_threshold_warn:
+            log_low_score_warning(
+                query,
+                objects,
+                [getattr(obj.metadata, "score") or None for obj in objects],
+                score_threshold,
+            )
 
         return [
             self._from_weaviate(obj)
             for obj in objects
-            if obj.metadata.distance < distance_threshold
+            if getattr(obj.metadata, "score") >= score_threshold
         ]
 
     async def top_k_async(
         self,
         query: str,
         category: Optional[str] = None,
-        k: int = 3,
-        top_distance_threshold_warn: float = 0.75,
-        distance_threshold: float = 0.75,
+        k: int = 10,
+        top_distance_threshold_warn: float = 0.33,
+        distance_threshold: float = 0.33,
         *,
         alpha: float = 0.5,
         mode: TemplateRenderMode = TemplateRenderMode.EXTRACT,
