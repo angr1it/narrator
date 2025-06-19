@@ -171,6 +171,7 @@ class ExtractionPipeline:
             "draft_stage": stage.value,
             "description": template.description,
             "confidence": template.default_confidence,
+            "score": template.score or 0.0,
         }
         render = self.template_renderer.render(template, slot_fill, meta)
 
@@ -204,6 +205,7 @@ class ExtractionPipeline:
                     "predicate": template.graph_relation.predicate,
                     "object": str(obj) if obj is not None else None,
                     "details": fill.details,
+                    "score": template.score,
                 }
             )
 
@@ -252,7 +254,9 @@ def get_extraction_pipeline() -> ExtractionPipeline:
     from services.identity_service import get_identity_service_sync
     from services.raptor_index import get_raptor_index
 
-    llm = ChatOpenAI(api_key=app_settings.OPENAI_API_KEY, temperature=0.0, model="gpt-4o-mini")
+    llm = ChatOpenAI(
+        api_key=app_settings.OPENAI_API_KEY, temperature=0.0, model="gpt-4o-mini"
+    )
     handler = provide_callback_handler_with_tags(tags=["SlotFiller"])
     filler = SlotFiller(llm=llm, callback_handler=handler)
 

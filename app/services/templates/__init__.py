@@ -179,22 +179,23 @@ class TemplateService:
 
         objects = results.objects
         top_score = (
-            getattr(objects[0].metadata, "score") if objects[0].metadata else 0.0
+            getattr(objects[0].metadata, "score", 0.0) if objects[0].metadata else 0.0
         )
 
         if top_score < top_score_threshold_warn:
             log_low_score_warning(
                 query,
                 objects,
-                [getattr(obj.metadata, "score") or None for obj in objects],
+                [getattr(obj.metadata, "score", None) for obj in objects],
                 score_threshold,
             )
 
-        return [
-            self._from_weaviate(obj)
-            for obj in objects
-            if getattr(obj.metadata, "score") >= score_threshold
-        ]
+        filtered = []
+        for obj in objects:
+            score = getattr(obj.metadata, "score", None)
+            if score is None or score >= score_threshold:
+                filtered.append(self._from_weaviate(obj))
+        return filtered
 
     async def top_k_async(
         self,
@@ -325,6 +326,10 @@ class TemplateService:
         if "supports_augment" not in clean:
             clean["supports_augment"] = bool(clean.get("augment_cypher"))
         clean["id"] = str(raw.uuid)
+        score = None
+        if raw.metadata is not None:
+            score = getattr(raw.metadata, "score", None)
+        clean["score"] = score
         return CypherTemplate(**clean)
 
 
