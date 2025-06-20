@@ -19,6 +19,7 @@ Use this index to navigate the design docs.
 ## Components
 - `components/service_structure.md` – directory overview
 - `components/slotfiller_spec.md` – slot filler spec
+- `components/template_service_spec.md` – TemplateService contract
 - `components/graph_proxy.md` – Neo4j helper usage
 
 ## Models and Templates

@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package template;
+
+option python_package = "proto";
+
+// Structures used by TemplateService.
+message SlotDefinition {
+  string name = 1;
+  string type = 2; // "STRING", "INT", "FLOAT", "BOOL"
+  string description = 3;
+  bool required = 4;
+  string default_value = 5;
+  bool is_entity_ref = 6;
+  string entity_type = 7;
+}
+
+message GraphRelationDescriptor {
+  string predicate = 1;
+  string subject = 2;
+  string object = 3;
+  string value = 4;
+}
+
+message Template {
+  string id = 1;
+  string name = 2;
+  string version = 3;
+  string title = 4;
+  string description = 5;
+  repeated string keywords = 6;
+  string category = 7;
+  map<string, SlotDefinition> slots = 8;
+  GraphRelationDescriptor graph_relation = 9;
+  string fact_policy = 10;
+  string attachment_policy = 11;
+  string extract_cypher = 12;
+  bool use_base_extract = 13;
+  string augment_cypher = 14;
+  bool supports_extract = 15;
+  bool supports_augment = 16;
+  string author = 17;
+  string created_at = 18;
+  string updated_at = 19;
+  repeated double vector = 20;
+  string representation = 21;
+  double default_confidence = 22;
+  map<string, string> return_map = 23;
+  double score = 24;
+}
